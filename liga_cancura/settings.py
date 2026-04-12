@@ -73,8 +73,14 @@ WSGI_APPLICATION = 'liga_cancura.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+import dj_database_url
+import os
 
-DATABASE_URL = "postgresql://liga_user:CLCETtRvAbIyf14skD8kR2GqpU1Zz3O2@dpg-d7df02e7r5hc739vosag-a/liga_db_g3c4"
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL')
+    )
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
