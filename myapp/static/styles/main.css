@@ -1,120 +1,172 @@
+:root {
+    --nav-height: 70px;
+}
+
 body {
     background: #202020;
     color: whitesmoke;
+    padding-top: var(--nav-height);
+
 }
 
-.navbar {
-    background: #404040;
-    padding: 5px 0px 5px 0px;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
 }
-.navbar ul {
+
+h1 {
+        font-size: 3.5vw;
+        text-align: center;
+}
+/* ================= NAVBAR ================= */
+nav {
+    background: rgb(78, 23, 23);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 0;
+    height: var(--nav-height);
+}
+
+.nav-container {
     display: flex;
     justify-content: space-between;
-}
-.navbar ul li {
-    list-style: none;
-}
-.navbar ul li a {
-    display: flex;
-    justify-content: center;
     align-items: center;
-    text-align: center;
-    flex-direction: column; /* clave */
-    color: gold;
-    text-decoration: none;
-    font-size: large;
-    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-    margin-right: 5vh;
+    max-width: 1200px;
+    margin: 0 auto;
 }
-.navbar ul li a:hover{
-    color: brown;
+.logo {
+    color: gold;
+    font-weight: bold;
+    font-size: 1.5rem;
+    text-decoration: none;
 }
 
+/* MENÚ PC */
+.nav-menu {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    transition: all 0.3s ease;
+}
+
+.nav-menu a {
+    color: gold;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ;
+}
+
+.nav-menu a:hover {
+    opacity: 0.8;
+    color: brown;
+    transform: translateY(-2px);
+}
+
+.menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* ================= CONTAINER ================= */
 .container {
     max-width: 90%;
     margin: auto;
 }
 
+/* ================= CARDS ================= */
 .card {
     background: black;
     color: white;
-    padding: 0vh;
-    margin-bottom: 2px;
+    margin-bottom: 5px;
 }
 
-.card a{
+.card a {
     color: white;
     text-decoration: none;
     font-size: 10vh;
     text-align: center;
 }
 
+/* ================= INPUT ================= */
 .input {
     background: wheat;
     padding: 10px;
-    text-align: start;
     display: block;
 }
 
+/* ================= TABLAS ================= */
 table, th, td {
     border: 1px solid white;
     border-collapse: collapse;
 }
+
 table {
     width: 100%;
     table-layout: fixed;
 }
+
 th, td {
     padding: 10px;
 }
+
 th {
     font-size: 4vh;
 }
+
 tr {
     background-color: #202020;
     opacity: 0.8;
 }
+
 tr:hover {
     background-color: brown;
     cursor: pointer;
     opacity: 1;
 }
+
 .encabezado:hover {
     background-color: #202020;
     opacity: 0.8;
     cursor: auto;
 }
 
+/* ================= FONDO ================= */
 .bg {
     position: fixed;
     width: 100%;
     height: 100%;
-    object-fit: contain; /* 👈 muestra la imagen completa */
+    object-fit: contain;
     top: 0;
     left: 0;
-    z-index: -1; /* queda detrás del contenido */
+    z-index: -1;
     opacity: 0.2;
 }
 
-/* ------------------------------------------------------------------------------- */
-/* CONTENEDOR DEL FORMULARIO */
+/* ================= FORMULARIO ================= */
 .form-container {
-    max-width: 500px;
-    margin: 40px auto;
+    max-width: 75%;
+    margin: 50px auto;
     padding: 30px;
     background: #202020;
     border-radius: 12px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    color: #fff;
 }
 
-/* TÍTULO */
 .form-container h1 {
     text-align: center;
     margin-bottom: 20px;
 }
 
-/* INPUTS */
 .form-container input,
 .form-container select,
 .form-container textarea {
@@ -127,10 +179,8 @@ tr:hover {
     background: rgb(62, 47, 9);
     color: #fff;
     outline: none;
-    transition: 0.3s;
 }
 
-/* EFECTO FOCUS */
 .form-container input:focus,
 .form-container select:focus,
 .form-container textarea:focus {
@@ -138,13 +188,11 @@ tr:hover {
     box-shadow: 0 0 0 2px #007bff;
 }
 
-/* LABELS */
 .form-container label {
     font-weight: bold;
     font-size: 3vh;
 }
 
-/* BOTÓN */
 .form-container button {
     width: 100%;
     padding: 12px;
@@ -158,19 +206,17 @@ tr:hover {
     transition: 0.3s;
 }
 
-/* HOVER BOTÓN */
 .form-container button:hover {
     background: red;
 }
 
-/* ERRORES */
 .form-container .errorlist {
     color: #ff6b6b;
     list-style: none;
     padding: 0;
-    margin-bottom: 10px;
 }
 
+/* ================= GENERALES ================= */
 button {
     color: white;
     background: brown;
@@ -182,55 +228,96 @@ input {
     font-size: 3vh;
 }
 
-h1{
+h1 {
     font-size: 6vh;
 }
 
+/* ================= BOTONES ================= */
 .btn {
     padding: 8px 12px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
 }
 
 .editar {
     background-color: rgb(189, 160, 0);
-    color: white;
 }
 
 .eliminar {
     background-color: #e74c3c;
-    color: white;
 }
 
 .ver {
     background-color: green;
-    color: white;
 }
-/* ===================== MOBILE ===================== */
+
+.tabla-container{
+    margin-top: 2vh;
+}
+
+/* ================= MOBILE ================= */
 @media (max-width: 768px) {
 
-    /* NAVBAR */
-    .navbar ul {
-        align-items: center;
-        gap: 10px;
+    /* BOTÓN */
+    .menu-btn {
+        display: block; 
+        color: gold;
     }
 
-    .navbar ul li a {
-        margin-right: 0;
-        font-size: 3vw;
+    /* MENÚ OCULTO */
+    .nav-menu {
+        position: fixed;
+        top: 50px;
+        left: 0;
+        width: 100%;
+        background: rgb(78, 23, 23);
+        flex-direction: column;
+        align-items: center;
+        padding: 0 0;
+        clip-path: circle(0px at 90% -10%);
+        pointer-events: none;
+        z-index: 0;
     }
+
+    /* CUANDO SE ABRE */
+    .nav-menu.active {
+        clip-path: circle(1000px at 90% -10%);
+        pointer-events: all;
+        z-index: 9999;
+    }
+
+    .nav-menu li {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+    }
+
+    .nav-menu.active li {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .nav-menu li:nth-child(1) {transition-delay: 0.1s;}
+    .nav-menu li:nth-child(2) {transition-delay: 0.2s;}
+    .nav-menu li:nth-child(3) {transition-delay: 0.3s;}
+    .nav-menu li:nth-child(4) {transition-delay: 0.4s;}
+    .nav-menu li:nth-child(5) {transition-delay: 0.5s;}
+    .nav-menu li:nth-child(6) {transition-delay: 0.6s;}
+    .nav-menu li:nth-child(7) {transition-delay: 0.7s;}
 
     /* TEXTOS */
     h1 {
-        font-size: 6vw;
-        text-align: center;
+        font-size: 3.5vw;
     }
 
+    h2 {
+        font-size: 2vw;
+        font-weight: 500;
+    }
     /* CARDS */
     .card a {
-        font-size: 8vw;
+        font-size: 3vw;
     }
 
     /* FORMULARIOS */
@@ -240,71 +327,64 @@ h1{
     }
 
     .form-container label {
-        font-size: 4vw;
-    }
-
-    .form-container button {
-        font-size: 4vw;
-    }
-
-    input {
-        font-size: 4vw;
+        font-size: 3vw;
     }
 
     button {
-        font-size: 4vw;
+        font-size: 2.5vw;
+        border-radius: 1vh;
+        padding: 1vh;
+    }
+    input {
+        font-size: 2vw;
     }
 
     /* TABLAS */
+    .tabla-container{
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 2vh;
+    }
     table {
-        display: block;
-        overflow-x: auto; /* 👈 scroll horizontal */
-        white-space: nowrap;
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
     }
-
-    th {
-        font-size: 3.5vw;
-    }
-
-    td {
-        font-size: 3.5vw;
+    th, td {
+        font-size: 2.5vw;
     }
 
     /* BOTONES */
     .btn {
-        font-size: 3.5vw;
+        font-size: 2.5vw;
         padding: 6px 10px;
     }
 
     /* FONDO */
     .bg {
-        object-fit: cover; /* mejor para móvil */
+        object-fit: cover;
         opacity: 0.15;
     }
 }
 
-
-/* ===================== CELULARES PEQUEÑOS ===================== */
+/* ================= CELULARES PEQUEÑOS ================= */
 @media (max-width: 480px) {
 
     h1 {
-        font-size: 7vw;
+        font-size: 4vw;
     }
 
     .card a {
-        font-size: 9vw;
+        font-size: 3vw;
     }
 
     .form-container {
         padding: 15px;
     }
 
-    .form-container label {
-        font-size: 5vw;
-    }
-
+    .form-container label,
     .form-container button {
-        font-size: 5vw;
+        font-size: 4vw;
     }
 
     th, td {
@@ -312,6 +392,6 @@ h1{
     }
 
     .btn {
-        font-size: 4vw;
+        font-size: 3vw;
     }
 }
