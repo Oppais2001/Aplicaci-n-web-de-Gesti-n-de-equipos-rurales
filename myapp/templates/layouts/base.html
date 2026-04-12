@@ -1,46 +1,69 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Jugadores</title>
+
+    <!-- ICONO -->
     <link rel="icon" href="{% static 'img/logo_liga.png' %}">
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
+
+    <!-- ICONOS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body>
-    <nav class="navbar container">
-        <ul>
-            <li>
-                <a href="{% url 'home' %}">Home</a>
-            </li>
-            <li>
-                <a href="{% url 'about' %}">About</a>
-            </li>
-            <li>
-                <a href="{% url 'equipos' %}">Equipos</a>
-            </li>
-            <li>
-                <a href="{% url 'traspasos' %}">Traspasos</a>
-            </li>           
-            <li>
-                <a href="{% url 'ingresar_equipo' %}">Ingresar Equipos</a>
-            </li>
-            <li>
-                <a href="{% url 'ingresar_jugador' %}">Ingresar Jugadores</a>
-            </li>
-            <li>
-                <a href="{% url 'realizar_traspaso' %}">Realizar Traspasos</a>
-            </li>            
 
-        </ul>
-    </nav>
+<body>
+    <header>
+        <!-- NAVBAR -->
+        <nav class="navbar">
+            <div class="nav-container">
+
+                <!-- BOTÓN HAMBURGUESA -->
+                <a href="#" class="logo">LigaRural</a>
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <!-- MENÚ -->
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="{% url 'home' %}"><i class="fa fa-home"></i> Home</a></li>
+                    <li><a href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a></li>
+                    <li><a href="{% url 'equipos' %}"><i class="fa fa-users"></i> Equipos</a></li>
+                    <li><a href="{% url 'traspasos' %}"><i class="fa fa-right-left"></i> Traspasos</a></li>
+                    <li><a href="{% url 'ingresar_equipo' %}"><i class="fa fa-plus"></i> Equipo</a></li>
+                    <li><a href="{% url 'ingresar_jugador' %}"><i class="fa fa-user-plus"></i> Jugador</a></li>
+                    <li><a href="{% url 'realizar_traspaso' %}"><i class="fa fa-repeat"></i> Transferir</a></li>
+                </ul>
+
+            </div>
+        </nav>
+    </header>
+    <!-- SCRIPT MENU -->
+    <script>
+        const toggle = document.getElementById("menuBtn");
+        const menu = document.getElementById("nav-menu");
+
+        toggle.addEventListener("click", () => {
+            menu.classList.toggle("active");
+            if (menu.classList.contains("active")) {
+                toggle.innerHTML = '✖'
+                toggle.setAttribute("aria-expanded", "true");
+            }else{
+                toggle.innerHTML = '☰'
+                toggle.setAttribute("aria-expanded", "false");
+            }
+        });
+    </script>
+    <!-- FONDO -->
     <img src="{% static 'img/logo_liga.png' %}" class="bg">
+
+    <!-- CONTENIDO -->
     <main class="container">
         {% block content %}
         {% endblock %}
     </main>
-</body>
+
+    </body>
 </html>

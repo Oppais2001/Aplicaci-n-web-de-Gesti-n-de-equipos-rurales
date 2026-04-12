@@ -8,43 +8,45 @@
             <button type="submit">Buscar</button>
         </form>
         <br>
-        <table>
-            <tr class="encabezado">
-                <th>
-                    Nombre
-                </th>
-                <th>
-                    Rut
-                </th>
-                <th>
-                    Fecha de <br> Inscripción
-                </th>
-                <th>
-                    Acciones
-                </th>
-            </tr>
-            {% for jugador in jugadores %}
-                <tr>
+        <div class="tabla-container">
+            <table>
+                <tr class="encabezado">
                     <th>
-                        {{jugador.nombre}}
+                        Nombre
                     </th>
                     <th>
-                        {{jugador.rut}}
+                        Rut
                     </th>
                     <th>
-                        {{jugador.fecha_inscripcion}}
+                        Fecha de <br> Inscripción
                     </th>
                     <th>
-                        <button class="btn editar" title="Editar">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut}}")'class="btn eliminar" title="Eliminar">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        Acciones
                     </th>
                 </tr>
-            {% endfor %}
-        </table>
+                {% for jugador in jugadores %}
+                    <tr>
+                        <th>
+                            {{jugador.nombre}}
+                        </th>
+                        <th>
+                            {{jugador.rut}}
+                        </th>
+                        <th>
+                            {{jugador.fecha_inscripcion}}
+                        </th>
+                        <th>
+                            <button class="btn editar" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut}}")'class="btn eliminar" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </th>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

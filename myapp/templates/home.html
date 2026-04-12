@@ -3,14 +3,14 @@
 {% block content %}
 <div class="form-container">
     <h1>
-        Aplicación de <br> Gestión de Jugadores
+        Aplicación de Gestión de Jugadores
     </h1>
     <h2>Resumen Total</h2>
-    <h3>Se han registrado {{total_jugadores}} jugador en total.</h3>
-    <h3>Se han registrado {{total_equipos}} equipos en total.</h3>
+    <p>Se han registrado {{total_jugadores}} jugador en total.<p>
+    <p>Se han registrado {{total_equipos}} equipos en total.<p>
     <h2>Resumen por equipo</h2>
     {% for equipo, valor in equipos.items %}
-        <h3>{{ equipo }} tiene {{ valor }} jugadores.</h3>
+        <p>{{ equipo }} tiene {{ valor }} jugadores.<p>
     {% endfor %}
 </div>
 {% endblock %}
