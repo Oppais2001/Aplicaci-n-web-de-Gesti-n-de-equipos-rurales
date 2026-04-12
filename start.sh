@@ -1,0 +1,1 @@
+gunicorn liga_cancura.wsgi:application

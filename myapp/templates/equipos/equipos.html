@@ -1,0 +1,68 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+    <div>
+        <h1>Visualizador de Equipos</h1>
+        <form method="GET">
+            <input type="text" name="buscar" placeholder="Buscar equipo...">
+            <button type="submit">Buscar</button>
+        </form>
+        <br>
+        <table>
+            <tr class="encabezado">
+                <th>
+                    Nombre
+                </th>
+                <th>
+                    Liga
+                </th>
+                <th>
+                    Acciones
+                </th>
+            </tr>
+            {% for equipo in equipos %}
+                <tr>
+                    <th>
+                        {{equipo.nombre}}
+                    </th>
+                    <th>
+                        {{equipo.liga}}
+                    </th>
+                    <th>
+                        <button class="btn editar" title="Realizar Traspaso" onclick="window.location='traspasos/realizar_traspaso'">
+                            <i class="fas fa-right-left"></i>
+                        </button>
+                      <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
+
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
+                            <i class="fa-solid fa-eye"></i> 
+                        </button>
+                    </th>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+function confirmarEliminar(equipo) {
+    console.log(equipo)
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'Eliminarás a todo el equipo "' + equipo + '" junto a todos sus jugadores',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "/equipos/eliminar/" + equipo + "/";
+        }
+    });
+}
+</script>
+
+{% endblock %}

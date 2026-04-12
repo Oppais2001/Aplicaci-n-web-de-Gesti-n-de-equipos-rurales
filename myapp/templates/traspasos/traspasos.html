@@ -1,0 +1,51 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+    <div>
+        <h1>Visualizador de Traspasos</h1>
+        <form method="GET">
+            <input type="text" name="buscar" placeholder="Buscar traspaso...">
+            <button type="submit">Buscar</button>
+        </form>
+        <br>
+        <table>
+            <tr class="encabezado">
+                <th>
+                    Nombre
+                </th>
+                <th>
+                    Rut
+                </th>
+                <th>
+                    Equipo Origen
+                </th>
+                <th>
+                    Equipo Destino
+                </th>
+                <th>
+                    Fecha
+                </th>
+            </tr>
+            {% for traspaso in traspasos %}
+                <tr>
+                    <th>
+                        {{traspaso.jugador.nombre}}
+                    </th>
+                    <th>
+                        {{traspaso.jugador.rut}}
+                    </th>
+                    <th>
+                        {{traspaso.equipo_origen}}
+                    </th>
+                    <th>
+                        {{traspaso.equipo_destino}}
+                    </th>
+                    <th>
+                        {{traspaso.fecha}}
+                    </th>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+{% endblock %}

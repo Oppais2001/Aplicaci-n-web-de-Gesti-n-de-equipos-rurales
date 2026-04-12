@@ -1,0 +1,15 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+
+<div class="form-container">
+    <h1>Ingresar Jugador</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <button>Guardar</button>
+    </form>
+</div>
+
+{% endblock %}
