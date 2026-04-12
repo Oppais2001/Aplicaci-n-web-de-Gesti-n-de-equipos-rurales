@@ -208,3 +208,111 @@ h1{
     background-color: green;
     color: white;
 }
+/* ===================== MOBILE ===================== */
+@media (max-width: 768px) {
+
+    /* NAVBAR */
+    .navbar ul {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .navbar ul li a {
+        margin-right: 0;
+        font-size: 4vw;
+    }
+
+    /* TEXTOS */
+    h1 {
+        font-size: 6vw;
+        text-align: center;
+    }
+
+    /* CARDS */
+    .card a {
+        font-size: 8vw;
+    }
+
+    /* FORMULARIOS */
+    .form-container {
+        width: 90%;
+        padding: 20px;
+    }
+
+    .form-container label {
+        font-size: 4vw;
+    }
+
+    .form-container button {
+        font-size: 4vw;
+    }
+
+    input {
+        font-size: 4vw;
+    }
+
+    button {
+        font-size: 4vw;
+    }
+
+    /* TABLAS */
+    table {
+        display: block;
+        overflow-x: auto; /* 👈 scroll horizontal */
+        white-space: nowrap;
+    }
+
+    th {
+        font-size: 3.5vw;
+    }
+
+    td {
+        font-size: 3.5vw;
+    }
+
+    /* BOTONES */
+    .btn {
+        font-size: 3.5vw;
+        padding: 6px 10px;
+    }
+
+    /* FONDO */
+    .bg {
+        object-fit: cover; /* mejor para móvil */
+        opacity: 0.15;
+    }
+}
+
+
+/* ===================== CELULARES PEQUEÑOS ===================== */
+@media (max-width: 480px) {
+
+    h1 {
+        font-size: 7vw;
+    }
+
+    .card a {
+        font-size: 9vw;
+    }
+
+    .form-container {
+        padding: 15px;
+    }
+
+    .form-container label {
+        font-size: 5vw;
+    }
+
+    .form-container button {
+        font-size: 5vw;
+    }
+
+    th, td {
+        padding: 6px;
+    }
+
+    .btn {
+        font-size: 4vw;
+    }
+}
