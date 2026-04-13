@@ -1,14 +1,14 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-    <div>
+    <div class="text-container">
         <h1>Visualizador de Traspasos</h1>
+        <br>
         <form method="GET">
             <input type="text" name="buscar" placeholder="Buscar traspaso...">
             <button type="submit">Buscar</button>
         </form>
         <br>
-        <div class="tabla-container">
             <table>
                 <tr class="encabezado">
                     <th>
@@ -47,7 +47,6 @@
                     </tr>
                 {% endfor %}
             </table>
-        </div>
     </div>
 
 {% endblock %}

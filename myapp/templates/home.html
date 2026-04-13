@@ -1,13 +1,13 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-<div class="form-container">
-    <h1>
-        Aplicación de Gestión de Jugadores
-    </h1>
+<div class="text-container">
+    <h1>Aplicación de Gestión de Jugadores</h1>
+    <br>
     <h2>Resumen Total</h2>
     <p>Se han registrado {{total_jugadores}} jugador en total.<p>
     <p>Se han registrado {{total_equipos}} equipos en total.<p>
+    <br>
     <h2>Resumen por equipo</h2>
     {% for equipo, valor in equipos.items %}
         <p>{{ equipo }} tiene {{ valor }} jugadores.<p>
