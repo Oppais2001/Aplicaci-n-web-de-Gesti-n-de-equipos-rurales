@@ -1,52 +1,54 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-    <div class="text-container">
-        <h1>Visualizador de Traspasos</h1>
-        <br>
-        <form method="GET">
-            <input type="text" name="buscar" placeholder="Buscar traspaso...">
-            <button type="submit">Buscar</button>
-        </form>
-        <br>
-            <table>
-                <tr class="encabezado">
-                    <th>
-                        Nombre
-                    </th>
-                    <th>
-                        Rut
-                    </th>
-                    <th>
-                        Equipo Origen
-                    </th>
-                    <th>
-                        Equipo Destino
-                    </th>
-                    <th>
-                        Fecha
-                    </th>
-                </tr>
-                {% for traspaso in traspasos %}
-                    <tr>
+    <div class="grid-traspasos">
+        <div class="card-title">
+            <h1>Visualizador de Traspasos</h1>
+        </div>
+        <div class="card">
+            <form method="GET">
+                <input type="text" name="buscar" placeholder="Buscar traspaso...">
+                <button type="submit">Buscar</button>
+            </form>
+                <table>
+                    <tr class="encabezado">
                         <th>
-                            {{traspaso.jugador.nombre}}
+                            Nombre
                         </th>
                         <th>
-                            {{traspaso.jugador.rut}}
+                            Rut
                         </th>
                         <th>
-                            {{traspaso.equipo_origen}}
+                            Equipo Origen
                         </th>
                         <th>
-                            {{traspaso.equipo_destino}}
+                            Equipo Destino
                         </th>
                         <th>
-                            {{traspaso.fecha}}
+                            Fecha
                         </th>
                     </tr>
-                {% endfor %}
-            </table>
+                    {% for traspaso in traspasos %}
+                        <tr>
+                            <th>
+                                {{traspaso.jugador.nombre}}
+                            </th>
+                            <th>
+                                {{traspaso.jugador.rut}}
+                            </th>
+                            <th>
+                                {{traspaso.equipo_origen}}
+                            </th>
+                            <th>
+                                {{traspaso.equipo_destino}}
+                            </th>
+                            <th>
+                                {{traspaso.fecha}}
+                            </th>
+                        </tr>
+                    {% endfor %}
+                </table>
+        </div>
     </div>
 
 {% endblock %}

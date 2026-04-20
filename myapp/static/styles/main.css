@@ -33,15 +33,19 @@ body::before {
 }
 
 h1 {
-    font-size: 6vh;
     text-align: center;
-    width: 100%;
+    margin-top: 30px;
+    font-size: 3rem;
+    color: gold;
 }
+
 h2 {
-    font-size: 2.5vw;
+    font-size: 2rem;
+    border-bottom: 2px solid #444;
+    padding-bottom: 5px;
 }
 p {
-    font-size: 2vw;
+    font-size: 2rem;
 }
 /* ================= NAVBAR ================= */
 nav {
@@ -100,29 +104,6 @@ nav {
     cursor: pointer;
 }
 
-/* ================= CONTAINER ================= */
-.container {
-    padding: auto;
-    height: 100vh;
-    display: flex;
-    justify-content: center; /* horizontal */
-    align-items: start;     /* vertical */
-}
-
-/* ================= CARDS ================= */
-.card {
-    background: black;
-    color: white;
-    margin-bottom: 5px;
-}
-
-.card a {
-    color: white;
-    text-decoration: none;
-    font-size: 10vh;
-    text-align: center;
-}
-
 /* ================= INPUT ================= */
 input {
     font-size: 3vh;
@@ -144,6 +125,9 @@ table {
 
 th, td {
     padding: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 th {
@@ -181,24 +165,26 @@ tr:hover {
     z-index: -1;
 }
 
-.text-container {
-    width: 100%;
-    margin: 5%;
-    padding: 20px;
-    background: #202020;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    overflow-x: auto;
-}
-
 /* ================= FORMULARIO ================= */
 .form-container {
-    margin: 5%;
-    padding: 20px;
-    background: #202020;
+    background: #2a2a2a;
+    padding: 10px;
     border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-container form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-container h1 {
@@ -209,7 +195,7 @@ tr:hover {
 .form-container input,
 .form-container select,
 .form-container textarea {
-    width: 100%;
+    font-size: 1rem;
     padding: 10px;
     margin-top: 8px;
     margin-bottom: 15px;
@@ -219,6 +205,7 @@ tr:hover {
     color: #fff;
     outline: none;
     margin-bottom: 25px;
+    width: 100%;
 }
 
 .form-container input:focus,
@@ -241,7 +228,7 @@ tr:hover {
     border-radius: 8px;
     color: white;
     font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-    font-size: 3vh;
+    font-size: 1.5rem;
     cursor: pointer;
     transition: 0.3s;
 }
@@ -261,7 +248,10 @@ button {
     color: white;
     background: brown;
     font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-    font-size: 3vh;
+    font-size: 1.5rem;
+    border-radius: 1rem;
+    padding: 0.25rem;
+    margin: 0.5rem;
 }
 
 /* ================= BOTONES ================= */
@@ -283,10 +273,89 @@ button {
 .ver {
     background-color: green;
 }
+/* #################################################*/
+.grid-home {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    
+}
+.grid-about {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+}
+.grid-equipos {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 1fr;
+    grid-template-rows:1fr 3fr;
+}
+.grid-ingresar {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 1fr;
+    grid-template-rows:1fr 3fr;
+}
+.grid-ingresar-jugador {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 1fr;
+    grid-template-rows:1fr 5fr;
+}
+.grid-traspasos {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 1fr;
+    grid-template-rows:1fr 3fr;
+}
 
+.about {
+    background: #2a2a2a;
+    padding: 1rem;
+    margin: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    grid-column: span 1;
+    grid-row: span 2;
+}
+.card {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    grid-column: span 1;
+    grid-row: span 1;
+}
+.card strong {
+    font-size: 1.5rem;
+    color: gold;
+}
 
+hr {
+    border: none;
+    height: 1px;
+    background: #444;
+    margin-bottom: 30px;
+}
+.card-title {
+    padding: 0;
+    margin: 0;
+    grid-column: span 2;
+    grid-row: span 1;
+}
+.card-table {
+    grid-column: span 2;
+    grid-row: span 2;
+}
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
+
+    p {
+        font-size: 1rem;
+    }
 
     nav {
     background: #202020c7;
@@ -345,7 +414,7 @@ button {
 
     /* TEXTOS */
     h1 {
-        font-size: 3vw;
+        font-size: 2rem;
     }
 
     h2 {
@@ -368,19 +437,16 @@ button {
     }
 
     button {
-        font-size: 2.5vw;
-        border-radius: 1vh;
-        padding: 1vh;
+        font-size: 1.25rem;
+        border-radius: 0.75rem;
+        padding: 0.15rem;
+        margin: 0.1rem;
     }
     input {
         font-size: 2vw;
     }
 
     /* TABLAS */
-    .tabla-container{
-        width: 100%;
-        /*overflow-x: auto;*/
-    }
     /*table {
         width: max-content;
         min-width: 100%;
@@ -412,7 +478,7 @@ button {
 @media (max-width: 480px) {
 
     h1 {
-        font-size: 4vw;
+        font-size: 2rem;
     }
 
     .card a {
@@ -425,7 +491,7 @@ button {
 
     .form-container label,
     .form-container button {
-        font-size: 4vw;
+        font-size: 1.25rem;
     }
 
     th, td {
@@ -439,7 +505,7 @@ button {
 
 @media (orientation: portrait) {
     h1 {
-        font-size: 6vw;
+        font-size: 2rem;
         text-align: center;
     }
     h2 {
@@ -467,14 +533,10 @@ button {
         font-size: 2vh;
     }
    /* TABLAS */
-    .tabla-container{
-        width: 100%;
-        overflow-x: auto;
-    }
+
     table {
-        width: max-content;
-        min-width: 100%;
-        border-collapse: collapse;
+        width: 100%;
+        table-layout: fixed;
     }
     th, td {
         font-size: 2vh;
@@ -492,5 +554,18 @@ button {
         object-fit: contain;
         opacity: 0.2;
         z-index: -1;
+    }
+    .grid-home {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 20px;
+    
+    }
+    .card-title {
+        padding: 0;
+        margin: 0;
+        grid-column: span 1;
+        grid-row: span 1;
     }
 }

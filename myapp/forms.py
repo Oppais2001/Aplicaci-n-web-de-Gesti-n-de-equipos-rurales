@@ -15,11 +15,53 @@ class Ingresar_Jugadores(forms.ModelForm):
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
 
+        # Limpiar formato
+        rut = rut.replace(".", "").replace("-", "").lower()
+
+
+        if len(rut) < 2:
+            raise forms.ValidationError("RUT inválido")
+        
         if Jugador.objects.filter(rut=rut).exists():
             raise forms.ValidationError("Ya existe un jugador con este RUT")
 
+        cuerpo = rut[:-1]
+        dv = rut[-1]
+
+        if not cuerpo.isdigit():
+            raise forms.ValidationError("RUT inválido")
+
+        suma = 0
+        multiplo = 2
+
+        for digit in reversed(cuerpo):
+            suma += int(digit) * multiplo
+            multiplo += 1
+            if multiplo > 7:
+                multiplo = 2
+
+        resto = suma % 11
+        dv_calculado = 11 - resto
+
+        if dv_calculado == 11:
+            dv_calculado = "0"
+        elif dv_calculado == 10:
+            dv_calculado = "k"
+        else:
+            dv_calculado = str(dv_calculado)
+
+        if dv != dv_calculado:
+            raise forms.ValidationError("RUT inválido")
+
         return rut
 
+    def clean_fecha_inscripcion(self):
+        fecha = self.cleaned_data.get('fecha_inscripcion')
+        if fecha > date.today():
+            raise forms.ValidationError("No puedes ingresar una fecha futura.")
+        
+        return fecha
+        
 
 class Ingresar_Equipos(forms.ModelForm):
     class Meta:

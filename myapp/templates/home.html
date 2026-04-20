@@ -1,16 +1,24 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-<div class="text-container">
-    <h1>Aplicación de Gestión de Jugadores</h1>
-    <br>
-    <h2>Resumen Total</h2>
-    <p>Se han registrado {{total_jugadores}} jugador en total.<p>
-    <p>Se han registrado {{total_equipos}} equipos en total.<p>
-    <br>
-    <h2>Resumen por equipo</h2>
-    {% for equipo, valor in equipos.items %}
-        <p>{{ equipo }} tiene {{ valor }} jugadores.<p>
-    {% endfor %}
+<div class="grid-home">
+    <div class="card-title">
+        <h1>Aplicación de Gestión de Jugadores</h1>
+    </div>
+    <div class='card'>
+        <h2><i class="fa fa-chart-bar"></i>Resumen Total</h2>
+        <p>Se han registrado <strong>{{total_jugadores}}</strong> jugador en total</p>
+        <p>Se han registrado <strong>{{total_equipos}}</strong> equipos en total</p>
+    </div>
+    <div class="card">
+        <h2><i class="fa fa-users"></i>Resumen por equipo</h2>
+        {% for equipo, valor in equipos.items %}
+            {% if valor == 1 %}
+            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugador.</p>
+            {% else %} 
+            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugadores.</p>
+            {% endif %}
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}
