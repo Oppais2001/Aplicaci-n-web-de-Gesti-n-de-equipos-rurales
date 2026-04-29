@@ -36,7 +36,7 @@
                     <li><a href="{% url 'ingresar_jugador' %}"><i class="fa fa-user-plus"></i> Jugador</a></li>
                     <li><a href="{% url 'realizar_traspaso' %}"><i class="fa fa-repeat"></i> Transferir</a></li>
                     {% if user.is_authenticated %}
-                    <p>Hola {{user.username}}</p>
+                    <li>Hola, {{user.username}}</li>
                     <li>
                         <a href="{% url 'logout' %}">
                             <i class="fa fa-sign-out-alt"></i> Cerrar sesión
