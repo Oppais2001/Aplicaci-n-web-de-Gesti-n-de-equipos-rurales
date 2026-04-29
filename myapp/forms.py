@@ -160,3 +160,95 @@ class Realizar_Traspasos(forms.ModelForm):
             jugador.save()
 
         return traspaso
+
+class Editar_Jugador(forms.ModelForm):
+
+    class Meta:
+        model = Jugador
+        fields = ['nombre', 'rut', 'equipo', 'fecha_inscripcion']
+        labels = {
+            'fecha_inscripcion': 'Fecha de inscripción'
+        }
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
+
+        nombre = " ".join(nombre.split())
+
+        if not nombre:
+            raise forms.ValidationError(
+                "Debes ingresar un nombre."
+            )
+
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]+$'
+
+        if not re.fullmatch(patron, nombre):
+            raise forms.ValidationError(
+                "El nombre solo puede contener letras."
+            )
+
+        return nombre.title()
+
+
+    def clean_rut(self):
+        rut = self.cleaned_data.get('rut', '').strip()
+
+        # limpiar formato
+        rut = rut.replace(".", "").replace("-", "").lower()
+
+        if len(rut) < 2:
+            raise forms.ValidationError("RUT inválido.")
+
+        cuerpo = rut[:-1]
+        dv = rut[-1]
+
+        if not cuerpo.isdigit():
+            raise forms.ValidationError("RUT inválido.")
+
+        # validar repetido excluyendo al jugador actual
+        qs = Jugador.objects.filter(rut=rut)
+
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError(
+                "Ya existe otro jugador con este RUT."
+            )
+
+        # validar dígito verificador
+        suma = 0
+        multiplo = 2
+
+        for digit in reversed(cuerpo):
+            suma += int(digit) * multiplo
+            multiplo += 1
+
+            if multiplo > 7:
+                multiplo = 2
+
+        resto = suma % 11
+        dv_calculado = 11 - resto
+
+        if dv_calculado == 11:
+            dv_calculado = "0"
+        elif dv_calculado == 10:
+            dv_calculado = "k"
+        else:
+            dv_calculado = str(dv_calculado)
+
+        if dv != dv_calculado:
+            raise forms.ValidationError("RUT inválido.")
+
+        return rut
+
+
+    def clean_fecha_inscripcion(self):
+        fecha = self.cleaned_data.get('fecha_inscripcion')
+
+        if fecha > date.today():
+            raise forms.ValidationError(
+                "No puedes ingresar una fecha futura."
+            )
+
+        return fecha

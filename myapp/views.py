@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Equipo, Jugador, Traspaso
-from .forms import Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos
+from .forms import Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos, Editar_Jugador
 
 def home(request):
     equipos = Equipo.objects.all()
@@ -118,4 +118,23 @@ def realizar_traspaso(request):
 
     return render(request, "traspasos/realizar_traspaso.html", {
         "form": form
+    })
+    
+    
+def editar_jugador(request, id):
+    jugador = get_object_or_404(Jugador, id=id)
+
+    if request.method == 'POST':
+        form = Editar_Jugador(request.POST, instance=jugador)
+
+        if form.is_valid():
+            form.save()
+            return redirect('detalle_equipo', jugador.equipo.nombre)
+
+    else:
+        form = Editar_Jugador(instance=jugador)
+
+    return render(request, 'jugadores/editar_jugador.html', {
+        'form': form,
+        'jugador': jugador
     })

@@ -1,0 +1,16 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="grid-ingresar-jugador">
+    <div class="card-title">
+        <h1>Editar jugador</h1>
+    </div>
+    <div class="card form-container">
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Guardar cambios</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
