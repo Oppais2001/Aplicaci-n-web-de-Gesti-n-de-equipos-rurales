@@ -191,45 +191,102 @@ class Editar_Jugador(forms.ModelForm):
 
 
     def clean_rut(self):
+        # Obtener el RUT ingresado desde el formulario
+        # strip() elimina espacios al inicio y al final
         rut = self.cleaned_data.get('rut', '').strip()
 
-        # limpiar formato
+        # -------------------------------------------------
+        # NORMALIZAR FORMATO
+        # -------------------------------------------------
+        # Si el usuario escribe:
+        # 12.345.678-5
+        # lo convertimos a:
+        # 123456785
+        #
+        # Esto permite guardar todos los RUT igual
+        # y comparar duplicados correctamente.
         rut = rut.replace(".", "").replace("-", "").lower()
 
+        # -------------------------------------------------
+        # VALIDACIÓN 1: largo mínimo
+        # -------------------------------------------------
+        # Un RUT necesita al menos:
+        # número + dígito verificador
+        # ejemplo: 1-9
         if len(rut) < 2:
             raise forms.ValidationError("RUT inválido.")
 
+        # -------------------------------------------------
+        # SEPARAR CUERPO Y DÍGITO VERIFICADOR
+        # -------------------------------------------------
+        # Ejemplo:
+        # rut = 123456785
+        #
+        # cuerpo = 12345678
+        # dv = 5
         cuerpo = rut[:-1]
         dv = rut[-1]
 
+        # -------------------------------------------------
+        # VALIDACIÓN 2: cuerpo solo números
+        # -------------------------------------------------
+        # El cuerpo del RUT no puede contener letras.
         if not cuerpo.isdigit():
             raise forms.ValidationError("RUT inválido.")
 
-        # validar repetido excluyendo al jugador actual
+        # -------------------------------------------------
+        # VALIDACIÓN 3: RUT repetido
+        # -------------------------------------------------
+        # Buscar si ya existe un jugador con ese RUT.
         qs = Jugador.objects.filter(rut=rut)
 
+        # Si estamos EDITANDO jugador:
+        # excluir al mismo jugador actual.
+        #
+        # Esto permite guardar sin error si el RUT
+        # sigue siendo suyo.
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
 
+        # Si existe otro jugador con ese RUT:
         if qs.exists():
             raise forms.ValidationError(
                 "Ya existe otro jugador con este RUT."
             )
 
-        # validar dígito verificador
+        # -------------------------------------------------
+        # VALIDACIÓN 4: DÍGITO VERIFICADOR REAL
+        # -------------------------------------------------
+        # Aquí aplicamos algoritmo oficial chileno.
+        #
+        # Multiplicadores:
+        # 2,3,4,5,6,7 y se repiten
+        #
+        # Se recorre desde derecha a izquierda.
         suma = 0
         multiplo = 2
 
         for digit in reversed(cuerpo):
+            # Multiplicar cada número por el factor actual
             suma += int(digit) * multiplo
+
+            # Siguiente multiplicador
             multiplo += 1
 
+            # Cuando pasa de 7 vuelve a 2
             if multiplo > 7:
                 multiplo = 2
 
+        # -------------------------------------------------
+        # CÁLCULO DEL DV CORRECTO
+        # -------------------------------------------------
         resto = suma % 11
         dv_calculado = 11 - resto
 
+        # Casos especiales del sistema chileno:
+        #
+        # 11 = 0
+        # 10 = K
         if dv_calculado == 11:
             dv_calculado = "0"
         elif dv_calculado == 10:
@@ -237,9 +294,18 @@ class Editar_Jugador(forms.ModelForm):
         else:
             dv_calculado = str(dv_calculado)
 
+        # -------------------------------------------------
+        # VALIDACIÓN FINAL
+        # -------------------------------------------------
+        # Si el DV ingresado no coincide con el real:
         if dv != dv_calculado:
             raise forms.ValidationError("RUT inválido.")
 
+        # -------------------------------------------------
+        # SI TODO ESTÁ BIEN:
+        # devolver RUT limpio
+        # ejemplo: 123456785
+        # -------------------------------------------------
         return rut
 
 

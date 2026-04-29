@@ -6,13 +6,16 @@
             <h1>Visualizador de Traspasos</h1>
         </div>
         <div class="card">
-            {% if not traspasos %}
-                <p>No hay datos para mostrar.</p>
-            {% else %}
-                <form method="GET">
+            {% if hay_traspasos %}
+              <form method="GET">
                     <input type="text" name="buscar" placeholder="Buscar traspaso...">
                     <button type="submit">Buscar</button>
                 </form>
+            {% endif %}
+            {% if not traspasos %}
+                <p>No hay datos para mostrar.</p>
+            {% else %}
+              
                     <table>
                         <tr class="encabezado">
                             <th>
@@ -46,7 +49,7 @@
                                     {{traspaso.equipo_destino}}
                                 </th>
                                 <th>
-                                    {{traspaso.fecha}}
+                                    {{traspaso.fecha_inscripcion_actual}}
                                 </th>
                             </tr>
                         {% endfor %}
