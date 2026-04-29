@@ -45,6 +45,47 @@ class RegistroForm(UserCreationForm):
 
         return email
 
+    def clean_password1(self):
+        password = self.cleaned_data.get('password1', '')
+        username = self.cleaned_data.get('username', '')
+
+        if len(password) < 8:
+            raise forms.ValidationError(
+                "La contraseña debe tener al menos 8 caracteres."
+            )
+
+        if not re.search(r'[A-Z]', password):
+            raise forms.ValidationError(
+                "Debe contener al menos una mayúscula."
+            )
+
+        if not re.search(r'[a-z]', password):
+            raise forms.ValidationError(
+                "Debe contener al menos una minúscula."
+            )
+
+        if not re.search(r'\d', password):
+            raise forms.ValidationError(
+                "Debe contener al menos un número."
+            )
+
+        if not re.search(r'[^A-Za-z0-9]', password):
+            raise forms.ValidationError(
+                "Debe contener al menos un símbolo."
+            )
+
+        if username and username.lower() in password.lower():
+            raise forms.ValidationError(
+                "La contraseña no puede contener tu usuario."
+            )
+
+        if password.strip() != password:
+            raise forms.ValidationError(
+                "No uses espacios al inicio o final."
+            )
+
+        return password
+
 
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label="Usuario")

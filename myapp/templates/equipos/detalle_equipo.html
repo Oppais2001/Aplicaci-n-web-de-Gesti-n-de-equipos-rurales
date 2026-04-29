@@ -30,7 +30,7 @@
                             {{jugador.nombre}}
                         </th>
                         <th>
-                            {{jugador.rut}}
+                            {{jugador.rut_formateado}}
                         </th>
                         <th>
                             {{jugador.fecha_inscripcion}}
@@ -39,7 +39,7 @@
                             <button class="btn editar" title="Editar">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
-                            <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut}}")'class="btn eliminar" title="Eliminar">
+                            <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut_formateado}}")'class="btn eliminar" title="Eliminar">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </th>
@@ -50,16 +50,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-.swal2-title {
-    border: none !important;
-    box-shadow: none !important;
-}
-</style>
-
 <script>
 function confirmarEliminar(nombre, rut) {
-    console.log(nombre, rut)
     Swal.fire({
         title: '¿Estás seguro?',
         text: 'Eliminarás al Jugador "' + nombre + '"',

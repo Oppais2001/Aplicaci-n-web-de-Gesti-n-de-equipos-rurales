@@ -279,6 +279,7 @@ button {
     gap: 1rem;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
+    margin: 100px;
 }
 .container-about {
     display: flex;
@@ -348,6 +349,11 @@ hr {
 .swal2-title {
     border: none !important;
     box-shadow: none !important;
+}
+.contenedor-card {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
 }
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {

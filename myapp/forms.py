@@ -1,3 +1,4 @@
+import re
 from django import forms
 from .models import Equipo, Jugador, Traspaso
 
@@ -12,18 +13,40 @@ class Ingresar_Jugadores(forms.ModelForm):
             'fecha_inscripcion': 'Fecha de inscripción'
         }
 
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
+
+        # quitar espacios múltiples
+        nombre = " ".join(nombre.split())
+
+        if len(nombre) < 3:
+            raise forms.ValidationError(
+                "El nombre es demasiado corto."
+            )
+
+        # letras, espacios, tildes, ñ, guion
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]+$'
+
+        if not re.fullmatch(patron, nombre):
+            raise forms.ValidationError(
+                "El nombre solo puede contener letras."
+            )
+
+        return nombre.title()
+
+
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
 
-        # Limpiar formato
         rut = rut.replace(".", "").replace("-", "").lower()
-
 
         if len(rut) < 2:
             raise forms.ValidationError("RUT inválido")
-        
+
         if Jugador.objects.filter(rut=rut).exists():
-            raise forms.ValidationError("Ya existe un jugador con este RUT")
+            raise forms.ValidationError(
+                "Ya existe un jugador con este RUT"
+            )
 
         cuerpo = rut[:-1]
         dv = rut[-1]
@@ -55,14 +78,17 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         return rut
 
+
     def clean_fecha_inscripcion(self):
         fecha = self.cleaned_data.get('fecha_inscripcion')
-        if fecha > date.today():
-            raise forms.ValidationError("No puedes ingresar una fecha futura.")
-        
-        return fecha
-        
 
+        if fecha > date.today():
+            raise forms.ValidationError(
+                "No puedes ingresar una fecha futura."
+            )
+
+        return fecha
+    
 class Ingresar_Equipos(forms.ModelForm):
     class Meta:
         model = Equipo

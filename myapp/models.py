@@ -29,6 +29,16 @@ class Jugador(models.Model):
     def __str__(self):
         return self.nombre + " / " + self.rut
     
+    def rut_formateado(self):
+        rut = self.rut
+
+        cuerpo = rut[:-1]
+        dv = rut[-1].upper()
+
+        cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
+
+        return f"{cuerpo_con_puntos}-{dv}"
+    
 
 class Traspaso(models.Model):
     jugador = models.ForeignKey(
