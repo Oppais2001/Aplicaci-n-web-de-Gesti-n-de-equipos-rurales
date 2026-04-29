@@ -36,30 +36,53 @@ class Ingresar_Jugadores(forms.ModelForm):
 
 
     def clean_rut(self):
-        rut = self.cleaned_data.get('rut')
+        # Obtener el RUT ingresado
+        rut = self.cleaned_data.get('rut', '').strip()
 
+        # Normalizar formato
         rut = rut.replace(".", "").replace("-", "").lower()
 
+        # VALIDACIÓN 1: largo mínimo
         if len(rut) < 2:
-            raise forms.ValidationError("RUT inválido")
+            raise forms.ValidationError("RUT inválido.")
 
-        if Jugador.objects.filter(rut=rut).exists():
-            raise forms.ValidationError(
-                "Ya existe un jugador con este RUT"
-            )
-
+        # Separar cuerpo y DV
         cuerpo = rut[:-1]
         dv = rut[-1]
 
+        # VALIDACIÓN 2: cuerpo solo números
         if not cuerpo.isdigit():
-            raise forms.ValidationError("RUT inválido")
+            raise forms.ValidationError("RUT inválido.")
 
+        # -------------------------------------------------
+        # VALIDACIÓN NUEVA: evitar números repetidos
+        # Ejemplo:
+        # 11111111
+        # 22222222
+        # 99999999
+        # -------------------------------------------------
+        if len(set(cuerpo)) == 1:
+            raise forms.ValidationError("RUT inválido.")
+
+        # VALIDACIÓN 3: RUT repetido en base de datos
+        qs = Jugador.objects.filter(rut=rut)
+
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError(
+                "Ya existe otro jugador con este RUT."
+            )
+
+        # VALIDACIÓN 4: cálculo DV oficial
         suma = 0
         multiplo = 2
 
         for digit in reversed(cuerpo):
             suma += int(digit) * multiplo
             multiplo += 1
+
             if multiplo > 7:
                 multiplo = 2
 
@@ -73,8 +96,9 @@ class Ingresar_Jugadores(forms.ModelForm):
         else:
             dv_calculado = str(dv_calculado)
 
+        # VALIDACIÓN FINAL
         if dv != dv_calculado:
-            raise forms.ValidationError("RUT inválido")
+            raise forms.ValidationError("RUT inválido.")
 
         return rut
 
