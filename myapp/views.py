@@ -95,6 +95,7 @@ def eliminar_jugador(request, rut):
 
 def traspasos(request):
     buscar = request.GET.get('buscar')
+    traspasos_totales = Traspaso.objects.all()
 
     if buscar:
         traspasos = Traspaso.objects.filter(jugador__nombre__icontains=buscar)
@@ -102,7 +103,8 @@ def traspasos(request):
         traspasos = Traspaso.objects.all()
                  
     return render(request, 'traspasos/traspasos.html', {
-        'traspasos': traspasos
+        'traspasos': traspasos,
+        'hay_traspasos': traspasos_totales.exists()
     })
     
 def realizar_traspaso(request):
