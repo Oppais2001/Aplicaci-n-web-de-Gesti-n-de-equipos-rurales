@@ -285,11 +285,10 @@ button {
     display: flex;
     flex-direction: column;
 }
-.grid-equipos {
-    display: grid;
+.contenedor-tablas {
+    display: flex;
+    flex-direction: column;
     gap: 5px;
-    grid-template-columns: 1fr;
-    grid-template-rows:1fr 5fr;
 }
 .ingresar {
     display: flex;
@@ -302,12 +301,6 @@ button {
     gap: 5px;
     grid-template-columns: 1fr;
     grid-template-rows:1fr 5fr;
-}
-.grid-traspasos {
-    display: grid;
-    gap: 5px;
-    grid-template-columns: 1fr;
-    grid-template-rows:1fr 3fr;
 }
 
 .about {

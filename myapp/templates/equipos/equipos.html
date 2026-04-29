@@ -1,11 +1,14 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-    <div class="grid-equipos"> 
+    <div class="contenedor-tablas"> 
         <div class="card-title">
             <h1>Visualizador de Equipos</h1>
         </div>
         <div class="card">
+            {% if not equipos %}
+            <p>No hay datos para mostrar.</p>
+            {% else %}
             <form method="GET">
                 <input type="text" name="buscar" placeholder="Buscar equipo...">
                 <button type="submit">Buscar</button>
@@ -46,10 +49,17 @@
                         </tr>
                     {% endfor %}
                 </table>
-            </div>
+        {% endif %}
+        </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    p { 
+        text-align: center;
+    }
+</style>
 
 <script>
 function confirmarEliminar(equipo) {
