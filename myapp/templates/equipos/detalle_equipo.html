@@ -6,13 +6,15 @@
         <h1>{{ equipo.nombre }} - Liga {{equipo.liga}}</h1>
     </div>
     <div class="card">
+        {% if hay_jugadores %}
+            <form method="GET">
+                <input type="text" name="buscar" placeholder="Buscar jugador...">
+                <button type="submit">Buscar</button>
+            </form>
+        {% endif %}
         {% if not jugadores %}
         <p>No hay datos registrados</p>
         {% else %}
-        <form method="GET">
-            <input type="text" name="buscar" placeholder="Buscar jugador...">
-            <button type="submit">Buscar</button>
-        </form>
         <br>
             <table>
                 <tr class="encabezado">

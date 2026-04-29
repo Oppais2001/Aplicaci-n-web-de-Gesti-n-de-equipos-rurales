@@ -27,6 +27,7 @@ def about(request):
     
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
+    equipos_totales = Equipo.objects.all()
 
     if buscar:
         equipos = Equipo.objects.filter(nombre__icontains=buscar)
@@ -34,13 +35,15 @@ def lista_equipos(request):
         equipos = Equipo.objects.all()
 
     return render(request, "equipos/equipos.html", {
-        "equipos": equipos
+        "equipos": equipos,
+        "hay_equipos": equipos_totales.exists(),
     })
 
 
 def detalle_equipo(request, equipo):
     equipo = Equipo.objects.get(nombre=equipo)
     buscar = request.GET.get('buscar')
+    jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
     if buscar:
         jugadores = Jugador.objects.filter(nombre__icontains=buscar, equipo=equipo)
@@ -49,7 +52,8 @@ def detalle_equipo(request, equipo):
 
     return render(request, "equipos/detalle_equipo.html", {
         "jugadores": jugadores,
-        "equipo": equipo
+        "equipo": equipo,
+        'hay_jugadores': jugadores_totales.exists()
     }) 
     
 

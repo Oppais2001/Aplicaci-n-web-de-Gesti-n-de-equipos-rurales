@@ -6,13 +6,15 @@
             <h1>Visualizador de Equipos</h1>
         </div>
         <div class="card">
-            {% if not equipos %}
-            <p>No hay datos para mostrar.</p>
-            {% else %}
+            {% if hay_equipos %}
             <form method="GET">
                 <input type="text" name="buscar" placeholder="Buscar equipo...">
                 <button type="submit">Buscar</button>
             </form>
+            {% endif %}
+            {% if not equipos %}
+            <p>No hay datos para mostrar.</p>
+            {% else %}
             <br>
                 <table>
                     <tr class="encabezado">
