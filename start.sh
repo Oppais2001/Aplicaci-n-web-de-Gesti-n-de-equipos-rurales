@@ -1,1 +1,2 @@
-gunicorn liga_cancura.wsgi:application
+python manage.py migrate && gunicorn liga_cancura.wsgi:application
+
