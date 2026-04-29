@@ -49,7 +49,9 @@ class Traspaso(models.Model):
         related_name="traspasos_entrada"
     )
 
-    fecha = models.DateField(default=timezone.now)
+    fecha_inscripcion_anterior = models.DateField()
+    fecha_inscripcion_actual = models.DateField(default=timezone.now)
+
 
     def __str__(self):
-        return f"{self.jugador} de {self.equipo_origen} a {self.equipo_destino} ({self.fecha})"
+        return f"{self.jugador} de {self.equipo_origen} inscrito en el día ({self.fecha_inscripcion_anterior}) se traspasa a {self.equipo_destino} con fecha ({self.fecha_inscripcion_actual})"

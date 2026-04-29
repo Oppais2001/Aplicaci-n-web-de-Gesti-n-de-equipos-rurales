@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-<div class="grid-home">
+<div class="home">
     <div class="card-title">
         <h1>Aplicación de Gestión de Jugadores</h1>
     </div>
@@ -14,9 +14,9 @@
         <h2><i class="fa fa-users"></i>Resumen por equipo</h2>
         {% for equipo, valor in equipos.items %}
             {% if valor == 1 %}
-            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugador.</p>
+            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugador</p>
             {% else %} 
-            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugadores.</p>
+            <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugadores</p>
             {% endif %}
         {% endfor %}
     </div>

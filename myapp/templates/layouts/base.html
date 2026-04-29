@@ -24,7 +24,7 @@
             <div class="nav-container">
 
                 <!-- BOTÓN HAMBURGUESA -->
-                <a href="#" class="logo">LigaRural</a>
+                <a href="{% url 'home' %}" class="logo">LigaRural</a>
                 <button class="menu-btn" id="menuBtn">☰</button>
                 <!-- MENÚ -->
                 <ul class="nav-menu" id="nav-menu">
@@ -35,6 +35,20 @@
                     <li><a href="{% url 'ingresar_equipo' %}"><i class="fa fa-plus"></i> Equipo</a></li>
                     <li><a href="{% url 'ingresar_jugador' %}"><i class="fa fa-user-plus"></i> Jugador</a></li>
                     <li><a href="{% url 'realizar_traspaso' %}"><i class="fa fa-repeat"></i> Transferir</a></li>
+                    {% if user.is_authenticated %}
+                    <p>Hola {{user.username}}</p>
+                    <li>
+                        <a href="{% url 'logout' %}">
+                            <i class="fa fa-sign-out-alt"></i> Cerrar sesión
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{% url 'login' %}">
+                            <i class="fa fa-key"></i> Login
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
 
             </div>
