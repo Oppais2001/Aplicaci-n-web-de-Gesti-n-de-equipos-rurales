@@ -34,7 +34,7 @@ body::before {
 
 h1 {
     text-align: center;
-    margin-top: 30px;
+    margin-top: 1rem;
     font-size: 3rem;
     color: gold;
 }
@@ -279,7 +279,7 @@ button {
     gap: 1rem;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
-    margin: 100px;
+    margin: 1rem;
 }
 .container-about {
     display: flex;
@@ -508,10 +508,13 @@ hr {
         text-align: center;
     }
     h2 {
-        font-size: 5vw;
+        font-size: 1.2rem;
     }
     p {
-        font-size: 1rem;
+        font-size: 1.1rem;
+    }
+    form {
+        font-size: 0.1rem;
     }
     button {
         font-size: 4vw;

@@ -3,29 +3,93 @@
 {% block content %}
 
 <div class="ingresar">
-    <div class="card-title">
-        <h1>Registro de Usuario</h1>
-    </div>
-    <div class="card form-container">
-        <form method="POST">
-            {% csrf_token %}
-                {% for field in form %}
-                    <div class="campo-form">
+    <h1>Registro de Usuario</h1>
+    <div class="container-forms-card">
+        <div class="card form-container">
+            <form method="POST" class="form-registro">
+                {% csrf_token %}
+                    {% for field in form %}
+                        <div class="campo-form">
 
-                        {{ field.label_tag }}
-                        {{ field }}
+                            {{ field.label_tag }}
+                            {{ field }}
 
-                        {% if field.errors %}
-                            <div class="error">
-                                {{ field.errors }}
-                            </div>
-                        {% endif %}
+                            {% if field.errors %}
+                                <div class="error">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
 
-                    </div>
-                {% endfor %}
-            <button>Guardar</button>
-        </form>
+                        </div>
+                    {% endfor %}
+                <button>Guardar</button>
+            </form>
+        </div>
+        <div>
+            <div class="card">
+                <h2>
+                    Requisitos de la contraseña:
+                </h2>
+                    <br>
+                <p> • Mínimo 8 caracteres.
+                    <br>
+                    • Al menos una letra mayúscula.
+                    <br>
+                    • Al menos una letra minúscula.
+                    <br>
+                    • Al menos un número.
+                    <br>
+                    • Al menos un símbolo o carácter especial.
+                    <br>
+                    • No debe contener tu nombre de usuario.
+                    <br>
+                    • Sin espacios al inicio ni al final.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    @media (orientation: landscape) {
+        .ingresar {
+            gap: 1rem;
+        }
+        .container-forms-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding: auto;
+            margin: auto;
+        }
+        .form-registro label{
+            font-size: 1.5rem;
+        }
+    }
+    @media (max-width: 768px) {
+        .form-registro label{
+            font-size: 1rem;
+        }
+        .form-registro button {
+            font-size: 1rem;
+        }
+    }
+    @media (orientation: portrait) {
+        .ingresar{
+            gap: 0;
+        }
+        .container-forms-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: auto;
+        margin: auto;
+        }
+        .form-registro label{
+            font-size: 1rem;
+        }
+    }
+
+</style>
 
 {% endblock %}

@@ -15,42 +15,41 @@
             {% if not equipos %}
             <p>No hay datos para mostrar.</p>
             {% else %}
-            <br>
-                <table>
-                    <tr class="encabezado">
+            <table>
+                <tr class="encabezado">
+                    <th>
+                        Nombre
+                    </th>
+                    <th>
+                        Liga
+                    </th>
+                    <th>
+                        Acciones
+                    </th>
+                </tr>
+                {% for equipo in equipos %}
+                    <tr>
                         <th>
-                            Nombre
+                            {{equipo.nombre}}
                         </th>
                         <th>
-                            Liga
+                            {{equipo.liga}}
                         </th>
                         <th>
-                            Acciones
+                            <button class="btn editar" title="Realizar Traspaso" onclick="window.location='traspasos/realizar_traspaso'">
+                                <i class="fas fa-right-left"></i>
+                            </button>
+                        <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
+
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
+                                <i class="fa-solid fa-eye"></i> 
+                            </button>
                         </th>
                     </tr>
-                    {% for equipo in equipos %}
-                        <tr>
-                            <th>
-                                {{equipo.nombre}}
-                            </th>
-                            <th>
-                                {{equipo.liga}}
-                            </th>
-                            <th>
-                                <button class="btn editar" title="Realizar Traspaso" onclick="window.location='traspasos/realizar_traspaso'">
-                                    <i class="fas fa-right-left"></i>
-                                </button>
-                            <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
-
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                                <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
-                                    <i class="fa-solid fa-eye"></i> 
-                                </button>
-                            </th>
-                        </tr>
-                    {% endfor %}
-                </table>
+                {% endfor %}
+            </table>
         {% endif %}
         </div>
     </div>

@@ -2,17 +2,65 @@
 
 {% block content %}
 
-<div class="grid-ingresar">
-    <div class="card-title">
+<div class="ingresar">
+    <div>
         <h1>Ingresar Equipo</h1>
     </div>
-    <div class="card form-container">
-        <form method="POST">
-            {% csrf_token %}
-            {{ form }}
-            <button>Guardar</button>
-        </form>
-    </div>
+        <div class="container-forms-card">
+            <div class="card form-container">
+                <form method="POST" class="form-registro">
+                    {% csrf_token %}
+                    {{ form }}
+                    <button>Guardar</button>
+                </form>
+            </div>
+            <div>
+                <div class="card">
+                    <h2>¿No encuentras tu liga?</h2>
+                    <p>Ingresala desde aquí, sin borrar los datos ya ingresados. <a href="">Haz click aquí.</a></p>
+                </div>
+            </div>
+        </div>
 </div>
+
+<style>
+    .ingresar {
+        gap: 2rem;
+    }
+    @media (orientation: landscape) {
+        .ingresar {
+            gap: 1rem;
+        }
+        .container-forms-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .form-registro label{
+            font-size: 1rem;
+        }
+    }
+    @media (max-width: 768px) {
+        .form-registro label{
+            font-size: 1rem;
+        }
+        .form-registro button {
+            font-size: 1rem;
+        }
+    }
+    @media (orientation: portrait) {
+        .ingresar{
+            gap: 0;
+        }
+        .container-forms-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-registro label{
+            font-size: 1rem;
+        }
+    }
+
+</style>
 
 {% endblock %}

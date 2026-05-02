@@ -1,9 +1,15 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+
 from .forms import RegistroForm, LoginForm
+from .models import Usuario
+
+from .utils import enviar_email_verificacion
 
 def registro_view(request):
 
@@ -11,8 +17,12 @@ def registro_view(request):
         form = RegistroForm(request.POST)
 
         if form.is_valid():
-            usuario = form.save()
-            login(request, usuario)
+            
+            usuario = form.save(commit=False)
+            usuario.is_active = False
+            usuario.save()
+            
+            enviar_email_verificacion(request, usuario)
 
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('home')
@@ -54,3 +64,11 @@ def logout_view(request):
 def perfil_view(request):
     return render(request, 'usuarios/perfil.html')
 
+
+def activar_cuenta(request, user_id):
+    usuario = Usuario.objects.get(id=user_id)
+    usuario.is_active = True
+    usuario.save()
+
+    messages.success(request, "Cuenta activada correctamente.")
+    return redirect('login')

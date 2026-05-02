@@ -62,7 +62,7 @@ class Ingresar_Jugadores(forms.ModelForm):
         # 99999999
         # -------------------------------------------------
         if len(set(cuerpo)) == 1:
-            raise forms.ValidationError("RUT inválido.")
+            raise forms.ValidationError("Ingresa un rut realista.")
 
         # VALIDACIÓN 3: RUT repetido en base de datos
         qs = Jugador.objects.filter(rut=rut)
@@ -110,6 +110,8 @@ class Ingresar_Jugadores(forms.ModelForm):
             raise forms.ValidationError(
                 "No puedes ingresar una fecha futura."
             )
+        
+        # hacer validacion de fecha del pasado mas de 100 años
 
         return fecha
     
