@@ -77,7 +77,7 @@ nav {
 /* MENÚ PC */
 .nav-menu {
     display: flex;
-    gap: 2rem;
+    gap: 1rem;
     list-style: none;
     transition: all 0.3s ease;
 }
@@ -195,7 +195,7 @@ tr:hover {
 .form-container input,
 .form-container select,
 .form-container textarea {
-    font-size: 1rem;
+    font-size: 1.5rem;
     padding: 10px;
     margin-top: 8px;
     margin-bottom: 15px;
@@ -217,7 +217,7 @@ tr:hover {
 
 .form-container label {
     font-weight: bold;
-    font-size: 3vh;
+    font-size: 2rem;
 }
 
 .form-container button {
@@ -348,8 +348,20 @@ hr {
     flex-direction: row;
     width: 100%;
 }
+a {
+    color: brown;
+}
+.enlace-ayuda {
+    font-size: 2rem;
+}
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
+    .form-container input {
+        font-size: 0.75rem;
+    }
+    .form-container button {
+        font-size: 1rem;
+    }
 
     p {
         font-size: 1rem;
@@ -373,9 +385,10 @@ hr {
     /* MENÚ OCULTO */
     .nav-menu {
         position: fixed;
-        top: 50px;
+        top: 3rem;
         left: 0;
         width: 100%;
+        height: 100%;
         background: #202020;
         flex-direction: column;
         align-items: center;
@@ -414,6 +427,7 @@ hr {
     .nav-menu li:nth-child(5) {transition-delay: 0.5s;}
     .nav-menu li:nth-child(6) {transition-delay: 0.6s;}
     .nav-menu li:nth-child(7) {transition-delay: 0.7s;}
+    .nav-menu li:nth-child(8) {transition-delay: 0.8s;}
 
     /* TEXTOS */
     h1 {
@@ -425,9 +439,6 @@ hr {
         font-weight: bold;
     }
     /* CARDS */
-    .card a {
-        font-size: 3vw;
-    }
 
     /* FORMULARIOS */
     .form-container {
@@ -436,7 +447,7 @@ hr {
     }
 
     .form-container label {
-        font-size: 3vw;
+        font-size: 1rem;
     }
 
     button {
@@ -475,14 +486,12 @@ hr {
     .logo {
         font-size: 2.5vw;
     }
+    .enlace-ayuda {
+        font-size: 1.25rem;
+    }
 }
-
 /* ================= CELULARES PEQUEÑOS ================= */
 @media (max-width: 480px) {
-
-    .card a {
-        font-size: 3vw;
-    }
 
     .form-container {
         padding: 15px;
@@ -490,7 +499,7 @@ hr {
 
     .form-container label,
     .form-container button {
-        font-size: 1.25rem;
+        font-size: 1rem;
     }
 
     th, td {

@@ -10,15 +10,10 @@
             {% csrf_token %}
             {{ form }}
             <button>Iniciar</button>
-            <p class="text-center">¿No tienes cuenta? <a href="{% url 'registro' %}">Regístrate</a> </p>        
         </form>
+        <p>¿No tienes cuenta? <a href="{% url 'registro' %}">Regístrate</a> </p>        
     </div>
+
 </div>
-<style>
-    p {
-        font-size: 1.5rem;
-        text-align: center;
-    }
-</style>
 
 {% endblock %}
