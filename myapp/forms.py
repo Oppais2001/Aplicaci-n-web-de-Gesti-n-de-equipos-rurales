@@ -130,59 +130,105 @@ class Ingresar_Equipos(forms.ModelForm):
 
 class Realizar_Traspasos(forms.ModelForm):
     class Meta:
+
         model = Traspaso
-        fields = ['jugador', 'equipo_destino', 'fecha_inscripcion_actual']
+
+        fields = [
+            'equipo_destino',
+            'fecha_inscripcion_actual'
+        ]
+
+        widgets = {
+
+            'fecha_inscripcion_actual': forms.DateInput(
+                attrs={'type': 'date'}
+            )
+
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        self.jugador = kwargs.pop('jugador')
+
+        super().__init__(*args, **kwargs)
 
     def clean(self):
+
         cleaned_data = super().clean()
 
-        jugador = cleaned_data.get('jugador')
-        equipo_destino = cleaned_data.get('equipo_destino')
-        fecha_actual = cleaned_data.get('fecha_inscripcion_actual')
+        equipo_destino = cleaned_data.get(
+            'equipo_destino'
+        )
 
-        if not jugador or not equipo_destino or not fecha_actual:
+        fecha_actual = cleaned_data.get(
+            'fecha_inscripcion_actual'
+        )
+
+        jugador = self.jugador
+
+        if not equipo_destino or not fecha_actual:
+
             return cleaned_data
 
         # No mismo equipo
         if jugador.equipo == equipo_destino:
+
             raise forms.ValidationError(
                 "El jugador ya pertenece a ese equipo."
             )
 
-        # Fecha base real
+        # Fecha mínima
         fecha_base = jugador.fecha_inscripcion
 
-        # Debe pasar 1 año y medio
-        fecha_minima = fecha_base + relativedelta(years=1, months=6)
+        fecha_minima = fecha_base + relativedelta(
+            years=1,
+            months=6
+        )
 
         if fecha_actual < fecha_minima:
+
             raise forms.ValidationError(
                 f"El jugador no puede transferirse antes de {fecha_minima}"
             )
 
         # No futura
         if fecha_actual > date.today():
+
             raise forms.ValidationError(
                 "No puedes ingresar una fecha futura."
             )
 
         return cleaned_data
-    
+
     def save(self, commit=True):
+
         traspaso = super().save(commit=False)
 
-        jugador = traspaso.jugador
+        jugador = self.jugador
 
-        # Guardar respaldo
+        # Asignar jugador automáticamente
+        traspaso.jugador = jugador
+
+        # Respaldo
         traspaso.equipo_origen = jugador.equipo
-        traspaso.fecha_inscripcion_anterior = jugador.fecha_inscripcion
+
+        traspaso.fecha_inscripcion_anterior = (
+            jugador.fecha_inscripcion
+        )
 
         if commit:
+
             traspaso.save()
 
             # Actualizar jugador
-            jugador.equipo = traspaso.equipo_destino
-            jugador.fecha_inscripcion = traspaso.fecha_inscripcion_actual
+            jugador.equipo = (
+                traspaso.equipo_destino
+            )
+
+            jugador.fecha_inscripcion = (
+                traspaso.fecha_inscripcion_actual
+            )
+
             jugador.save()
 
         return traspaso
@@ -292,3 +338,4 @@ class Editar_Jugador(forms.ModelForm):
             )
 
         return fecha
+    

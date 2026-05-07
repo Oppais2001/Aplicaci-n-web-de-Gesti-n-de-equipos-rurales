@@ -43,6 +43,17 @@
                             {{jugador.fecha_inscripcion}}
                         </th>
                         <th>
+                            <button
+                                class="btn ver"
+                                title="Realizar Traspaso"
+
+                                data-fecha="{{ jugador.fecha_inscripcion|date:'Y-m-d' }}"
+                                data-jugador="{{ jugador.id }}"
+
+                                onclick="ValidarTraspaso(this)"
+                            >
+                                <i class="fas fa-right-left"></i>
+                            </button>
                             <button class="btn editar" title="Editar" 
                             onclick="window.location='/jugadores/editar/{{ jugador.id }}'">
                                 <i class="fa-solid fa-pen"></i>
@@ -50,6 +61,7 @@
                             <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut}}")'class="btn eliminar" title="Eliminar">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
+                            
                         </th>
                     </tr>
                 {% endfor %}
@@ -67,6 +79,53 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+function ValidarTraspaso(boton){
+
+    const fechaInscripcion =
+        boton.dataset.fecha;
+
+    const jugadorId =
+        boton.dataset.jugador;
+
+    console.log(fechaInscripcion);
+
+    const fechaBase = new Date(
+        fechaInscripcion + "T00:00:00"
+    );
+
+    const fechaActual = new Date();
+
+    const fechaMinima = new Date(
+        fechaBase
+    );
+
+    // 18 meses
+    fechaMinima.setMonth(
+        fechaMinima.getMonth() + 18
+    );
+
+    if (fechaActual >= fechaMinima){
+
+        window.location.href =
+            "/traspasos/" +
+            jugadorId +
+            "/";
+
+    } else {
+
+        Swal.fire({
+
+            icon: 'error',
+
+            title: 'Traspaso no permitido',
+
+            text:
+                'El jugador debe cumplir 1 año y medio de inscripción.'
+
+        });
+
+    }
+}
 function confirmarEliminar(nombre, rut) {
     Swal.fire({
         title: '¿Estás seguro?',

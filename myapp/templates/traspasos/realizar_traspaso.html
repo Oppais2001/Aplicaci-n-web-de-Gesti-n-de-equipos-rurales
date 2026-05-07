@@ -1,18 +1,18 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-<div class = 'grid-ingresar-jugador'>
+<div class = 'ingresar'>
     <div class="card-title">
         <h1>Realizar Traspaso</h1>
     </div>
     <div class="card form-container">
-        <form method="POST">
+        <p class="detalles"> Has seleccionado a "{{jugador.nombre}}" del equipo "{{jugador.equipo}}"</p>
+        <br>
+        <form method="POST" class="form-registro">
             {% csrf_token %}
             {{ form }}
             <button>Guardar</button>
         </form>
-    </div>
 </div>
-
 
 {% endblock %}

@@ -111,20 +111,27 @@ def traspasos(request):
         'hay_traspasos': traspasos_totales.exists()
     })
     
-def realizar_traspaso(request):
+def realizar_traspaso(request, id_jugador):
+    jugador = get_object_or_404(Jugador, id = id_jugador)
+    print('paso')
     if request.method == "POST":
-        form = Realizar_Traspasos(request.POST)
-
+        print('post')
+        form = Realizar_Traspasos(request.POST,
+                                  jugador = jugador)
+        
+        print(form.errors.as_data())
         if form.is_valid():
             form.save()
             
             return redirect('traspasos')
     else:
-        form = Realizar_Traspasos()
-
+        form = Realizar_Traspasos(jugador = jugador)
+        
     return render(request, "traspasos/realizar_traspaso.html", {
-        "form": form
+        "form": form,
+        "jugador": jugador
     })
+    
     
     
 def editar_jugador(request, id):

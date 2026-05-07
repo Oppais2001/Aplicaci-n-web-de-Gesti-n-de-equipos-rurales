@@ -191,7 +191,6 @@ tr:hover {
     text-align: center;
     margin-bottom: 30px;
 }
-
 .form-container input,
 .form-container select,
 .form-container textarea {
@@ -354,12 +353,22 @@ a {
 .enlace-ayuda {
     font-size: 2rem;
 }
+
+.detalles {
+    font-size: 1.25rem;
+    text-align: start;
+}
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
     .form-container input {
         font-size: 0.75rem;
     }
     .form-container button {
+        font-size: 1rem;
+    }
+    
+    .form-container select,
+    .form-container textarea {
         font-size: 1rem;
     }
 
@@ -488,6 +497,9 @@ a {
     }
     .enlace-ayuda {
         font-size: 1.25rem;
+    }
+    .detalles {
+        font-size: 1rem;
     }
 }
 /* ================= CELULARES PEQUEÑOS ================= */
