@@ -33,6 +33,9 @@
                             <th>
                                 Fecha
                             </th>
+                            <th>
+                                Acciones
+                            </th>
                         </tr>
                         {% for traspaso in traspasos %}
                             <tr>
@@ -51,6 +54,16 @@
                                 <th>
                                     {{traspaso.fecha_inscripcion_actual}}
                                 </th>
+                                <th>
+                                    <button class="btn editar" title="Editar" 
+                                    onclick="window.location='/traspasos/editar/{{ traspaso.id }}/'">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button type="button"
+                                    onclick='confirmarEliminar("{{ traspaso.id }}")'class="btn eliminar" title="Eliminar">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </th>
                             </tr>
                         {% endfor %}
                     </table>
@@ -64,4 +77,99 @@
     }
 </style>
 
+<script>
+    function confirmarEliminar(id) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'El jugador volverá a su equipo anterior',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+
+        if(result.isConfirmed){
+            fetch(
+                '/traspasos/eliminar/'
+                + id + '/',
+            {
+
+                method: 'POST',
+
+                headers: {
+
+                    'X-CSRFToken':
+                        obtenerCSRFToken()
+                }
+            })
+
+            .then(response => response.json())
+
+            .then(data => {
+
+                if(data.success){
+
+                    Swal.fire({
+
+                        icon: 'success',
+
+                        title:
+                            'Traspaso eliminado',
+
+                        timer: 1500,
+
+                        showConfirmButton: false
+                    });
+
+                    // quitar fila visualmente
+                    document.getElementById(
+                        'fila-' + id
+                    ).remove();
+
+                } else {
+
+                    Swal.fire({
+
+                        icon: 'error',
+
+                        title: 'Error',
+
+                        text: data.error
+                    });
+                    }
+                });
+            }
+        });
+    }
+
+function obtenerCSRFToken(){
+
+    let cookieValue = null;
+
+    const cookies =
+        document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+
+        const cookie =
+            cookies[i].trim();
+
+        if(
+            cookie.startsWith(
+                'csrftoken='
+            )
+        ){
+
+            cookieValue =
+                cookie.substring(
+                    'csrftoken='.length
+                );
+
+            break;
+        }
+    }
+
+    return cookieValue;
+    }
+</script>
 {% endblock %}

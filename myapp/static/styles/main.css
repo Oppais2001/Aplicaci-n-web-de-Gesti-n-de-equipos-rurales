@@ -358,6 +358,101 @@ a {
     font-size: 1.25rem;
     text-align: start;
 }
+/* ================= SWEETALERT2 ============ */
+/* POPUP PRINCIPAL */
+.swal2-popup {
+
+    background: rgb(31, 41, 55) !important;
+
+    color: whitesmoke !important;
+
+    border-radius: 15px;
+
+    border: 1px solid #4b5563;
+}
+
+/* TITULO */
+.swal2-title {
+
+    color: gold !important;
+
+    font-weight: bold;
+}
+
+/* TEXTO */
+.swal2-html-container {
+
+    color: whitesmoke !important;
+}
+
+/* INPUTS */
+.swal2-input {
+
+    background: rgb(17, 24, 39) !important;
+
+    color: whitesmoke !important;
+
+    border: 1px solid #6b7280 !important;
+
+    border-radius: 10px !important;
+}
+
+/* PLACEHOLDER */
+.swal2-input::placeholder {
+
+    color: #9ca3af !important;
+}
+
+/* INPUT FOCUS */
+.swal2-input:focus {
+
+    border-color: brown !important;
+
+    box-shadow: 0 0 5px brown !important;
+}
+
+/* BOTON CONFIRMAR */
+.swal2-confirm {
+
+    background: brown !important;
+
+    color: whitesmoke !important;
+
+    border-radius: 8px !important;
+}
+
+/* HOVER BOTON CONFIRMAR */
+.swal2-confirm:hover {
+
+    background: rgb(120, 50, 20) !important;
+}
+
+/* BOTON CANCELAR */
+.swal2-cancel {
+
+    background: #4b5563 !important;
+
+    color: whitesmoke !important;
+
+    border-radius: 8px !important;
+}
+
+/* MENSAJES DE ERROR */
+.swal2-validation-message {
+
+    background: rgb(55, 65, 81) !important;
+
+    color: whitesmoke !important;
+
+    border-radius: 8px !important;
+}
+
+/* BORDE DEL ICONO SUCCESS */
+.swal2-success-ring {
+
+    border-color: brown !important;
+}
+
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
     .form-container input {

@@ -3,21 +3,26 @@
 {% block content %}
 <div class="ingresar">
     <div class="card-title">
-        <h1>Editar Jugador</h1>
+        <h1>Editar Traspaso</h1>
     </div>
     <div class="container-forms-card">
+        <div class="card">
+            <h2>Datos originales del traspaso</h2>
+            <br>
+            <p><strong>Jugador:</strong> {{ traspaso.jugador }}</p>
+
+            <p><strong>Equipo de origen:</strong> {{ traspaso.equipo_origen }}</p>
+
+            <p><strong>Equipo de destino:</strong> {{ traspaso.equipo_destino }}</p>
+
+            <p><strong>Fecha de inscripción:</strong> {{ traspaso.fecha_inscripcion_actual }}</p>
+        </div>
         <div class="card form-container">
             <form method="POST">
                 {% csrf_token %}
                 {{ form.as_p }}
                 <button type="submit">Guardar cambios</button>
             </form>
-        </div>
-        <div>
-            <div class="card">
-                <h2>Ingreso Correcto</h2>
-                <p>El ingreso correcto de la fecha debe respetar el formato "DD/MM/AA"</p>
-            </div>
         </div>
     </div>
 </div>

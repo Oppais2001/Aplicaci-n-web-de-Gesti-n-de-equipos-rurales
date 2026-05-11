@@ -36,13 +36,17 @@
                             {{equipo.liga}}
                         </th>
                         <th>
-
-                        <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
-
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
                             <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
                                 <i class="fa-solid fa-eye"></i> 
+                            </button>
+
+                            <button class="btn editar" title="Editar" 
+                            onclick="window.location='/equipos/editar/{{ equipo.id }}'">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         </th>
                     </tr>
@@ -51,8 +55,6 @@
         {% endif %}
         </div>
     </div>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
     p { 

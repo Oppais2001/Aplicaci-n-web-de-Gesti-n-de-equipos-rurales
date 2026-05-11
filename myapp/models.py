@@ -18,6 +18,10 @@ class Equipo(models.Model):
 class Jugador(models.Model):
     nombre = models.CharField(max_length=100)
     rut = models.CharField(max_length=12, unique=True)
+    fecha_nacimiento = models.DateField(
+        null=True,
+        blank=True
+    )
     equipo = models.ForeignKey(
         "Equipo",
         on_delete=models.CASCADE,
