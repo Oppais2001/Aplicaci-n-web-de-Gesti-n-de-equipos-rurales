@@ -138,6 +138,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = 'felipealvrado@gmail.com'
-EMAIL_HOST_PASSWORD = 'pnrvjvnsdrckhdfb'
+EMAIL_HOST_PASSWORD = 'pawj pdxu vfgr yjok'
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

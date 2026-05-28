@@ -13,7 +13,7 @@
                 </form>
             {% endif %}
             {% if not traspasos %}
-                <p>No hay datos para mostrar.</p>
+                <p class="empty-message">No hay datos para mostrar.</p>
             {% else %}
               
                     <table>
@@ -38,7 +38,7 @@
                             </th>
                         </tr>
                         {% for traspaso in traspasos %}
-                            <tr>
+                            <tr id="fila-{{ traspaso.id }}">
                                 <th>
                                     {{traspaso.jugador.nombre}}
                                 </th>
@@ -70,12 +70,6 @@
             {% endif %}
         </div>
     </div>
-
-<style>
-    p {
-        text-align: center;
-    }
-</style>
 
 <script>
     function confirmarEliminar(id) {

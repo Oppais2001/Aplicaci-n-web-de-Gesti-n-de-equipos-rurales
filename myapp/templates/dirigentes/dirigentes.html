@@ -1,18 +1,18 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-    <div class="contenedor-tablas"> 
+    <div class="contenedor-tablas">
         <div class="card-title">
-            <h1>Visualizador de Equipos</h1>
+            <h1>Visualizador de Dirigentes</h1>
         </div>
         <div class="card">
-            {% if hay_equipos %}
+            {% if hay_dirigentes %}
             <form method="GET">
-                <input type="text" name="buscar" placeholder="Buscar equipo...">
+                <input type="text" name="buscar" placeholder="Buscar dirigente...">
                 <button type="submit">Buscar</button>
             </form>
             {% endif %}
-            {% if not equipos %}
+            {% if not dirigentes %}
             <p class="empty-message">No hay datos para mostrar.</p>
             {% else %}
             <table>
@@ -21,54 +21,61 @@
                         Nombre
                     </th>
                     <th>
+                        Rut
+                    </th>
+                    <th>
+                        Equipo
+                    </th>
+                    <th>
                         Liga
                     </th>
                     <th>
                         Acciones
                     </th>
                 </tr>
-                {% for equipo in equipos %}
+                {% for dirigente in dirigentes %}
                     <tr>
                         <th>
-                            {{equipo.nombre}}
+                            {{ dirigente.nombre }}
                         </th>
                         <th>
-                            {{equipo.liga}}
+                            {{ dirigente.rut_formateado }}
                         </th>
                         <th>
-                            <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
-                                <i class="fa-solid fa-eye"></i> 
-                            </button>
-
-                            <button class="btn editar" title="Editar" 
-                            onclick="window.location='/equipos/editar/{{ equipo.id }}'">
+                            {{ dirigente.equipo }}
+                        </th>
+                        <th>
+                            {{ dirigente.equipo.liga }}
+                        </th>
+                        <th>
+                            <button class="btn editar" title="Editar"
+                            onclick="window.location='/dirigentes/editar/{{ dirigente.id }}/'">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
 
-                            <button onclick='confirmarEliminar("{{ equipo }}")'class="btn eliminar" title="Eliminar">
+                            <button onclick='confirmarEliminar("{{ dirigente.id }}", "{{ dirigente.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </th>
                     </tr>
                 {% endfor %}
             </table>
-        {% endif %}
+            {% endif %}
         </div>
     </div>
 
 <script>
-function confirmarEliminar(equipo) {
-    console.log(equipo)
+function confirmarEliminar(id, nombre) {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: 'Eliminarás a todo el equipo "' + equipo + '" junto a todos sus jugadores',
+        text: 'Eliminarás al dirigente "' + nombre + '".',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = "/equipos/eliminar/" + equipo + "/";
+            window.location.href = "/dirigentes/eliminar/" + id + "/";
         }
     });
 }

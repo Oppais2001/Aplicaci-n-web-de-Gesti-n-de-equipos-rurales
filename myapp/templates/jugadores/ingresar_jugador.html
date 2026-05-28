@@ -7,7 +7,7 @@
     </div>
     <div class="container-forms-card">
         <div class="card form-container">
-            <form method="POST">
+            <form method="POST" class="form-registro">
                 {% csrf_token %}
                 {{ form }}
                 <button>Guardar</button>
@@ -16,47 +16,186 @@
         <div>
             <div class="card">
                 <h2>¿No encuentras algún equipo?</h2>
-                <p>Ingresalo desde aquí, sin borrar los datos ya ingresados. <a class='enlace-ayuda' href="">Haz click aquí.</a></p>
+                <p>Ingresalo desde aquí, sin borrar los datos ya ingresados.
+                    <button type="button" class="link-button enlace-ayuda" onclick="abrirPopupEquipo()">Haz click aquí.</button>
+                </p>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    @media (orientation: landscape) {
-        .ingresar {
-            gap: 1rem;
+<script>
+
+const opcionesLigas = `
+    {% for liga in ligas %}
+        <option value="{{ liga.id }}">
+            {{ liga.nombre }}
+        </option>
+    {% endfor %}
+`;
+
+function abrirPopupEquipo(){
+
+    Swal.fire({
+
+        title: 'Agregar Equipo',
+
+        html: `
+
+            <input
+                id="nombre_equipo"
+                class="swal2-input"
+                placeholder="Nombre equipo"
+            >
+
+            <select
+                id="liga_equipo"
+                class="swal2-select"
+            >
+
+                <option value="">
+                    Seleccione una liga
+                </option>
+
+                ${opcionesLigas}
+
+            </select>
+        `,
+
+        showCancelButton: true,
+
+        confirmButtonText: 'Guardar',
+
+        preConfirm: () => {
+
+        const nombre =
+            document.getElementById(
+                'nombre_equipo'
+            ).value.trim();
+
+        const liga =
+            document.getElementById(
+                'liga_equipo'
+            ).value;
+
+        if(!nombre){
+
+            Swal.showValidationMessage(
+                'Debes ingresar un nombre'
+            );
+
+            return false;
         }
-        .container-forms-card {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+
+        if(!liga){
+
+            Swal.showValidationMessage(
+                'Debes seleccionar una liga'
+            );
+
+            return false;
         }
-        .form-registro label{
-            font-size: 1.5rem;
-        }
+
+        return {
+            nombre: nombre,
+            liga: liga
+        };
     }
-    @media (max-width: 768px) {
-        .form-registro label{
-            font-size: 1rem;
+    }).then((result) => {
+
+        if(result.isConfirmed){
+
+            guardarEquipo(result.value);
         }
-        .form-registro button {
-            font-size: 1rem;
+    });
+}
+
+function guardarEquipo(datos){
+
+    fetch('/equipos/crear/ajax/', {
+
+        method: 'POST',
+
+        headers: {
+
+            'Content-Type':
+                'application/json',
+
+            'X-CSRFToken':
+                obtenerCSRFToken()
+        },
+
+        body: JSON.stringify(datos)
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if(data.success){
+
+            const selectEquipo =
+                document.getElementById(
+                    'id_equipo'
+                );
+
+            const option =
+                document.createElement(
+                    'option'
+                );
+
+            option.value = data.id;
+            option.text = data.nombre;
+
+            selectEquipo.appendChild(option);
+
+            // seleccionarlo automáticamente
+            selectEquipo.value = data.id;
+
+            Swal.fire({
+
+                icon: 'success',
+
+                title: 'Equipo agregado'
+            });
+
+        } else {
+
+            Swal.fire({
+
+                icon: 'error',
+
+                title: 'Error',
+
+                text: data.error
+            });
         }
-    }
-    @media (orientation: portrait) {
-        .ingresar{
-            gap: 0;
-        }
-        .container-forms-card {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .form-registro label{
-            font-size: 1rem;
+    });
+}
+
+function obtenerCSRFToken(){
+
+    let cookieValue = null;
+
+    const cookies = document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+
+        const cookie = cookies[i].trim();
+
+        if(cookie.startsWith('csrftoken=')){
+
+            cookieValue = cookie.substring(
+                'csrftoken='.length
+            );
+
+            break;
         }
     }
 
-</style>
+    return cookieValue;
+}
+
+</script>
 
 {% endblock %}

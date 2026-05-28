@@ -42,6 +42,31 @@ class Jugador(models.Model):
         cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
 
         return f"{cuerpo_con_puntos}-{dv}"
+
+
+class Dirigente(models.Model):
+    nombre = models.CharField(max_length=100)
+    rut = models.CharField(max_length=12, unique=True)
+    telefono = models.CharField(max_length=20)
+    correo = models.EmailField(unique=True)
+    equipo = models.ForeignKey(
+        "Equipo",
+        on_delete=models.CASCADE,
+        related_name="dirigentes"
+    )
+
+    def __str__(self):
+        return self.nombre
+
+    def rut_formateado(self):
+        rut = self.rut
+
+        cuerpo = rut[:-1]
+        dv = rut[-1].upper()
+
+        cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
+
+        return f"{cuerpo_con_puntos}-{dv}"
     
 
 class Traspaso(models.Model):

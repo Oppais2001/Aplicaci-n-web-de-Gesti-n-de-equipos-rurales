@@ -17,51 +17,13 @@
             <div>
                 <div class="card">
                     <h2>¿No encuentras tu liga?</h2>
-                    <p>Ingresala desde aquí, sin borrar los datos ya ingresados. <a onclick=agregarLiga()>Haz click aquí.</a></p>
+                    <p>Ingresala desde aquí, sin borrar los datos ya ingresados.
+                        <button type="button" class="link-button enlace-ayuda" onclick="agregarLiga()">Haz click aquí.</button>
+                    </p>
                 </div>
             </div>
         </div>
 </div>
-
-<style>
-   
-    @media (orientation: landscape) {
-        .ingresar {
-            gap: 1rem;
-        }
-        .container-forms-card {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-        .form-registro label{
-            font-size: 1.5rem;
-        }
-    }
-    @media (max-width: 768px) {
-        .form-registro label{
-            font-size: 1rem;
-        }
-        .form-registro button {
-            font-size: 1rem;
-        }
-    }
-    @media (orientation: portrait) {
-        .ingresar{
-            gap: 0;
-        }
-        .container-forms-card {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .form-registro label{
-            font-size: 1rem;
-        }
-    }
-
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 
@@ -86,7 +48,15 @@ async function agregarLiga(){
 
         confirmButtonColor: 'brown',
 
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+
+        inputValidator: (value) => {
+
+            if(!value.trim()){
+
+                return 'Debes ingresar un nombre';
+            }
+        }
     });
 
     if(nombre){
@@ -145,13 +115,7 @@ async function agregarLiga(){
 
             } else {
 
-                let mensaje = '';
-
-                for(let campo in data.errores){
-
-                    mensaje +=
-                        data.errores[campo] + '\n';
-                }
+                const mensaje = obtenerMensajeError(data);
 
                 Swal.fire({
 
@@ -171,6 +135,28 @@ function obtenerCSRFToken(){
     return document.querySelector(
         '[name=csrfmiddlewaretoken]'
     ).value;
+}
+
+function obtenerMensajeError(data){
+
+    if(data.mensajes && data.mensajes.length){
+
+        return data.mensajes.join('\n');
+    }
+
+    if(data.error){
+
+        return data.error;
+    }
+
+    if(data.errores){
+
+        return Object.values(data.errores)
+            .flat()
+            .join('\n');
+    }
+
+    return 'No se pudo crear la liga.';
 }
 
 </script>

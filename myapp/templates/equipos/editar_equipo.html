@@ -7,7 +7,7 @@
     </div>
     <div class="container-forms-card">
         <div class="card form-container">
-            <form method="POST">
+            <form method="POST" class="form-registro">
                 {% csrf_token %}
                 {{ form.as_p }}
                 <button type="submit">Guardar cambios</button>
@@ -16,51 +16,13 @@
         <div>
             <div class="card">
                 <h2>¿Quieres cambiarlo a una nueva liga?</h2>
-                <p>Ingresala desde aquí, sin borrar los datos ya ingresados. <a onclick="agregarLiga()">Haz click aquí.</a></p>
+                <p>Ingresala desde aquí, sin borrar los datos ya ingresados.
+                    <button type="button" class="link-button enlace-ayuda" onclick="agregarLiga()">Haz click aquí.</button>
+                </p>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-   
-    @media (orientation: landscape) {
-        .ingresar {
-            gap: 1rem;
-        }
-        .container-forms-card {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-        .form-registro label{
-            font-size: 1.5rem;
-        }
-    }
-    @media (max-width: 768px) {
-        .form-registro label{
-            font-size: 1rem;
-        }
-        .form-registro button {
-            font-size: 1rem;
-        }
-    }
-    @media (orientation: portrait) {
-        .ingresar{
-            gap: 0;
-        }
-        .container-forms-card {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .form-registro label{
-            font-size: 1rem;
-        }
-    }
-
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 

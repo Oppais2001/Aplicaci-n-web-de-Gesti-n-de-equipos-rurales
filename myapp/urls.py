@@ -4,6 +4,14 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('about', views.about, name='about'),
+    path('ligas', views.lista_ligas, name='ligas'),
+    path('ligas/ingresar_liga', views.ingresar_liga, name='ingresar_liga'),
+    path('ligas/editar/<int:id_liga>/', views.editar_liga, name='editar_liga'),
+    path('ligas/eliminar/<int:id_liga>/', views.eliminar_liga, name='eliminar_liga'),
+    path('dirigentes', views.lista_dirigentes, name='dirigentes'),
+    path('dirigentes/ingresar_dirigente', views.ingresar_dirigente, name='ingresar_dirigente'),
+    path('dirigentes/editar/<int:id_dirigente>/', views.editar_dirigente, name='editar_dirigente'),
+    path('dirigentes/eliminar/<int:id_dirigente>/', views.eliminar_dirigente, name='eliminar_dirigente'),
     path('equipos', views.lista_equipos, name='equipos'),
     path('equipos/ingresar_equipo', views.ingresar_equipo, name = 'ingresar_equipo'),
     path('equipos/<str:equipo>/', views.detalle_equipo, name='detalle_equipo'),
@@ -16,5 +24,6 @@ urlpatterns = [
     path('traspasos/<int:id_jugador>/', views.realizar_traspaso, name='realizar_traspaso'),
     path('traspasos/editar/<int:id>/', views.editar_traspaso, name='editar_traspaso'),
     path('traspasos/eliminar/<int:id>/', views.eliminar_traspaso, name='eliminar_traspaso'),
-    path('ligas/ajax/crear/',views.crear_liga_ajax, name='crear_liga_ajax')
+    path('ligas/ajax/crear/', views.crear_liga_ajax, name='crear_liga_ajax'),
+    path('equipos/crear/ajax/', views.ingresar_equipo_ajax, name='crear_equipo_ajax')
 ]

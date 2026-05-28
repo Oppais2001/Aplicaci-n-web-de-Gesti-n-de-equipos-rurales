@@ -1,39 +1,33 @@
 import json
 from django.http import JsonResponse
-from django.contrib import messages
+from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Equipo, Jugador, Traspaso
-from .forms import Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos, Ingresar_Liga, Editar_Traspaso
+from django.views.decorators.http import require_POST
+from .models import Dirigente, Equipo, Jugador, Traspaso, Liga
+from .forms import Editar_Dirigentes, Ingresar_Dirigentes, Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos, Ingresar_Liga, Editar_Traspaso
 
 # HOME Y ABOUT
 def home(request):
-    equipos = Equipo.objects.all()
-    total_equipos = len(equipos)
-    total_jugadores = len(Jugador.objects.all())
-    total_traspasos = len(Traspaso.objects.all())
-    
-    lista_equipos_dict = {}
-    
-    #
-    for equipo in equipos:
-        nombre_equipo = equipo.nombre
-        cantidad_jugadores = len(Jugador.objects.filter(equipo=equipo))
-        lista_equipos_dict[nombre_equipo] = cantidad_jugadores
-        print(nombre_equipo, cantidad_jugadores)
+    equipos = Equipo.objects.annotate(
+        total_jugadores=Count('jugadores')
+    ).order_by('nombre')
+
+    lista_equipos_dict = {
+        equipo.nombre: equipo.total_jugadores
+        for equipo in equipos
+    }
 
     return render(request, 'home.html', {
         'equipos': lista_equipos_dict,
-        'total_equipos': total_equipos,
-        'total_jugadores': total_jugadores,
-        'total_traspasos': total_traspasos
+        'total_equipos': equipos.count(),
+        'total_jugadores': Jugador.objects.count(),
+        'total_traspasos': Traspaso.objects.count()
     })
 
 def about(request):
     return render(request, 'about.html')
 
 # EQUIPOS
-
-    # CREATE
 def ingresar_equipo(request):
     if request.method == "POST":
         form = Ingresar_Equipos(request.POST)
@@ -45,9 +39,39 @@ def ingresar_equipo(request):
         form = Ingresar_Equipos()
 
     return render(request, "equipos/ingresar_equipo.html", {
-        "form": form
+        "form": form,
     })
-    # READ
+
+@require_POST
+def ingresar_equipo_ajax(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Datos inválidos'
+        }, status=400)
+
+    form = Ingresar_Equipos({
+        'nombre': data.get('nombre', ''),
+        'liga': data.get('liga', '')
+    })
+
+    if form.is_valid():
+        equipo = form.save()
+
+        return JsonResponse({
+            'success': True,
+            'id': equipo.id,
+            'nombre': equipo.nombre
+        })
+
+    return JsonResponse({
+        'success': False,
+        'error': form.errors.as_text(),
+        'errores': form.errors
+    }, status=400)
+
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
     equipos_totales = Equipo.objects.all()
@@ -61,7 +85,6 @@ def lista_equipos(request):
         "equipos": equipos,
         "hay_equipos": equipos_totales.exists(),
     })
-    # UPDATE    
 def editar_equipo(request, id_equipo):
     equipo = get_object_or_404(Equipo, id = id_equipo)
 
@@ -80,47 +103,175 @@ def editar_equipo(request, id_equipo):
         'equipo':equipo,
         
     })
-    # DELETE
 def eliminar_equipo(request, nombre):
     equipo = get_object_or_404(Equipo, nombre__iexact=nombre)
     equipo.delete()
     return redirect('equipos')
 
-# LIGA
-    # CREATE
-def crear_liga_ajax(request):
-    if request.method == 'POST':
 
-        data = json.loads(request.body)
+# DIRIGENTES
+def ingresar_dirigente(request):
+    if request.method == "POST":
+        form = Ingresar_Dirigentes(request.POST)
 
-        form = Ingresar_Liga(data)
-        
         if form.is_valid():
+            form.save()
+            return redirect('dirigentes')
+    else:
+        form = Ingresar_Dirigentes()
 
-            liga = form.save()
+    return render(request, "dirigentes/ingresar_dirigente.html", {
+        "form": form
+    })
 
-            return JsonResponse({
 
-                'success': True,
+def lista_dirigentes(request):
+    buscar = request.GET.get('buscar')
+    dirigentes_totales = Dirigente.objects.all()
+    dirigentes = Dirigente.objects.select_related(
+        'equipo',
+        'equipo__liga'
+    )
 
-                'id': liga.id,
+    if buscar:
+        dirigentes = dirigentes.filter(
+            Q(nombre__icontains=buscar)
+            | Q(rut__icontains=buscar)
+            | Q(equipo__nombre__icontains=buscar)
+            | Q(equipo__liga__nombre__icontains=buscar)
+        )
 
-                'nombre': liga.nombre
-            })
+    return render(request, "dirigentes/dirigentes.html", {
+        "dirigentes": dirigentes.order_by('nombre'),
+        "hay_dirigentes": dirigentes_totales.exists()
+    })
 
-        else:
 
-            return JsonResponse({
+def editar_dirigente(request, id_dirigente):
+    dirigente = get_object_or_404(Dirigente, id=id_dirigente)
 
-                'success': False,
+    if request.method == 'POST':
+        form = Editar_Dirigentes(request.POST, instance=dirigente)
 
-                'errores': form.errors
-            })
+        if form.is_valid():
+            form.save()
+            return redirect('dirigentes')
+    else:
+        form = Editar_Dirigentes(instance=dirigente)
+
+    return render(request, "dirigentes/editar_dirigente.html", {
+        "form": form,
+        "dirigente": dirigente
+    })
+
+
+def eliminar_dirigente(request, id_dirigente):
+    dirigente = get_object_or_404(Dirigente, id=id_dirigente)
+    dirigente.delete()
+    return redirect('dirigentes')
+
+
+# LIGA
+def ingresar_liga(request):
+    if request.method == "POST":
+        form = Ingresar_Liga(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect('ligas')
+    else:
+        form = Ingresar_Liga()
+
+    return render(request, "ligas/ingresar_liga.html", {
+        "form": form
+    })
+
+
+def lista_ligas(request):
+    buscar = request.GET.get('buscar')
+    ligas_totales = Liga.objects.all()
+
+    if buscar:
+        ligas = Liga.objects.filter(nombre__icontains=buscar)
+    else:
+        ligas = Liga.objects.all()
+
+    ligas = ligas.annotate(
+        total_equipos=Count('equipo')
+    ).order_by('nombre')
+
+    return render(request, "ligas/ligas.html", {
+        "ligas": ligas,
+        "hay_ligas": ligas_totales.exists()
+    })
+
+
+def editar_liga(request, id_liga):
+    liga = get_object_or_404(Liga, id=id_liga)
+
+    if request.method == 'POST':
+        form = Ingresar_Liga(request.POST, instance=liga)
+
+        if form.is_valid():
+            form.save()
+            return redirect('ligas')
+    else:
+        form = Ingresar_Liga(instance=liga)
+
+    return render(request, "ligas/editar_liga.html", {
+        "form": form,
+        "liga": liga
+    })
+
+
+def eliminar_liga(request, id_liga):
+    liga = get_object_or_404(Liga, id=id_liga)
+    liga.delete()
+    return redirect('ligas')
+
+
+@require_POST
+def crear_liga_ajax(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Datos inválidos'
+        }, status=400)
+
+    form = Ingresar_Liga(data)
+        
+    if form.is_valid():
+
+        liga = form.save()
+
+        return JsonResponse({
+
+            'success': True,
+
+            'id': liga.id,
+
+            'nombre': liga.nombre
+        })
+
+    mensajes = [
+        error
+        for errores_campo in form.errors.values()
+        for error in errores_campo
+    ]
+
+    return JsonResponse({
+
+        'success': False,
+        'error': '\n'.join(mensajes),
+        'mensajes': mensajes,
+        'errores': form.errors
+    }, status=400)
 
 # JUGADORES
-    
-    # CREATE
 def ingresar_jugador(request):
+    ligas = Liga.objects.all()
     if request.method == "POST":
         form = Ingresar_Jugadores(request.POST)
 
@@ -132,11 +283,11 @@ def ingresar_jugador(request):
         form = Ingresar_Jugadores()
 
     return render(request, "jugadores/ingresar_jugador.html", {
-        "form": form
+        "form": form,
+        "ligas": ligas
     })
-    # READ
 def detalle_equipo(request, equipo):
-    equipo = Equipo.objects.get(nombre=equipo)
+    equipo = get_object_or_404(Equipo, nombre=equipo)
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
@@ -151,7 +302,6 @@ def detalle_equipo(request, equipo):
         'hay_jugadores': jugadores_totales.exists()
     }) 
     
-    # UPDATE
 def editar_jugador(request, id):
     jugador = get_object_or_404(Jugador, id=id)
 
@@ -170,25 +320,20 @@ def editar_jugador(request, id):
         'jugador': jugador
     })
     
-    # DELETE
 def eliminar_jugador(request, rut):
     jugador = get_object_or_404(Jugador, rut = rut)
     equipo = jugador.equipo.nombre
     jugador.delete()
     return redirect('detalle_equipo', equipo=equipo)
 
-#TRASPASOS
-
-    # CREATE
+# TRASPASOS
 def realizar_traspaso(request, id_jugador):
     jugador = get_object_or_404(Jugador, id = id_jugador)
-    print('paso')
+
     if request.method == "POST":
-        print('post')
         form = Realizar_Traspasos(request.POST,
                                   jugador = jugador)
-        
-        print(form.errors.as_data())
+
         if form.is_valid():
             form.save()
             
@@ -201,7 +346,6 @@ def realizar_traspaso(request, id_jugador):
         "jugador": jugador
     })
     
-    # READ
 def traspasos(request):
     buscar = request.GET.get('buscar')
     traspasos_totales = Traspaso.objects.all()
@@ -215,7 +359,6 @@ def traspasos(request):
         'traspasos': traspasos,
         'hay_traspasos': traspasos_totales.exists()
     })
-    # UPDATE
 def editar_traspaso(request, id):
     traspaso = get_object_or_404(Traspaso, id=id)
 
@@ -234,7 +377,6 @@ def editar_traspaso(request, id):
         'traspaso': traspaso
     })
     
-    # DELETE
 def eliminar_traspaso(request, id):
 
     if request.method != 'POST':

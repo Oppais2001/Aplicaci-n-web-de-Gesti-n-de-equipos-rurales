@@ -1,6 +1,6 @@
 import re
 from django import forms
-from .models import Equipo, Jugador, Traspaso, Liga
+from .models import Dirigente, Equipo, Jugador, Traspaso, Liga
 
 from dateutil.relativedelta import relativedelta
 from datetime import date
@@ -32,7 +32,17 @@ class Ingresar_Jugadores(forms.ModelForm):
             raise forms.ValidationError(
                 "El nombre solo puede contener letras."
             )
+        
+        if len(set(nombre.lower().replace(" ", ""))) == 1:
+            raise forms.ValidationError(
+                "Ingresa un nombre válido."
+            )
 
+        if len(set(nombre.lower().replace(" ", ""))) == 1:
+            raise forms.ValidationError(
+                "Ingresa un nombre válido."
+            )
+            
         return nombre.title()
 
 
@@ -111,11 +121,35 @@ class Ingresar_Jugadores(forms.ModelForm):
             raise forms.ValidationError(
                 "No puedes ingresar una fecha futura."
             )
-        
-        # hacer validacion de fecha del pasado mas de 100 años
+            
+        if fecha < date.today() - relativedelta(years=100):
+            raise forms.ValidationError(
+                "La fecha es demasiado antigua."
+        )
+    
+    def clean_fecha_nacimiento(self):
+
+        fecha = self.cleaned_data.get(
+            'fecha_nacimiento'
+        )
+
+        hoy = date.today()
+
+        edad = relativedelta(hoy, fecha).years
+
+        if edad < 5:
+
+            raise forms.ValidationError(
+                "El jugador es demasiado joven."
+            )
+
+        if edad > 100:
+
+            raise forms.ValidationError(
+                "Edad inválida."
+            )
 
         return fecha
-    
 # EQUPO
 class Ingresar_Equipos(forms.ModelForm):
     class Meta:
@@ -123,12 +157,213 @@ class Ingresar_Equipos(forms.ModelForm):
         fields = ['nombre', 'liga']
 
     def clean_nombre(self):
-        nombre = self.cleaned_data.get('nombre')
 
-        if Equipo.objects.filter(nombre__iexact=nombre).exists():
-            raise forms.ValidationError("Ya existe un equipo con ese nombre")
+        nombre = self.cleaned_data.get(
+            'nombre',
+            ''
+        ).strip()
 
-        return nombre
+        # quitar espacios múltiples
+        nombre = " ".join(nombre.split())
+
+        # mínimo largo
+        if len(nombre) < 3:
+
+            raise forms.ValidationError(
+                "El nombre es demasiado corto."
+            )
+
+        # máximo razonable
+        if len(nombre) > 50:
+
+            raise forms.ValidationError(
+                "El nombre es demasiado largo."
+            )
+
+        # permitir:
+        # letras
+        # números
+        # espacios
+        # guiones
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-]+$'
+
+        if not re.fullmatch(patron, nombre):
+
+            raise forms.ValidationError(
+                "El nombre contiene caracteres inválidos."
+            )
+
+        # debe contener AL MENOS una letra
+        if not re.search(r'[A-Za-zÁÉÍÓÚáéíóúÑñÜü]', nombre):
+
+            raise forms.ValidationError(
+                "El nombre debe contener al menos una letra."
+            )
+
+        # evitar nombres solo símbolos o números raros
+        if nombre.replace("-", "").replace(" ", "").isdigit():
+
+            raise forms.ValidationError(
+                "El nombre no puede contener solo números."
+            )
+            
+        if len(set(nombre.lower().replace(" ", ""))) == 1:
+            raise forms.ValidationError(
+                "Ingresa un nombre válido."
+            )
+
+        # evitar duplicados ignorando mayúsculas
+        equipos = Equipo.objects.filter(
+            nombre__iexact=nombre
+        )
+
+        if self.instance.pk:
+
+            equipos = equipos.exclude(
+                pk=self.instance.pk
+            )
+
+        if equipos.exists():
+
+            raise forms.ValidationError(
+                "Ya existe un equipo con ese nombre."
+            )
+
+        return nombre.title()
+
+
+# DIRIGENTE
+class Ingresar_Dirigentes(forms.ModelForm):
+    class Meta:
+        model = Dirigente
+        fields = [
+            'nombre',
+            'rut',
+            'telefono',
+            'correo',
+            'equipo'
+        ]
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
+        nombre = " ".join(nombre.split())
+
+        if len(nombre) < 3:
+            raise forms.ValidationError(
+                "El nombre es demasiado corto."
+            )
+
+        patron = r'^[A-Za-zÃÃ‰ÃÃ“ÃšÃ¡Ã©Ã­Ã³ÃºÃ‘Ã±ÃœÃ¼\s\-]+$'
+
+        if not re.fullmatch(patron, nombre):
+            raise forms.ValidationError(
+                "El nombre solo puede contener letras."
+            )
+
+        if len(set(nombre.lower().replace(" ", ""))) == 1:
+            raise forms.ValidationError(
+                "Ingresa un nombre válido."
+            )
+        
+        return nombre.title()
+
+    def clean_rut(self):
+        rut = self.cleaned_data.get('rut', '').strip()
+        rut = rut.replace(".", "").replace("-", "").lower()
+
+        if len(rut) < 2:
+            raise forms.ValidationError("RUT invalido.")
+
+        cuerpo = rut[:-1]
+        dv = rut[-1]
+
+        if not cuerpo.isdigit():
+            raise forms.ValidationError("RUT invalido.")
+
+        if len(set(cuerpo)) == 1:
+            raise forms.ValidationError("Ingresa un rut realista.")
+
+        dirigentes = Dirigente.objects.filter(rut=rut)
+
+        if self.instance.pk:
+            dirigentes = dirigentes.exclude(pk=self.instance.pk)
+
+        if dirigentes.exists():
+            raise forms.ValidationError(
+                "Ya existe otro dirigente con este RUT."
+            )
+
+        suma = 0
+        multiplo = 2
+
+        for digit in reversed(cuerpo):
+            suma += int(digit) * multiplo
+            multiplo += 1
+
+            if multiplo > 7:
+                multiplo = 2
+
+        resto = suma % 11
+        dv_calculado = 11 - resto
+
+        if dv_calculado == 11:
+            dv_calculado = "0"
+        elif dv_calculado == 10:
+            dv_calculado = "k"
+        else:
+            dv_calculado = str(dv_calculado)
+
+        if dv != dv_calculado:
+            raise forms.ValidationError("RUT invalido.")
+
+        return rut
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get('telefono', '').strip()
+        telefono_limpio = telefono.replace(" ", "").replace("+", "")
+
+        if not telefono_limpio.isdigit():
+            raise forms.ValidationError(
+                "El telefono solo puede contener numeros."
+            )
+
+        if len(telefono_limpio) < 8:
+            raise forms.ValidationError(
+                "El telefono es demasiado corto."
+            )
+            
+        if len(telefono_limpio) > 12:
+            raise forms.ValidationError(
+                "El teléfono es demasiado largo."
+            )
+
+        return telefono
+
+    def clean_correo(self):
+        correo = self.cleaned_data.get('correo', '').strip().lower()
+        dirigentes = Dirigente.objects.filter(correo__iexact=correo)
+
+        if self.instance.pk:
+            dirigentes = dirigentes.exclude(pk=self.instance.pk)
+
+        if dirigentes.exists():
+            raise forms.ValidationError(
+                "Ya existe otro dirigente con este correo."
+            )
+
+        return correo
+
+
+class Editar_Dirigentes(Ingresar_Dirigentes):
+    class Meta:
+        model = Dirigente
+        fields = [
+            'nombre',
+            'rut',
+            'telefono',
+            'correo',
+            'equipo',
+        ]
     
 # TRASPASO
 
@@ -343,15 +578,84 @@ class Ingresar_Liga(forms.ModelForm):
         fields = ['nombre']
 
     def clean_nombre(self):
-        nombre = self.cleaned_data.get('nombre')
-        
+
+        nombre = self.cleaned_data.get(
+            'nombre',
+            ''
+        ).strip()
+
+        # quitar espacios múltiples
+        nombre = " ".join(nombre.split())
+
         if not nombre:
+
             raise forms.ValidationError(
                 "Debes ingresar un nombre."
             )
 
-        if Liga.objects.filter(nombre__iexact=nombre).exists():
-            raise forms.ValidationError("Ya existe una liga con ese nombre")
+        # largo mínimo
+        if len(nombre) < 3:
 
-        return nombre
-    
+            raise forms.ValidationError(
+                "El nombre es demasiado corto."
+            )
+
+        # largo máximo
+        if len(nombre) > 50:
+
+            raise forms.ValidationError(
+                "El nombre es demasiado largo."
+            )
+
+        # permitir:
+        # letras
+        # números
+        # espacios
+        # guiones
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-]+$'
+
+        if not re.fullmatch(patron, nombre):
+
+            raise forms.ValidationError(
+                "El nombre contiene caracteres inválidos."
+            )
+
+        # debe tener al menos una letra
+        if not re.search(
+            r'[A-Za-zÁÉÍÓÚáéíóúÑñÜü]',
+            nombre
+        ):
+
+            raise forms.ValidationError(
+                "El nombre debe contener al menos una letra."
+            )
+
+        # evitar nombres solo numéricos
+        if nombre.replace("-", "").replace(" ", "").isdigit():
+
+            raise forms.ValidationError(
+                "El nombre no puede contener solo números."
+            )
+            
+        if len(set(nombre.lower().replace(" ", ""))) == 1:
+            raise forms.ValidationError(
+                "Ingresa un nombre válido."
+            )
+
+        ligas = Liga.objects.filter(
+            nombre__iexact=nombre
+        )
+
+        if self.instance.pk:
+
+            ligas = ligas.exclude(
+                pk=self.instance.pk
+            )
+
+        if ligas.exists():
+
+            raise forms.ValidationError(
+                "Ya existe una liga con ese nombre."
+            )
+
+        return nombre.title()

@@ -33,9 +33,13 @@
                 <ul class="nav-menu" id="nav-menu">
                     <li><a href="{% url 'home' %}"><i class="fa fa-home"></i> Home</a></li>
                     <li><a href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a></li>
+                    <li><a href="{% url 'ligas' %}"><i class="fa fa-trophy"></i> Ligas</a></li>
                     <li><a href="{% url 'equipos' %}"><i class="fa fa-users"></i> Equipos</a></li>
+                    <li><a href="{% url 'dirigentes' %}"><i class="fa fa-user-tie"></i> Dirigentes</a></li>
                     <li><a href="{% url 'traspasos' %}"><i class="fa fa-right-left"></i> Traspasos</a></li>
+                    <li><a href="{% url 'ingresar_liga' %}"><i class="fa fa-plus"></i> Liga</a></li>
                     <li><a href="{% url 'ingresar_equipo' %}"><i class="fa fa-plus"></i> Equipo</a></li>
+                    <li><a href="{% url 'ingresar_dirigente' %}"><i class="fa fa-user-plus"></i> Dirigente</a></li>
                     <li><a href="{% url 'ingresar_jugador' %}"><i class="fa fa-user-plus"></i> Jugador</a></li>
                     {% if user.is_authenticated %}
                     <li>Hola, {{user.username}}</li>
