@@ -3,7 +3,9 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
+from django.core.mail import BadHeaderError
 from django.db import transaction
+from smtplib import SMTPException
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
@@ -19,20 +21,27 @@ def registro_view(request):
         form = RegistroForm(request.POST)
 
         if form.is_valid():
-            with transaction.atomic():
-                usuario = form.save(commit=False)
-                usuario.email = usuario.email.lower()
-                usuario.is_active = False
-                usuario.save()
+            try:
+                with transaction.atomic():
+                    usuario = form.save(commit=False)
+                    usuario.email = usuario.email.lower()
+                    usuario.is_active = False
+                    usuario.save()
 
-                dirigente = Dirigente.objects.select_for_update().get(
-                    correo__iexact=usuario.email,
-                    usuario__isnull=True
+                    dirigente = Dirigente.objects.select_for_update().get(
+                        correo__iexact=usuario.email,
+                        usuario__isnull=True
+                    )
+                    dirigente.usuario = usuario
+                    dirigente.save()
+
+                    enviar_email_verificacion(request, usuario)
+            except (BadHeaderError, SMTPException, OSError):
+                messages.error(
+                    request,
+                    "No pudimos enviar el correo de verificación. Intenta nuevamente más tarde."
                 )
-                dirigente.usuario = usuario
-                dirigente.save()
-
-                enviar_email_verificacion(request, usuario)
+                return render(request, 'usuarios/registro.html', {'form': form})
 
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('verificacion_pendiente')

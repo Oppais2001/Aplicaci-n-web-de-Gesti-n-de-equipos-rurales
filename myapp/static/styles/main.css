@@ -239,6 +239,29 @@ tr:hover {
     color: #ff6b6b;
     list-style: none;
     padding: 0;
+    margin: 0 0 12px;
+    width: 100%;
+}
+
+.errorlist {
+    color: #ff6b6b;
+    list-style: none;
+    margin: 0.35rem 0 0.75rem;
+    max-width: 100%;
+    padding: 0;
+}
+
+.errorlist li {
+    background: rgba(255, 107, 107, 0.12);
+    border-left: 4px solid #ff6b6b;
+    border-radius: 6px;
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    line-height: 1.35;
+    margin-bottom: 0.4rem;
+    overflow-wrap: anywhere;
+    padding: 0.5rem 0.65rem;
+    width: 100%;
+    word-break: normal;
 }
 
 /* ================= GENERALES ================= */
@@ -498,10 +521,6 @@ a {
     border-color: brown !important;
 }
 
-.error-list li {
-    font-size: 1rem;
-}
-
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
     .form-container input {
@@ -605,6 +624,12 @@ a {
 
     .form-container label {
         font-size: 1rem;
+    }
+
+    .errorlist li {
+        border-left-width: 3px;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.55rem;
     }
 
     .form-registro label,
