@@ -498,6 +498,10 @@ a {
     border-color: brown !important;
 }
 
+li {
+    font-size: 2rem;
+}
+
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
     .form-container input {
