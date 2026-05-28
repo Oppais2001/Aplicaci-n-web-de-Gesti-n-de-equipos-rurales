@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 class Liga(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -45,10 +46,19 @@ class Jugador(models.Model):
 
 
 class Dirigente(models.Model):
+
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     nombre = models.CharField(max_length=100)
     rut = models.CharField(max_length=12, unique=True)
     telefono = models.CharField(max_length=20)
     correo = models.EmailField(unique=True)
+
     equipo = models.ForeignKey(
         "Equipo",
         on_delete=models.CASCADE,
@@ -67,7 +77,7 @@ class Dirigente(models.Model):
         cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
 
         return f"{cuerpo_con_puntos}-{dv}"
-    
+
 
 class Traspaso(models.Model):
     jugador = models.ForeignKey(

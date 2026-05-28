@@ -23,9 +23,11 @@
                     <th>
                         Equipos
                     </th>
-                    <th>
-                        Acciones
-                    </th>
+                    {% if user.is_staff %}
+                        <th>
+                            Acciones
+                        </th>
+                    {% endif %}
                 </tr>
                 {% for liga in ligas %}
                     <tr>
@@ -35,16 +37,18 @@
                         <th>
                             {{ liga.total_equipos }}
                         </th>
-                        <th>
-                            <button class="btn editar" title="Editar"
-                            onclick="window.location='/ligas/editar/{{ liga.id }}/'">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
+                        {% if user.is_staff %}
+                            <th>
+                                <button class="btn editar" title="Editar"
+                                onclick="window.location='/ligas/editar/{{ liga.id }}/'">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
 
-                            <button onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </th>
+                                <button onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </th>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>

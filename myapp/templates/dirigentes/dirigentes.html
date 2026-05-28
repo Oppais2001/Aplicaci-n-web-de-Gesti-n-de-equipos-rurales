@@ -29,9 +29,11 @@
                     <th>
                         Liga
                     </th>
-                    <th>
-                        Acciones
-                    </th>
+                    {% if user.is_staff %}
+                        <th>
+                            Acciones
+                        </th>
+                    {% endif %}
                 </tr>
                 {% for dirigente in dirigentes %}
                     <tr>
@@ -47,16 +49,18 @@
                         <th>
                             {{ dirigente.equipo.liga }}
                         </th>
-                        <th>
-                            <button class="btn editar" title="Editar"
-                            onclick="window.location='/dirigentes/editar/{{ dirigente.id }}/'">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
+                        {% if user.is_staff %}
+                            <th>
+                                <button class="btn editar" title="Editar"
+                                onclick="window.location='/dirigentes/editar/{{ dirigente.id }}/'">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
 
-                            <button onclick='confirmarEliminar("{{ dirigente.id }}", "{{ dirigente.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </th>
+                                <button onclick='confirmarEliminar("{{ dirigente.id }}", "{{ dirigente.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </th>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>

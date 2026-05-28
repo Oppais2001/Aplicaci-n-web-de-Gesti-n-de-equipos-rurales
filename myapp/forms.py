@@ -37,11 +37,6 @@ class Ingresar_Jugadores(forms.ModelForm):
             raise forms.ValidationError(
                 "Ingresa un nombre válido."
             )
-
-        if len(set(nombre.lower().replace(" ", ""))) == 1:
-            raise forms.ValidationError(
-                "Ingresa un nombre válido."
-            )
             
         return nombre.title()
 
@@ -125,13 +120,18 @@ class Ingresar_Jugadores(forms.ModelForm):
         if fecha < date.today() - relativedelta(years=100):
             raise forms.ValidationError(
                 "La fecha es demasiado antigua."
-        )
+            )
+
+        return fecha
     
     def clean_fecha_nacimiento(self):
 
         fecha = self.cleaned_data.get(
             'fecha_nacimiento'
         )
+
+        if not fecha:
+            return fecha
 
         hoy = date.today()
 
@@ -342,6 +342,15 @@ class Ingresar_Dirigentes(forms.ModelForm):
     def clean_correo(self):
         correo = self.cleaned_data.get('correo', '').strip().lower()
         dirigentes = Dirigente.objects.filter(correo__iexact=correo)
+
+        if (
+            self.instance.pk
+            and self.instance.usuario_id
+            and correo != self.instance.usuario.email.lower()
+        ):
+            raise forms.ValidationError(
+                "No puedes cambiar el correo de un dirigente que ya tiene usuario asociado."
+            )
 
         if self.instance.pk:
             dirigentes = dirigentes.exclude(pk=self.instance.pk)

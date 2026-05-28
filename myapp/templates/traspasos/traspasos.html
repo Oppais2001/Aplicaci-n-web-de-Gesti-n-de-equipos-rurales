@@ -33,9 +33,11 @@
                             <th>
                                 Fecha
                             </th>
-                            <th>
-                                Acciones
-                            </th>
+                            {% if user.is_staff %}
+                                <th>
+                                    Acciones
+                                </th>
+                            {% endif %}
                         </tr>
                         {% for traspaso in traspasos %}
                             <tr id="fila-{{ traspaso.id }}">
@@ -54,16 +56,18 @@
                                 <th>
                                     {{traspaso.fecha_inscripcion_actual}}
                                 </th>
-                                <th>
-                                    <button class="btn editar" title="Editar" 
-                                    onclick="window.location='/traspasos/editar/{{ traspaso.id }}/'">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <button type="button"
-                                    onclick='confirmarEliminar("{{ traspaso.id }}")'class="btn eliminar" title="Eliminar">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </th>
+                                {% if user.is_staff %}
+                                    <th>
+                                        <button class="btn editar" title="Editar"
+                                        onclick="window.location='/traspasos/editar/{{ traspaso.id }}/'">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button type="button"
+                                        onclick='confirmarEliminar("{{ traspaso.id }}")'class="btn eliminar" title="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </th>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </table>

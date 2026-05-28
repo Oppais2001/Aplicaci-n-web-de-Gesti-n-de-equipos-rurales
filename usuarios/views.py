@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
+from django.db import transaction
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 
-from django.contrib.auth.models import User
-from django.core.mail import send_mail
-
+from myapp.models import Dirigente
 from .forms import RegistroForm, LoginForm
 from .models import Usuario
 
@@ -17,15 +19,23 @@ def registro_view(request):
         form = RegistroForm(request.POST)
 
         if form.is_valid():
-            
-            usuario = form.save(commit=False)
-            usuario.is_active = False
-            usuario.save()
-            
-            enviar_email_verificacion(request, usuario)
+            with transaction.atomic():
+                usuario = form.save(commit=False)
+                usuario.email = usuario.email.lower()
+                usuario.is_active = False
+                usuario.save()
+
+                dirigente = Dirigente.objects.select_for_update().get(
+                    correo__iexact=usuario.email,
+                    usuario__isnull=True
+                )
+                dirigente.usuario = usuario
+                dirigente.save()
+
+                enviar_email_verificacion(request, usuario)
 
             messages.success(request, "Usuario registrado correctamente.")
-            return redirect('home')
+            return redirect('verificacion_pendiente')
 
     else:
         form = RegistroForm()
@@ -46,6 +56,15 @@ def login_view(request):
             return redirect('home')
 
         else:
+            username = request.POST.get('username', '').strip()
+            usuario_inactivo = Usuario.objects.filter(
+                username__iexact=username,
+                is_active=False
+            ).exists()
+
+            if usuario_inactivo:
+                return redirect('verificacion_pendiente')
+
             messages.error(request, "Usuario o contraseña incorrectos.")
 
     else:
@@ -60,13 +79,26 @@ def logout_view(request):
     return redirect('login')
 
 
+def verificacion_pendiente(request):
+    return render(request, 'usuarios/verificacion_pendiente.html')
+
+
 @login_required
 def perfil_view(request):
     return render(request, 'usuarios/perfil.html')
 
 
-def activar_cuenta(request, user_id):
-    usuario = Usuario.objects.get(id=user_id)
+def activar_cuenta(request, uidb64, token):
+    try:
+        user_id = force_str(urlsafe_base64_decode(uidb64))
+        usuario = Usuario.objects.get(id=user_id)
+    except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
+        usuario = None
+
+    if usuario is None or not default_token_generator.check_token(usuario, token):
+        messages.error(request, "El enlace de activación no es válido o ya fue usado.")
+        return redirect('login')
+
     usuario.is_active = True
     usuario.save()
 

@@ -1,16 +1,33 @@
 import json
+from django.http import HttpResponseForbidden
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from .models import Dirigente, Equipo, Jugador, Traspaso, Liga
 from .forms import Editar_Dirigentes, Ingresar_Dirigentes, Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos, Ingresar_Liga, Editar_Traspaso
+from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
 
 # HOME Y ABOUT
+@usuario_autorizado_required
 def home(request):
-    equipos = Equipo.objects.annotate(
-        total_jugadores=Count('jugadores')
-    ).order_by('nombre')
+    if es_administrador(request.user):
+        equipos = Equipo.objects.annotate(
+            total_jugadores=Count('jugadores')
+        ).order_by('nombre')
+        total_traspasos = Traspaso.objects.count()
+    else:
+        dirigente = obtener_dirigente(request.user)
+        equipos = Equipo.objects.filter(
+            id=dirigente.equipo_id
+        ).annotate(
+            total_jugadores=Count('jugadores')
+        )
+        total_traspasos = Traspaso.objects.filter(
+            Q(equipo_origen=dirigente.equipo)
+            | Q(equipo_destino=dirigente.equipo)
+            | Q(jugador__equipo=dirigente.equipo)
+        ).distinct().count()
 
     lista_equipos_dict = {
         equipo.nombre: equipo.total_jugadores
@@ -20,14 +37,16 @@ def home(request):
     return render(request, 'home.html', {
         'equipos': lista_equipos_dict,
         'total_equipos': equipos.count(),
-        'total_jugadores': Jugador.objects.count(),
-        'total_traspasos': Traspaso.objects.count()
+        'total_jugadores': sum(lista_equipos_dict.values()),
+        'total_traspasos': total_traspasos
     })
 
+@usuario_autorizado_required
 def about(request):
     return render(request, 'about.html')
 
 # EQUIPOS
+@admin_required
 def ingresar_equipo(request):
     if request.method == "POST":
         form = Ingresar_Equipos(request.POST)
@@ -42,6 +61,7 @@ def ingresar_equipo(request):
         "form": form,
     })
 
+@admin_required
 @require_POST
 def ingresar_equipo_ajax(request):
     try:
@@ -72,19 +92,26 @@ def ingresar_equipo_ajax(request):
         'errores': form.errors
     }, status=400)
 
+@usuario_autorizado_required
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
-    equipos_totales = Equipo.objects.all()
+    equipos = Equipo.objects.all()
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        equipos = equipos.filter(id=dirigente.equipo_id)
+
+    equipos_totales = equipos
 
     if buscar:
-        equipos = Equipo.objects.filter(nombre__icontains=buscar)
-    else:
-        equipos = Equipo.objects.all()
+        equipos = equipos.filter(nombre__icontains=buscar)
 
     return render(request, "equipos/equipos.html", {
         "equipos": equipos,
         "hay_equipos": equipos_totales.exists(),
     })
+
+@admin_required
 def editar_equipo(request, id_equipo):
     equipo = get_object_or_404(Equipo, id = id_equipo)
 
@@ -103,6 +130,7 @@ def editar_equipo(request, id_equipo):
         'equipo':equipo,
         
     })
+@admin_required
 def eliminar_equipo(request, nombre):
     equipo = get_object_or_404(Equipo, nombre__iexact=nombre)
     equipo.delete()
@@ -110,6 +138,7 @@ def eliminar_equipo(request, nombre):
 
 
 # DIRIGENTES
+@admin_required
 def ingresar_dirigente(request):
     if request.method == "POST":
         form = Ingresar_Dirigentes(request.POST)
@@ -125,13 +154,19 @@ def ingresar_dirigente(request):
     })
 
 
+@usuario_autorizado_required
 def lista_dirigentes(request):
     buscar = request.GET.get('buscar')
-    dirigentes_totales = Dirigente.objects.all()
     dirigentes = Dirigente.objects.select_related(
         'equipo',
         'equipo__liga'
     )
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        dirigentes = dirigentes.filter(equipo=dirigente.equipo)
+
+    dirigentes_totales = dirigentes
 
     if buscar:
         dirigentes = dirigentes.filter(
@@ -146,7 +181,7 @@ def lista_dirigentes(request):
         "hay_dirigentes": dirigentes_totales.exists()
     })
 
-
+@admin_required
 def editar_dirigente(request, id_dirigente):
     dirigente = get_object_or_404(Dirigente, id=id_dirigente)
 
@@ -164,7 +199,7 @@ def editar_dirigente(request, id_dirigente):
         "dirigente": dirigente
     })
 
-
+@admin_required
 def eliminar_dirigente(request, id_dirigente):
     dirigente = get_object_or_404(Dirigente, id=id_dirigente)
     dirigente.delete()
@@ -172,6 +207,7 @@ def eliminar_dirigente(request, id_dirigente):
 
 
 # LIGA
+@admin_required
 def ingresar_liga(request):
     if request.method == "POST":
         form = Ingresar_Liga(request.POST)
@@ -187,14 +223,19 @@ def ingresar_liga(request):
     })
 
 
+@usuario_autorizado_required
 def lista_ligas(request):
     buscar = request.GET.get('buscar')
-    ligas_totales = Liga.objects.all()
+    ligas = Liga.objects.all()
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        ligas = ligas.filter(id=dirigente.equipo.liga_id)
+
+    ligas_totales = ligas
 
     if buscar:
-        ligas = Liga.objects.filter(nombre__icontains=buscar)
-    else:
-        ligas = Liga.objects.all()
+        ligas = ligas.filter(nombre__icontains=buscar)
 
     ligas = ligas.annotate(
         total_equipos=Count('equipo')
@@ -205,7 +246,7 @@ def lista_ligas(request):
         "hay_ligas": ligas_totales.exists()
     })
 
-
+@admin_required
 def editar_liga(request, id_liga):
     liga = get_object_or_404(Liga, id=id_liga)
 
@@ -223,13 +264,14 @@ def editar_liga(request, id_liga):
         "liga": liga
     })
 
-
+@admin_required
 def eliminar_liga(request, id_liga):
     liga = get_object_or_404(Liga, id=id_liga)
     liga.delete()
     return redirect('ligas')
 
 
+@admin_required
 @require_POST
 def crear_liga_ajax(request):
     try:
@@ -270,6 +312,7 @@ def crear_liga_ajax(request):
     }, status=400)
 
 # JUGADORES
+@admin_required
 def ingresar_jugador(request):
     ligas = Liga.objects.all()
     if request.method == "POST":
@@ -286,8 +329,16 @@ def ingresar_jugador(request):
         "form": form,
         "ligas": ligas
     })
+@usuario_autorizado_required
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+
+        if equipo.id != dirigente.equipo_id:
+            return HttpResponseForbidden("Solo puedes ver jugadores de tu equipo.")
+
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
@@ -301,7 +352,8 @@ def detalle_equipo(request, equipo):
         "equipo": equipo,
         'hay_jugadores': jugadores_totales.exists()
     }) 
-    
+
+@admin_required
 def editar_jugador(request, id):
     jugador = get_object_or_404(Jugador, id=id)
 
@@ -320,6 +372,7 @@ def editar_jugador(request, id):
         'jugador': jugador
     })
     
+@admin_required
 def eliminar_jugador(request, rut):
     jugador = get_object_or_404(Jugador, rut = rut)
     equipo = jugador.equipo.nombre
@@ -327,6 +380,7 @@ def eliminar_jugador(request, rut):
     return redirect('detalle_equipo', equipo=equipo)
 
 # TRASPASOS
+@admin_required
 def realizar_traspaso(request, id_jugador):
     jugador = get_object_or_404(Jugador, id = id_jugador)
 
@@ -346,19 +400,34 @@ def realizar_traspaso(request, id_jugador):
         "jugador": jugador
     })
     
+@usuario_autorizado_required
 def traspasos(request):
     buscar = request.GET.get('buscar')
-    traspasos_totales = Traspaso.objects.all()
+    traspasos = Traspaso.objects.select_related(
+        'jugador',
+        'equipo_origen',
+        'equipo_destino'
+    )
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        traspasos = traspasos.filter(
+            Q(equipo_origen=dirigente.equipo)
+            | Q(equipo_destino=dirigente.equipo)
+            | Q(jugador__equipo=dirigente.equipo)
+        ).distinct()
+
+    traspasos_totales = traspasos
 
     if buscar:
-        traspasos = Traspaso.objects.filter(jugador__nombre__icontains=buscar)
-    else:
-        traspasos = Traspaso.objects.all()
+        traspasos = traspasos.filter(jugador__nombre__icontains=buscar)
                  
     return render(request, 'traspasos/traspasos.html', {
         'traspasos': traspasos,
         'hay_traspasos': traspasos_totales.exists()
     })
+
+@admin_required
 def editar_traspaso(request, id):
     traspaso = get_object_or_404(Traspaso, id=id)
 
@@ -376,7 +445,8 @@ def editar_traspaso(request, id):
         'form': form,
         'traspaso': traspaso
     })
-    
+
+@admin_required
 def eliminar_traspaso(request, id):
 
     if request.method != 'POST':

@@ -1,0 +1,18 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="ingresar">
+    <div class="card-title">
+        <h1>Verifica tu correo</h1>
+    </div>
+    <div class="card form-container">
+        <p class="detalles">
+            Antes de iniciar sesiÃ³n debes activar tu cuenta desde el enlace que enviamos a tu correo.
+        </p>
+        <p class="detalles">
+            Revisa tu bandeja de entrada o spam.
+        </p>
+        <button type="button" onclick="window.location='{% url 'login' %}'">Volver al login</button>
+    </div>
+</div>
+{% endblock %}

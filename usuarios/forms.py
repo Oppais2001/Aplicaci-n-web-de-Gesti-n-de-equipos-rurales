@@ -1,6 +1,7 @@
 import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from myapp.models import Dirigente
 from .models import Usuario
 
 class RegistroForm(UserCreationForm):
@@ -38,10 +39,22 @@ class RegistroForm(UserCreationForm):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = self.cleaned_data.get('email', '').strip().lower()
 
         if Usuario.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Ya existe una cuenta con ese correo.")
+
+        dirigente = Dirigente.objects.filter(correo__iexact=email).first()
+
+        if not dirigente:
+            raise forms.ValidationError(
+                "Este correo no esta registrado como dirigente autorizado."
+            )
+
+        if dirigente.usuario_id:
+            raise forms.ValidationError(
+                "Este dirigente ya tiene una cuenta de usuario asociada."
+            )
 
         return email
 
