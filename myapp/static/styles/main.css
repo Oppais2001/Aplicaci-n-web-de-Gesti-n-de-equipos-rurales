@@ -498,7 +498,7 @@ a {
     border-color: brown !important;
 }
 
-li {
+.error-list li {
     font-size: 1rem;
 }
 
