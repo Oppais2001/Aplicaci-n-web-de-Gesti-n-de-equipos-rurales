@@ -25,5 +25,6 @@ urlpatterns = [
     path('traspasos/editar/<int:id>/', views.editar_traspaso, name='editar_traspaso'),
     path('traspasos/eliminar/<int:id>/', views.eliminar_traspaso, name='eliminar_traspaso'),
     path('ligas/ajax/crear/', views.crear_liga_ajax, name='crear_liga_ajax'),
-    path('equipos/crear/ajax/', views.ingresar_equipo_ajax, name='crear_equipo_ajax')
+    path('equipos/crear/ajax/', views.ingresar_equipo_ajax, name='crear_equipo_ajax'),
+    path('ligas/detalle/<int:id_liga>/',views.detalle_liga,name='detalle_liga')
 ]

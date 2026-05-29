@@ -1,0 +1,43 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="contenedor-tablas">
+  <div class="card-title">
+    <h1>Detalle de Liga</h1>
+  </div>
+
+  <div class="card">
+    {% if liga.logo %}
+    <div class="logo-centrado">
+      <img src="{{ liga.logo.url }}" width="150" />
+    </div>
+    {% endif %}
+    <p><strong>Nombre:</strong> {{ liga.nombre }}</p>
+
+    <p><strong>Fecha Fundación:</strong> {{ liga.fecha_fundacion }}</p>
+
+    <p><strong>Ciudad:</strong> {{ liga.ciudad }}</p>
+
+    <p><strong>Región:</strong> {{ liga.region }}</p>
+
+    <p><strong>Dirección:</strong> {{ liga.direccion }}</p>
+
+    <p><strong>Presidente:</strong> {{ liga.presidente }}</p>
+
+    <p><strong>Teléfono:</strong> {{ liga.telefono_contacto }}</p>
+
+    <p><strong>Correo:</strong> {{ liga.correo_contacto }}</p>
+
+    <p><strong>Total equipos:</strong> {{ total_equipos }}</p>
+
+    <p>
+      <strong>Estado:</strong>
+      {% if liga.activa %} Activa {% else %} Inactiva {% endif %}
+    </p>
+
+    <p><strong>Reglamento:</strong></p>
+
+    <p>{{ liga.reglamento }}</p>
+  </div>
+</div>
+
+{% endblock %}

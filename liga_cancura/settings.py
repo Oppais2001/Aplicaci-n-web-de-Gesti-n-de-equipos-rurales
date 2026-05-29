@@ -24,11 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-6o!)$o6=u-5tpc6@2gtx1s$i49)wkj$izf5@wl)w0*_*pof0$0'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = [
-    '.onrender.com',
-]
+ALLOWED_HOSTS = ['*']
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -143,3 +142,6 @@ EMAIL_HOST_USER = 'felipealvrado@gmail.com'
 EMAIL_HOST_PASSWORD = 'pawj pdxu vfgr yjok'
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

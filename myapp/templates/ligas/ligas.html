@@ -1,76 +1,86 @@
-{% extends 'layouts/base.html' %}
+{% extends 'layouts/base.html' %} {% block content %}
+<div class="contenedor-tablas">
+  <div class="card-title">
+    <h1>Visualizador de Ligas</h1>
+  </div>
+  <div class="card">
+    {% if hay_ligas %}
+    <form method="GET">
+      <input type="text" name="buscar" placeholder="Buscar liga..." />
+      <button type="submit">Buscar</button>
+    </form>
+    {% endif %} {% if not ligas %}
+    <p class="empty-message">No hay datos para mostrar.</p>
+    {% else %}
+    <table>
+      <tr class="encabezado">
+        <th>Logo</th>
+        <th>Nombre</th>
+        <th>Ubicación</th>
+        <th>Equipos</th>
+        {% if user.is_staff %}
+        <th>Acciones</th>
+        {% endif %}
+      </tr>
+      {% for liga in ligas %}
+      <tr>
+        <th>
+          {% if liga.logo %}
+          <img src="{{ liga.logo.url }}" alt="Logo" width="50" />
+          {% else %} Sin logo {% endif %}
+        </th>
+        <th>{{ liga.nombre }}</th>
+        <th>{{ liga.ciudad}},{{liga.region }}</th>
+        <th>{{ liga.total_equipos }}</th>
+        {% if user.is_staff %}
+        <th>
+          <button
+            class="btn detalles"
+            title="Ver Detalles"
+            onclick="window.location='/ligas/detalle/{{ liga.id }}/'"
+          >
+            <i class="fa-solid fa-eye"></i>
+          </button>
+          <button
+            class="btn editar"
+            title="Editar"
+            onclick="window.location='/ligas/editar/{{ liga.id }}/'"
+          >
+            <i class="fa-solid fa-pen"></i>
+          </button>
 
-{% block content %}
-    <div class="contenedor-tablas">
-        <div class="card-title">
-            <h1>Visualizador de Ligas</h1>
-        </div>
-        <div class="card">
-            {% if hay_ligas %}
-            <form method="GET">
-                <input type="text" name="buscar" placeholder="Buscar liga...">
-                <button type="submit">Buscar</button>
-            </form>
-            {% endif %}
-            {% if not ligas %}
-            <p class="empty-message">No hay datos para mostrar.</p>
-            {% else %}
-            <table>
-                <tr class="encabezado">
-                    <th>
-                        Nombre
-                    </th>
-                    <th>
-                        Equipos
-                    </th>
-                    {% if user.is_staff %}
-                        <th>
-                            Acciones
-                        </th>
-                    {% endif %}
-                </tr>
-                {% for liga in ligas %}
-                    <tr>
-                        <th>
-                            {{ liga.nombre }}
-                        </th>
-                        <th>
-                            {{ liga.total_equipos }}
-                        </th>
-                        {% if user.is_staff %}
-                            <th>
-                                <button class="btn editar" title="Editar"
-                                onclick="window.location='/ligas/editar/{{ liga.id }}/'">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-
-                                <button onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")' class="btn eliminar" title="Eliminar">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </th>
-                        {% endif %}
-                    </tr>
-                {% endfor %}
-            </table>
-            {% endif %}
-        </div>
-    </div>
+          <button
+            onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")'
+            class="btn eliminar"
+            title="Eliminar"
+          >
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </th>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+</div>
 
 <script>
-function confirmarEliminar(id, nombre) {
+  function confirmarEliminar(id, nombre) {
     Swal.fire({
-        title: '¿Estás seguro?',
-        text: 'Eliminarás la liga "' + nombre + '" junto a sus equipos asociados.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+      title: "¿Estás seguro?",
+      text:
+        'Eliminarás la liga "' + nombre + '" junto a sus equipos asociados.',
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = "/ligas/eliminar/" + id + "/";
-        }
+      if (result.isConfirmed) {
+        window.location.href = "/ligas/eliminar/" + id + "/";
+      }
     });
-}
+  }
 </script>
 
 {% endblock %}

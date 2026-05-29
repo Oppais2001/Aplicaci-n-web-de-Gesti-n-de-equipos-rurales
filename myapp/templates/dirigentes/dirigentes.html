@@ -18,17 +18,27 @@
             <table>
                 <tr class="encabezado">
                     <th>
+                        Equipo
+                    </th>
+                    <th>
+                        Cargo
+                    </th>
+                    <th>
                         Nombre
                     </th>
                     <th>
                         Rut
                     </th>
                     <th>
-                        Equipo
+                        Telefono
                     </th>
                     <th>
-                        Liga
+                        Correo
                     </th>
+                    <th>
+                        direccion
+                    </th>
+
                     {% if user.is_staff %}
                         <th>
                             Acciones
@@ -36,7 +46,14 @@
                     {% endif %}
                 </tr>
                 {% for dirigente in dirigentes %}
+                    {% if dirigente.activo %}
                     <tr>
+                        <th>
+                            {{dirigente.equipo}}
+                        </th>
+                        <th>
+                            {{dirigente.cargo}}
+                        </th>
                         <th>
                             {{ dirigente.nombre }}
                         </th>
@@ -44,11 +61,15 @@
                             {{ dirigente.rut_formateado }}
                         </th>
                         <th>
-                            {{ dirigente.equipo }}
+                            {{ dirigente.telefono }}
                         </th>
                         <th>
-                            {{ dirigente.equipo.liga }}
+                            {{dirigente.correo}}
                         </th>
+                        <th>
+                            {{dirigente.direccion}}
+                        </th>
+                    {% endif %}
                         {% if user.is_staff %}
                             <th>
                                 <button class="btn editar" title="Editar"

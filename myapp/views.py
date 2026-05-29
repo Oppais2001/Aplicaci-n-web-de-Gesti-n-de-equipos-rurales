@@ -310,6 +310,25 @@ def crear_liga_ajax(request):
         'mensajes': mensajes,
         'errores': form.errors
     }, status=400)
+    
+@usuario_autorizado_required
+def detalle_liga(request, id_liga):
+
+    liga = get_object_or_404(
+        Liga,
+        id=id_liga
+    )
+
+    total_equipos = liga.equipo_set.count()
+
+    return render(
+        request,
+        "ligas/detalle_liga.html",
+        {
+            "liga": liga,
+            "total_equipos": total_equipos
+        }
+    )
 
 # JUGADORES
 @admin_required

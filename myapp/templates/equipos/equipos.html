@@ -24,6 +24,18 @@
                         Liga
                     </th>
                     <th>
+                        Fecha creación
+                    </th>
+                    <th>
+                        Dueño
+                    </th>
+                    <th>
+                        Entrenador
+                    </th>
+                    <th>
+                        N° Jugadores
+                    </th>
+                    <th>
                         Acciones
                     </th>
                 </tr>
@@ -34,6 +46,18 @@
                         </th>
                         <th>
                             {{equipo.liga}}
+                        </th>
+                        <th>
+                            {{equipo.fecha_creacion}}
+                        </th>
+                        <th>
+                            {{equipo.nombre_dueno}}
+                        </th>
+                        <th>
+                            {{equipo.nombre_entrenador}}
+                        </th>
+                        <th>
+                            {{equipo.cantidad_jugadores}}
                         </th>
                         <th>
                             <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
