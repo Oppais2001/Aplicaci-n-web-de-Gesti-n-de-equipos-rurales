@@ -41,25 +41,25 @@
                 </tr>
                 {% for equipo in equipos %}
                     <tr>
-                        <th>
+                        <td>
                             {{equipo.nombre}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             {{equipo.liga}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             {{equipo.fecha_creacion}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             {{equipo.nombre_dueno}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             {{equipo.nombre_entrenador}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             {{equipo.cantidad_jugadores}}
-                        </th>
-                        <th>
+                        </td>
+                        <td>
                             <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">
                                 <i class="fa-solid fa-eye"></i> 
                             </button>
@@ -74,7 +74,7 @@
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             {% endif %}
-                        </th>
+                        </td>
                     </tr>
                 {% endfor %}
             </table>

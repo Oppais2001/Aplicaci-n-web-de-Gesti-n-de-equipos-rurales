@@ -209,19 +209,39 @@ def eliminar_dirigente(request, id_dirigente):
 # LIGA
 @admin_required
 def ingresar_liga(request):
+
+    next_page = request.GET.get('next')
+
     if request.method == "POST":
-        form = Ingresar_Liga(request.POST)
+
+        form = Ingresar_Liga(
+            request.POST,
+            request.FILES
+        )
 
         if form.is_valid():
-            form.save()
+
+            liga = form.save()
+
+            if next_page == 'equipo':
+
+                return redirect(
+                    f"/equipos/ingresar_equipo/?liga={liga.id}"
+                )
+
             return redirect('ligas')
+
     else:
+
         form = Ingresar_Liga()
 
-    return render(request, "ligas/ingresar_liga.html", {
-        "form": form
-    })
-
+    return render(
+        request,
+        "ligas/ingresar_liga.html",
+        {
+            "form": form
+        }
+    )
 
 @usuario_autorizado_required
 def lista_ligas(request):
@@ -251,7 +271,7 @@ def editar_liga(request, id_liga):
     liga = get_object_or_404(Liga, id=id_liga)
 
     if request.method == 'POST':
-        form = Ingresar_Liga(request.POST, instance=liga)
+        form = Ingresar_Liga(request.POST,request.FILES, instance=liga)
 
         if form.is_valid():
             form.save()

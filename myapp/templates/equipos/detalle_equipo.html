@@ -1,51 +1,120 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
+
 <div class="contenedor-tablas"> 
+
     <div class="card-title">
-        <h1>{{ equipo.nombre }} - Liga {{equipo.liga}}</h1>
+        <h1>
+            {{ equipo.nombre }} - Liga {{ equipo.liga }}
+        </h1>
     </div>
+
     <div class="card">
+
         {% if hay_jugadores %}
             <form method="GET">
-                <input type="text" name="buscar" placeholder="Buscar jugador...">
-                <button type="submit">Buscar</button>
+                <input
+                    type="text"
+                    name="buscar"
+                    placeholder="Buscar jugador..."
+                >
+
+                <button type="submit">
+                    Buscar
+                </button>
             </form>
         {% endif %}
+
         {% if not jugadores %}
-        <p class="empty-message">No hay datos registrados</p>
+
+            <p class="empty-message">
+                No hay datos registrados
+            </p>
+
         {% else %}
-        <br>
+
+            <br>
+
             <table>
+
                 <tr class="encabezado">
-                    <th>
-                        Nombre
-                    </th>
-                    <th>
-                        Rut
-                    </th>
-                    <th>
-                        Fecha de <br> Inscripción
-                    </th>
+
+                    <th>Nombre</th>
+
+                    <th>RUT</th>
+
+                    <th>Edad</th>
+
+                    <th>Teléfono</th>
+
+                    <th>Emergencia</th>
+
+                    <th>Inscripción</th>
+
                     {% if user.is_staff %}
-                        <th>
-                            Acciones
-                        </th>
+                        <th>Acciones</th>
                     {% endif %}
+
                 </tr>
+
                 {% for jugador in jugadores %}
+
                     <tr>
-                        <th>
-                            {{jugador.nombre}}
-                        </th>
-                        <th>
-                            {{jugador.rut_formateado}}
-                        </th>
-                        <th>
-                            {{jugador.fecha_inscripcion}}
-                        </th>
+
+                        <!-- NOMBRE -->
+                        <td>
+                            {{ jugador.nombre }}
+                        </td>
+
+                        <!-- RUT -->
+                        <td>
+                            {{ jugador.rut_formateado }}
+                        </td>
+
+                        <!-- EDAD -->
+                        <td>
+
+                            {% if jugador.fecha_nacimiento %}
+                                {{ jugador.fecha_nacimiento|timesince }}
+                            {% else %}
+                                -
+                            {% endif %}
+
+                        </td>
+
+                        <!-- TELEFONO -->
+                        <td>
+
+                            {% if jugador.telefono %}
+                                {{ jugador.telefono }}
+                            {% else %}
+                                -
+                            {% endif %}
+
+                        </td>
+
+                        <!-- CONTACTO EMERGENCIA -->
+                        <td>
+
+                            {% if jugador.contacto_emergencia %}
+                                {{ jugador.contacto_emergencia }}
+                            {% else %}
+                                -
+                            {% endif %}
+
+                        </td>
+                        <!-- FECHA INSCRIPCION -->
+                        <td>
+                            {{ jugador.fecha_inscripcion }}
+                        </td>
+    
+
                         {% if user.is_staff %}
-                            <th>
+
+                            <td>
+
+                                <!-- TRASPASO -->
                                 <button
                                     class="btn ver"
                                     title="Realizar Traspaso"
@@ -57,24 +126,50 @@
                                 >
                                     <i class="fas fa-right-left"></i>
                                 </button>
-                                <button class="btn editar" title="Editar"
-                                onclick="window.location='/jugadores/editar/{{ jugador.id }}'">
+
+                                <!-- EDITAR -->
+                                <button
+                                    class="btn editar"
+                                    title="Editar"
+
+                                    onclick="
+                                        window.location='/jugadores/editar/{{ jugador.id }}'
+                                    "
+                                >
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <button onclick='confirmarEliminar("{{ jugador.nombre }}","{{jugador.rut}}")'class="btn eliminar" title="Eliminar">
+
+                                <!-- ELIMINAR -->
+                                <button
+                                    onclick='confirmarEliminar(
+                                        "{{ jugador.nombre }}",
+                                        "{{ jugador.rut }}"
+                                    )'
+
+                                    class="btn eliminar"
+                                    title="Eliminar"
+                                >
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
 
-                            </th>
+                            </td>
+
                         {% endif %}
+
                     </tr>
+
                 {% endfor %}
+
             </table>
+
         {% endif %}
+
     </div>
+
 </div>
 
 <script>
+
 function ValidarTraspaso(boton){
 
     const fechaInscripcion =
@@ -82,8 +177,6 @@ function ValidarTraspaso(boton){
 
     const jugadorId =
         boton.dataset.jugador;
-
-    console.log(fechaInscripcion);
 
     const fechaBase = new Date(
         fechaInscripcion + "T00:00:00"
@@ -122,19 +215,41 @@ function ValidarTraspaso(boton){
 
     }
 }
+
 function confirmarEliminar(nombre, rut) {
+
     Swal.fire({
+
         title: '¿Estás seguro?',
-        text: 'Eliminarás al Jugador "' + nombre + '"',
+
+        text:
+            'Eliminarás al jugador "' +
+            nombre +
+            '"',
+
         icon: 'warning',
+
         showCancelButton: true,
+
         confirmButtonText: 'Sí, eliminar',
+
         cancelButtonText: 'Cancelar'
+
     }).then((result) => {
+
         if (result.isConfirmed) {
-            window.location.href = "/jugadores/eliminar/" + rut + "/";
+
+            window.location.href =
+                "/jugadores/eliminar/" +
+                rut +
+                "/";
+
         }
+
     });
+
 }
+
 </script>
+
 {% endblock %}

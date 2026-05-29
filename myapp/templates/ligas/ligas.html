@@ -29,11 +29,11 @@
           <img src="{{ liga.logo.url }}" alt="Logo" width="50" />
           {% else %} Sin logo {% endif %}
         </th>
-        <th>{{ liga.nombre }}</th>
-        <th>{{ liga.ciudad}},{{liga.region }}</th>
-        <th>{{ liga.total_equipos }}</th>
+        <td>{{ liga.nombre }}</td>
+        <td>{{ liga.comuna }},{{ liga.region }}</td>
+        <td>{{ liga.total_equipos }}</td>
         {% if user.is_staff %}
-        <th>
+        <td>
           <button
             class="btn detalles"
             title="Ver Detalles"
@@ -56,7 +56,7 @@
           >
             <i class="fa-solid fa-trash"></i>
           </button>
-        </th>
+        </td>
         {% endif %}
       </tr>
       {% endfor %}

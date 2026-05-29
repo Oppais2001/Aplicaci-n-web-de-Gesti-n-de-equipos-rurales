@@ -135,12 +135,6 @@ class Jugador(models.Model):
         cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
 
         return f"{cuerpo_con_puntos}-{dv}"
-
-
-from django.conf import settings
-from django.db import models
-
-
 class Dirigente(models.Model):
 
     usuario = models.OneToOneField(

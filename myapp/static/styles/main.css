@@ -277,6 +277,7 @@ button {
 
 /* ================= BOTONES ================= */
 .btn {
+    width: 2.82rem;
     padding: 8px 12px;
     border: none;
     border-radius: 6px;
