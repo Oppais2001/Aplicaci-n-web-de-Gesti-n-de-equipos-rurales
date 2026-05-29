@@ -64,34 +64,65 @@ def ingresar_equipo(request):
 @admin_required
 @require_POST
 def ingresar_equipo_ajax(request):
+
     try:
+
         data = json.loads(request.body)
+
     except json.JSONDecodeError:
+
         return JsonResponse({
+
             'success': False,
             'error': 'Datos inválidos'
+
         }, status=400)
 
     form = Ingresar_Equipos({
+
         'nombre': data.get('nombre', ''),
+
+        'fecha_creacion': data.get(
+            'fecha_creacion',
+            ''
+        ),
+
+        'nombre_entrenador': data.get(
+            'nombre_entrenador',
+            ''
+        ),
+
+        'nombre_dueno': data.get(
+            'nombre_dueno',
+            ''
+        ),
+
         'liga': data.get('liga', '')
     })
 
     if form.is_valid():
+
         equipo = form.save()
 
         return JsonResponse({
+
             'success': True,
+
             'id': equipo.id,
+
             'nombre': equipo.nombre
         })
 
     return JsonResponse({
-        'success': False,
-        'error': form.errors.as_text(),
-        'errores': form.errors
-    }, status=400)
 
+        'success': False,
+
+        'error': form.errors.as_text(),
+
+        'errores': form.errors
+
+    }, status=400)
+    
 @usuario_autorizado_required
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
@@ -294,16 +325,84 @@ def eliminar_liga(request, id_liga):
 @admin_required
 @require_POST
 def crear_liga_ajax(request):
+
     try:
+
         data = json.loads(request.body)
+
     except json.JSONDecodeError:
+
         return JsonResponse({
+
             'success': False,
+
             'error': 'Datos inválidos'
+
         }, status=400)
 
-    form = Ingresar_Liga(data)
-        
+    form = Ingresar_Ligas({
+
+        'nombre': data.get(
+            'nombre',
+            ''
+        ),
+
+        'fecha_fundacion': data.get(
+            'fecha_fundacion',
+            ''
+        ),
+
+        'comuna': data.get(
+            'comuna',
+            ''
+        ),
+
+        'region': data.get(
+            'region',
+            ''
+        ),
+
+        'direccion': data.get(
+            'direccion',
+            ''
+        ),
+
+        'presidente': data.get(
+            'presidente',
+            ''
+        ),
+
+        'secretario': data.get(
+            'secretario',
+            ''
+        ),
+
+        'tesorero': data.get(
+            'tesorero',
+            ''
+        ),
+
+        'telefono_contacto': data.get(
+            'telefono_contacto',
+            ''
+        ),
+
+        'correo_contacto': data.get(
+            'correo_contacto',
+            ''
+        ),
+
+        'redes_sociales': data.get(
+            'redes_sociales',
+            ''
+        ),
+
+        'reglamento': data.get(
+            'reglamento',
+            ''
+        )
+    })
+
     if form.is_valid():
 
         liga = form.save()
@@ -317,18 +416,14 @@ def crear_liga_ajax(request):
             'nombre': liga.nombre
         })
 
-    mensajes = [
-        error
-        for errores_campo in form.errors.values()
-        for error in errores_campo
-    ]
-
     return JsonResponse({
 
         'success': False,
-        'error': '\n'.join(mensajes),
-        'mensajes': mensajes,
+
+        'error': form.errors.as_text(),
+
         'errores': form.errors
+
     }, status=400)
     
 @usuario_autorizado_required

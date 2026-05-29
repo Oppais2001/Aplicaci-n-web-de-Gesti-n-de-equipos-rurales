@@ -59,6 +59,24 @@ function abrirPopupEquipo(){
                 placeholder="Nombre equipo"
             >
 
+            <input
+                id="fecha_creacion_equipo"
+                type="date"
+                class="swal2-input"
+            >
+
+            <input
+                id="nombre_entrenador_equipo"
+                class="swal2-input"
+                placeholder="Nombre entrenador"
+            >
+
+            <input
+                id="nombre_dueno_equipo"
+                class="swal2-input"
+                placeholder="Nombre dueño"
+            >
+
             <select
                 id="liga_equipo"
                 class="swal2-select"
@@ -79,39 +97,77 @@ function abrirPopupEquipo(){
 
         preConfirm: () => {
 
-        const nombre =
-            document.getElementById(
-                'nombre_equipo'
-            ).value.trim();
+            const nombre =
+                document.getElementById(
+                    'nombre_equipo'
+                ).value.trim();
 
-        const liga =
-            document.getElementById(
-                'liga_equipo'
-            ).value;
+            const fecha_creacion =
+                document.getElementById(
+                    'fecha_creacion_equipo'
+                ).value;
 
-        if(!nombre){
+            const nombre_entrenador =
+                document.getElementById(
+                    'nombre_entrenador_equipo'
+                ).value.trim();
 
-            Swal.showValidationMessage(
-                'Debes ingresar un nombre'
-            );
+            const nombre_dueno =
+                document.getElementById(
+                    'nombre_dueno_equipo'
+                ).value.trim();
 
-            return false;
+            const liga =
+                document.getElementById(
+                    'liga_equipo'
+                ).value;
+
+            if(!nombre){
+
+                Swal.showValidationMessage(
+                    'Debes ingresar un nombre'
+                );
+
+                return false;
+            }
+
+            if(!nombre_entrenador){
+
+                Swal.showValidationMessage(
+                    'Debes ingresar un entrenador'
+                );
+
+                return false;
+            }
+
+            if(!nombre_dueno){
+
+                Swal.showValidationMessage(
+                    'Debes ingresar un dueño'
+                );
+
+                return false;
+            }
+
+            if(!liga){
+
+                Swal.showValidationMessage(
+                    'Debes seleccionar una liga'
+                );
+
+                return false;
+            }
+
+            return {
+
+                nombre: nombre,
+                fecha_creacion: fecha_creacion,
+                nombre_entrenador: nombre_entrenador,
+                nombre_dueno: nombre_dueno,
+                liga: liga
+            };
         }
 
-        if(!liga){
-
-            Swal.showValidationMessage(
-                'Debes seleccionar una liga'
-            );
-
-            return false;
-        }
-
-        return {
-            nombre: nombre,
-            liga: liga
-        };
-    }
     }).then((result) => {
 
         if(result.isConfirmed){
@@ -160,7 +216,7 @@ function guardarEquipo(datos){
 
             selectEquipo.appendChild(option);
 
-            // seleccionarlo automáticamente
+            // seleccionar automáticamente
             selectEquipo.value = data.id;
 
             Swal.fire({

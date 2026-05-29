@@ -34,14 +34,87 @@
 
 async function agregarLiga(){
 
-    const { value: nombre } = await Swal.fire({
+    const { value: formValues } = await Swal.fire({
 
         title: 'Nueva Liga',
 
-        input: 'text',
+        html: `
 
-        inputPlaceholder:
-            'Nombre de la liga',
+            <input
+                id="nombre_liga"
+                class="swal2-input"
+                placeholder="Nombre de la liga"
+            >
+
+            <input
+                id="fecha_fundacion_liga"
+                type="date"
+                class="swal2-input"
+            >
+
+            <input
+                id="comuna_liga"
+                class="swal2-input"
+                placeholder="Comuna"
+                value="Osorno"
+            >
+
+            <input
+                id="region_liga"
+                class="swal2-input"
+                placeholder="Región"
+                value="Los Lagos"
+            >
+
+            <input
+                id="direccion_liga"
+                class="swal2-input"
+                placeholder="Dirección"
+            >
+
+            <input
+                id="presidente_liga"
+                class="swal2-input"
+                placeholder="Presidente"
+            >
+
+            <input
+                id="secretario_liga"
+                class="swal2-input"
+                placeholder="Secretario"
+            >
+
+            <input
+                id="tesorero_liga"
+                class="swal2-input"
+                placeholder="Tesorero"
+            >
+
+            <input
+                id="telefono_liga"
+                class="swal2-input"
+                placeholder="Teléfono contacto"
+            >
+
+            <input
+                id="correo_liga"
+                type="email"
+                class="swal2-input"
+                placeholder="Correo contacto"
+            >
+
+            <input
+                id="redes_liga"
+                class="swal2-input"
+                placeholder="Redes sociales"
+            >
+
+            <textarea
+                id="reglamento_liga"
+                class="swal2-textarea"
+                placeholder="Reglamento"
+            ></textarea>
+        `,
 
         background: '#1f2937',
 
@@ -55,16 +128,85 @@ async function agregarLiga(){
 
         cancelButtonText: 'Cancelar',
 
-        inputValidator: (value) => {
+        preConfirm: () => {
 
-            if(!value.trim()){
+            const nombre =
+                document.getElementById(
+                    'nombre_liga'
+                ).value.trim();
 
-                return 'Debes ingresar un nombre';
+            if(!nombre){
+
+                Swal.showValidationMessage(
+                    'Debes ingresar un nombre'
+                );
+
+                return false;
             }
+
+            return {
+
+                nombre: nombre,
+
+                fecha_fundacion:
+                    document.getElementById(
+                        'fecha_fundacion_liga'
+                    ).value,
+
+                comuna:
+                    document.getElementById(
+                        'comuna_liga'
+                    ).value.trim(),
+
+                region:
+                    document.getElementById(
+                        'region_liga'
+                    ).value.trim(),
+
+                direccion:
+                    document.getElementById(
+                        'direccion_liga'
+                    ).value.trim(),
+
+                presidente:
+                    document.getElementById(
+                        'presidente_liga'
+                    ).value.trim(),
+
+                secretario:
+                    document.getElementById(
+                        'secretario_liga'
+                    ).value.trim(),
+
+                tesorero:
+                    document.getElementById(
+                        'tesorero_liga'
+                    ).value.trim(),
+
+                telefono_contacto:
+                    document.getElementById(
+                        'telefono_liga'
+                    ).value.trim(),
+
+                correo_contacto:
+                    document.getElementById(
+                        'correo_liga'
+                    ).value.trim(),
+
+                redes_sociales:
+                    document.getElementById(
+                        'redes_liga'
+                    ).value.trim(),
+
+                reglamento:
+                    document.getElementById(
+                        'reglamento_liga'
+                    ).value.trim()
+            };
         }
     });
 
-    if(nombre){
+    if(formValues){
 
         fetch('/ligas/ajax/crear/', {
 
@@ -72,15 +214,14 @@ async function agregarLiga(){
 
             headers: {
 
-                'Content-Type': 'application/json',
+                'Content-Type':
+                    'application/json',
 
-                'X-CSRFToken': obtenerCSRFToken()
+                'X-CSRFToken':
+                    obtenerCSRFToken()
             },
 
-            body: JSON.stringify({
-
-                nombre: nombre
-            })
+            body: JSON.stringify(formValues)
         })
 
         .then(response => response.json())
@@ -120,7 +261,8 @@ async function agregarLiga(){
 
             } else {
 
-                const mensaje = obtenerMensajeError(data);
+                const mensaje =
+                    obtenerMensajeError(data);
 
                 Swal.fire({
 
@@ -144,7 +286,8 @@ function obtenerCSRFToken(){
 
 function obtenerMensajeError(data){
 
-    if(data.mensajes && data.mensajes.length){
+    if(data.mensajes &&
+        data.mensajes.length){
 
         return data.mensajes.join('\n');
     }
@@ -156,9 +299,11 @@ function obtenerMensajeError(data){
 
     if(data.errores){
 
-        return Object.values(data.errores)
-            .flat()
-            .join('\n');
+        return Object.values(
+            data.errores
+        )
+        .flat()
+        .join('\n');
     }
 
     return 'No se pudo crear la liga.';
