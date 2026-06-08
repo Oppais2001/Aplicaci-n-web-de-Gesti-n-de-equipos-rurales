@@ -8,6 +8,7 @@ from django.utils.http import urlsafe_base64_encode
 import socket
 from django.conf import settings
 
+
 def enviar_email_verificacion(request, usuario):
     uid = urlsafe_base64_encode(force_bytes(usuario.pk))
     token = default_token_generator.make_token(usuario)
