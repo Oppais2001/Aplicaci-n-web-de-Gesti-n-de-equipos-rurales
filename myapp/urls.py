@@ -8,6 +8,7 @@ urlpatterns = [
     path('ligas/ingresar_liga', views.ingresar_liga, name='ingresar_liga'),
     path('ligas/editar/<int:id_liga>/', views.editar_liga, name='editar_liga'),
     path('ligas/eliminar/<int:id_liga>/', views.eliminar_liga, name='eliminar_liga'),
+    path('ligas/modal_ingresar_liga', views.modal_ingresar_liga, name='modal_ingresar_liga'),
     path('dirigentes', views.lista_dirigentes, name='dirigentes'),
     path('dirigentes/ingresar_dirigente', views.ingresar_dirigente, name='ingresar_dirigente'),
     path('dirigentes/editar/<int:id_dirigente>/', views.editar_dirigente, name='editar_dirigente'),

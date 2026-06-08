@@ -15,7 +15,7 @@
 
     <p><strong>Fecha Fundación:</strong> {{ liga.fecha_fundacion }}</p>
 
-    <p><strong>Ciudad:</strong> {{ liga.ciudad }}</p>
+    <p><strong>Comuna:</strong> {{ liga.comuna }}</p>
 
     <p><strong>Región:</strong> {{ liga.region }}</p>
 
@@ -27,16 +27,33 @@
 
     <p><strong>Correo:</strong> {{ liga.correo_contacto }}</p>
 
-    <p><strong>Total equipos:</strong> {{ total_equipos }}</p>
+    <p><strong>Total de equipos:</strong> {{ total_equipos }}</p>
 
     <p>
       <strong>Estado:</strong>
       {% if liga.activa %} Activa {% else %} Inactiva {% endif %}
     </p>
 
+    <p><strong>Presidente:</strong> {{ liga.presidente|default:"No definido" }}</p>
+    <p><strong>Secretari@:</strong> {{ liga.secretario|default:"No definido" }}</p>
+    <p><strong>Tesorer@:</strong> {{ liga.tesorero|default:"No definido" }}</p>
     <p><strong>Reglamento:</strong></p>
 
     <p>{{ liga.reglamento }}</p>
+    <p>
+        <strong>Redes sociales:</strong>
+
+        <a href="{% if liga.redes_sociales|slice:":4" == "http" %}
+                    {{ liga.redes_sociales }}
+                {% else %}
+                    https://{{ liga.redes_sociales }}
+                {% endif %}"
+          target="_blank"
+          rel="noopener noreferrer">
+
+            {{ liga.redes_sociales }}
+        </a>
+    </p>
   </div>
 </div>
 

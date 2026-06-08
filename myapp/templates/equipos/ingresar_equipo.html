@@ -18,7 +18,10 @@
                 <div class="card">
                     <h2>¿No encuentras tu liga?</h2>
                     <p>Ingresala desde aquí, sin borrar los datos ya ingresados.
-                        <button type="button" class="link-button enlace-ayuda" onclick="agregarLiga()">Haz click aquí.</button>
+                        <a href="{% url 'modal_ingresar_liga' %}"
+                        class="link-button enlace-ayuda abrir-modal">
+                            Haz click aquí.
+                        </a>
                     </p>
                 </div>
                 <br>
@@ -30,284 +33,26 @@
         </div>
 </div>
 
+<div class="modal fade" id="ligas" role="dialog">
+
+</div>
+
 <script>
 
-async function agregarLiga(){
+$(document).on('click', '.abrir-modal', function(e) {
 
-    const { value: formValues } = await Swal.fire({
+    e.preventDefault();
 
-        title: 'Nueva Liga',
+    var url = $(this).attr('href');
 
-        html: `
+    $('#ligas').load(url, function() {
 
-            <input
-                id="nombre_liga"
-                class="swal2-input"
-                placeholder="Nombre de la liga"
-            >
+        $('#ligas').addClass('show');
+        $('#ligas').css('display', 'block');
 
-            <input
-                id="fecha_fundacion_liga"
-                type="date"
-                class="swal2-input"
-            >
-
-            <input
-                id="comuna_liga"
-                class="swal2-input"
-                placeholder="Comuna"
-                value="Osorno"
-            >
-
-            <input
-                id="region_liga"
-                class="swal2-input"
-                placeholder="Región"
-                value="Los Lagos"
-            >
-
-            <input
-                id="direccion_liga"
-                class="swal2-input"
-                placeholder="Dirección"
-            >
-
-            <input
-                id="presidente_liga"
-                class="swal2-input"
-                placeholder="Presidente"
-            >
-
-            <input
-                id="secretario_liga"
-                class="swal2-input"
-                placeholder="Secretario"
-            >
-
-            <input
-                id="tesorero_liga"
-                class="swal2-input"
-                placeholder="Tesorero"
-            >
-
-            <input
-                id="telefono_liga"
-                class="swal2-input"
-                placeholder="Teléfono contacto"
-            >
-
-            <input
-                id="correo_liga"
-                type="email"
-                class="swal2-input"
-                placeholder="Correo contacto"
-            >
-
-            <input
-                id="redes_liga"
-                class="swal2-input"
-                placeholder="Redes sociales"
-            >
-
-            <textarea
-                id="reglamento_liga"
-                class="swal2-textarea"
-                placeholder="Reglamento"
-            ></textarea>
-        `,
-
-        background: '#1f2937',
-
-        color: '#fff',
-
-        showCancelButton: true,
-
-        confirmButtonText: 'Guardar',
-
-        confirmButtonColor: 'brown',
-
-        cancelButtonText: 'Cancelar',
-
-        preConfirm: () => {
-
-            const nombre =
-                document.getElementById(
-                    'nombre_liga'
-                ).value.trim();
-
-            if(!nombre){
-
-                Swal.showValidationMessage(
-                    'Debes ingresar un nombre'
-                );
-
-                return false;
-            }
-
-            return {
-
-                nombre: nombre,
-
-                fecha_fundacion:
-                    document.getElementById(
-                        'fecha_fundacion_liga'
-                    ).value,
-
-                comuna:
-                    document.getElementById(
-                        'comuna_liga'
-                    ).value.trim(),
-
-                region:
-                    document.getElementById(
-                        'region_liga'
-                    ).value.trim(),
-
-                direccion:
-                    document.getElementById(
-                        'direccion_liga'
-                    ).value.trim(),
-
-                presidente:
-                    document.getElementById(
-                        'presidente_liga'
-                    ).value.trim(),
-
-                secretario:
-                    document.getElementById(
-                        'secretario_liga'
-                    ).value.trim(),
-
-                tesorero:
-                    document.getElementById(
-                        'tesorero_liga'
-                    ).value.trim(),
-
-                telefono_contacto:
-                    document.getElementById(
-                        'telefono_liga'
-                    ).value.trim(),
-
-                correo_contacto:
-                    document.getElementById(
-                        'correo_liga'
-                    ).value.trim(),
-
-                redes_sociales:
-                    document.getElementById(
-                        'redes_liga'
-                    ).value.trim(),
-
-                reglamento:
-                    document.getElementById(
-                        'reglamento_liga'
-                    ).value.trim()
-            };
-        }
     });
 
-    if(formValues){
-
-        fetch('/ligas/ajax/crear/', {
-
-            method: 'POST',
-
-            headers: {
-
-                'Content-Type':
-                    'application/json',
-
-                'X-CSRFToken':
-                    obtenerCSRFToken()
-            },
-
-            body: JSON.stringify(formValues)
-        })
-
-        .then(response => response.json())
-
-        .then(data => {
-
-            if(data.success){
-
-                const select =
-                    document.getElementById(
-                        'id_liga'
-                    );
-
-                const option =
-                    document.createElement(
-                        'option'
-                    );
-
-                option.value = data.id;
-
-                option.text = data.nombre;
-
-                select.appendChild(option);
-
-                select.value = data.id;
-
-                Swal.fire({
-
-                    icon: 'success',
-
-                    title: 'Liga agregada',
-
-                    timer: 1500,
-
-                    showConfirmButton: false
-                });
-
-            } else {
-
-                const mensaje =
-                    obtenerMensajeError(data);
-
-                Swal.fire({
-
-                    icon: 'error',
-
-                    title: 'Error',
-
-                    text: mensaje
-                });
-            }
-        });
-    }
-}
-
-function obtenerCSRFToken(){
-
-    return document.querySelector(
-        '[name=csrfmiddlewaretoken]'
-    ).value;
-}
-
-function obtenerMensajeError(data){
-
-    if(data.mensajes &&
-        data.mensajes.length){
-
-        return data.mensajes.join('\n');
-    }
-
-    if(data.error){
-
-        return data.error;
-    }
-
-    if(data.errores){
-
-        return Object.values(
-            data.errores
-        )
-        .flat()
-        .join('\n');
-    }
-
-    return 'No se pudo crear la liga.';
-}
+});
 
 </script>
 

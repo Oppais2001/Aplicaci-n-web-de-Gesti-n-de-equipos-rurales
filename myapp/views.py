@@ -238,6 +238,16 @@ def eliminar_dirigente(request, id_dirigente):
 
 
 # LIGA
+def modal_ingresar_liga(request):
+
+    form = Ingresar_Liga()
+
+    return render(
+        request,
+        'ligas/modal_ingresar_liga.html',
+        {'form': form}
+    )
+
 @admin_required
 def ingresar_liga(request):
 

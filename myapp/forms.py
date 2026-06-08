@@ -7,6 +7,8 @@ from datetime import date
 
 from django.core.exceptions import ValidationError
 
+from django.core.validators import validate_email
+
 # JUGADOR
 class Ingresar_Jugadores(forms.ModelForm):
 
@@ -30,12 +32,19 @@ class Ingresar_Jugadores(forms.ModelForm):
         ]
 
         labels = {
-            'fecha_inscripcion': 'Fecha de inscripción',
-            'contacto_emergencia': 'Contacto de emergencia',
-            'adulto_responsable': 'Adulto responsable',
-            'tipo_sangre': 'Tipo de sangre',
-            'tiene_seguro': '¿Tiene seguro?',
-            'certificado_medico': 'Certificado médico'
+
+            'nombre': 'NOMBRE',
+            'rut': 'RUT',
+            'fecha_nacimiento': 'FECHA DE NACIMIENTO',
+            'telefono': 'TELÉFONO',
+            'contacto_emergencia': 'CONTACTO DE EMERGENCIA',
+            'equipo': 'EQUIPO',
+            'fecha_inscripcion': 'FECHA DE INSCRIPCIÓN',
+            'adulto_responsable': 'ADULTO RESPONSABLE',
+            'tipo_sangre': 'TIPO DE SANGRE',
+            'tiene_seguro': '¿TIENE SEGURO?',
+            'alergias': 'ALERGIAS',
+            'certificado_medico': 'CERTIFICADO MÉDICO'
         }
 
     # ---------------------------------------------------
@@ -53,7 +62,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if len(nombre) < 3:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre es demasiado corto."
             )
 
@@ -61,13 +70,13 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if not re.fullmatch(patron, nombre):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre solo puede contener letras."
             )
 
         if len(set(nombre.lower().replace(" ", ""))) == 1:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Ingresa un nombre válido."
             )
 
@@ -93,7 +102,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if len(rut) < 2:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "RUT inválido."
             )
 
@@ -102,13 +111,13 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if not cuerpo.isdigit():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "RUT inválido."
             )
 
         if len(set(cuerpo)) == 1:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Ingresa un rut realista."
             )
 
@@ -119,7 +128,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if qs.exists():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Ya existe otro jugador con este RUT."
             )
 
@@ -150,7 +159,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if dv != dv_calculado:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "RUT inválido."
             )
 
@@ -168,13 +177,13 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if fecha > date.today():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "No puedes ingresar una fecha futura."
             )
 
         if fecha < date.today() - relativedelta(years=100):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "La fecha es demasiado antigua."
             )
 
@@ -199,16 +208,21 @@ class Ingresar_Jugadores(forms.ModelForm):
             hoy,
             fecha
         ).years
+        
+        if edad <= 0:
+            raise ValidationError(
+                "El jugador no ha nacido."
+            )
 
         if edad < 5:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El jugador es demasiado joven."
             )
 
         if edad > 100:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Edad inválida."
             )
 
@@ -220,25 +234,24 @@ class Ingresar_Jugadores(forms.ModelForm):
 
     def clean_telefono(self):
 
-        telefono = self.cleaned_data.get(
-            'telefono',
-            ''
-        ).strip()
+        telefono = self.cleaned_data.get('telefono', '')
 
         if not telefono:
-            return telefono
+            raise ValidationError("Debes ingresar un teléfono.")
 
-        telefono = telefono.replace(" ", "")
+        # limpiar espacios, guiones, paréntesis y +
+        telefono_limpio = re.sub(r'[\s\-\+\(\)]', '', telefono)
 
-        patron = r'^\+?[0-9]{8,15}$'
+        if not telefono_limpio.isdigit():
+            raise ValidationError("El teléfono solo puede contener números.")
 
-        if not re.fullmatch(patron, telefono):
+        if len(telefono_limpio) < 8:
+            raise ValidationError("El teléfono es demasiado corto.")
 
-            raise forms.ValidationError(
-                "Ingresa un teléfono válido."
-            )
+        if len(telefono_limpio) > 15:
+            raise ValidationError("El teléfono es demasiado largo.")
 
-        return telefono
+        return telefono_limpio
 
     # ---------------------------------------------------
     # VALIDAR CONTACTO EMERGENCIA
@@ -246,25 +259,24 @@ class Ingresar_Jugadores(forms.ModelForm):
 
     def clean_contacto_emergencia(self):
 
-        telefono = self.cleaned_data.get(
-            'contacto_emergencia',
-            ''
-        ).strip()
+        telefono = self.cleaned_data.get('contacto_emergencia', '')
 
         if not telefono:
-            return telefono
+            raise ValidationError("Debes ingresar un teléfono.")
 
-        telefono = telefono.replace(" ", "")
+        # limpiar espacios, guiones, paréntesis y +
+        telefono_limpio = re.sub(r'[\s\-\+\(\)]', '', telefono)
 
-        patron = r'^\+?[0-9]{8,15}$'
+        if not telefono_limpio.isdigit():
+            raise ValidationError("El teléfono solo puede contener números.")
 
-        if not re.fullmatch(patron, telefono):
+        if len(telefono_limpio) < 8:
+            raise ValidationError("El teléfono es demasiado corto.")
 
-            raise forms.ValidationError(
-                "Ingresa un contacto válido."
-            )
+        if len(telefono_limpio) > 15:
+            raise ValidationError("El teléfono es demasiado largo.")
 
-        return telefono
+        return telefono_limpio
 
     # ---------------------------------------------------
     # VALIDAR ADULTO RESPONSABLE
@@ -294,7 +306,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if edad < 18 and not responsable:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Debes ingresar un adulto responsable."
             )
 
@@ -329,7 +341,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if tipo not in tipos_validos:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Tipo de sangre inválido."
             )
 
@@ -348,7 +360,7 @@ class Ingresar_Jugadores(forms.ModelForm):
 
         if len(alergias) > 500:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Demasiado texto."
             )
 
@@ -381,13 +393,13 @@ class Ingresar_Jugadores(forms.ModelForm):
             for ext in extensiones_validas
         ):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Archivo no permitido."
             )
 
         if archivo.size > 5 * 1024 * 1024:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El archivo supera 5MB."
             )
 
@@ -396,11 +408,15 @@ class Ingresar_Jugadores(forms.ModelForm):
 class Ingresar_Equipos(forms.ModelForm):
     class Meta:
         model = Equipo
-        fields = ['nombre','fecha_creacion','nombre_entrenador','nombre_dueno', 'liga']
+        fields = ['nombre','fecha_creacion','nombre_entrenador','nombre_dueno', 'liga', 'redes_sociales']
+
         labels = {
-            'fecha_creacion': 'fecha creación',
-            'nombre_entrenador': 'nombre entrenador',
-            'nombre_dueno': 'nombre dueño'
+            'nombre': 'NOMBRE DEL EQUIPO',
+            'fecha_creacion': 'FECHA DE CREACIÓN',
+            'nombre_entrenador': 'NOMBRE DEL ENTRENADOR',
+            'nombre_dueno': 'NOMBRE DEL DUEÑO',
+            'liga': 'LIGA',
+            'redes_sociales':'REDES SOCIALES'
         }
 
     def clean_nombre(self):
@@ -416,14 +432,14 @@ class Ingresar_Equipos(forms.ModelForm):
         # mínimo largo
         if len(nombre) < 3:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre es demasiado corto."
             )
 
         # máximo razonable
         if len(nombre) > 50:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre es demasiado largo."
             )
 
@@ -436,26 +452,26 @@ class Ingresar_Equipos(forms.ModelForm):
 
         if not re.fullmatch(patron, nombre):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre contiene caracteres inválidos."
             )
 
         # debe contener AL MENOS una letra
         if not re.search(r'[A-Za-zÁÉÍÓÚáéíóúÑñÜü]', nombre):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre debe contener al menos una letra."
             )
 
         # evitar nombres solo símbolos o números raros
         if nombre.replace("-", "").replace(" ", "").isdigit():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El nombre no puede contener solo números."
             )
             
         if len(set(nombre.lower().replace(" ", ""))) == 1:
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Ingresa un nombre válido."
             )
 
@@ -472,11 +488,69 @@ class Ingresar_Equipos(forms.ModelForm):
 
         if equipos.exists():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "Ya existe un equipo con ese nombre."
             )
 
         return nombre.title()
+    
+    def clean_fecha_creacion(self):
+
+        fecha = self.cleaned_data.get(
+            'fecha_creacion'
+        )
+
+        if not fecha:
+            raise ValidationError(
+                "Debes ingresar una fecha."
+            )
+
+        if fecha > date.today():
+            raise ValidationError(
+                "No puedes ingresar una fecha futura."
+            )
+
+        if fecha < (
+            date.today() - relativedelta(years=150)
+        ):
+            raise ValidationError(
+                "La fecha es demasiado antigua."
+            )
+
+        return fecha
+
+    
+    def clean_redes_sociales(self):
+
+        valor = (self.cleaned_data.get('redes_sociales') or '').strip()
+        valor = " ".join(valor.split())
+
+        if not valor:
+            raise ValidationError("Debes ingresar redes sociales.")
+
+        # longitud
+        if len(valor) < 3:
+            raise ValidationError("Redes sociales demasiado corto.")
+
+        if len(valor) > 100:
+            raise ValidationError("Redes sociales demasiado largo.")
+
+        # SOLO letras, números, punto y guion
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\.\-\s]+$'
+
+        if not re.fullmatch(patron, valor):
+            raise ValidationError(
+                "Redes sociales solo puede contener letras, números, puntos (.) y guiones (-)."
+            )
+
+        # debe tener al menos una letra o número (evita '.....---')
+        if not re.search(r'[A-Za-z0-9]', valor):
+            raise ValidationError(
+                "Redes sociales no es válido."
+            )
+
+        return valor
+    
 
 
 # DIRIGENTE
@@ -497,6 +571,18 @@ class Ingresar_Dirigentes(forms.ModelForm):
             'equipo',
         ]
 
+        labels = {
+
+            'nombre': 'NOMBRE',
+            'rut': 'RUT',
+            'telefono': 'TELÉFONO',
+            'correo': 'CORREO ELECTRÓNICO',
+            'cargo': 'CARGO',
+            'direccion': 'DIRECCIÓN',
+            'fecha_asuncion': 'FECHA DE ASUNCIÓN',
+            'activo': 'ACTIVO',
+            'equipo': 'EQUIPO'
+        }
     # -------------------------
     # VALIDADOR GENERAL TEXTO
     # -------------------------
@@ -506,35 +592,64 @@ class Ingresar_Dirigentes(forms.ModelForm):
         valor,
         campo,
         min_length=3,
-        max_length=100
+        max_length=100,
+        obligatorio=True
     ):
 
-        valor = valor.strip()
+        # manejar None
+        valor = (valor or '').strip()
+
+        # quitar espacios múltiples
         valor = " ".join(valor.split())
 
+        # campos opcionales vacíos
         if not valor:
-            raise ValidationError(
-                f"Debes ingresar {campo}."
-            )
 
+            if obligatorio:
+                raise ValidationError(
+                    f"Debes ingresar {campo}."
+                )
+
+            return ''
+
+        # largo mínimo
         if len(valor) < min_length:
             raise ValidationError(
                 f"{campo.capitalize()} demasiado corto."
             )
 
+        # largo máximo
         if len(valor) > max_length:
             raise ValidationError(
                 f"{campo.capitalize()} demasiado largo."
             )
 
-        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-\.]+$'
+        # caracteres permitidos
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-\.\,]+$'
 
         if not re.fullmatch(patron, valor):
             raise ValidationError(
                 f"{campo.capitalize()} contiene caracteres inválidos."
             )
 
-        if len(set(valor.lower().replace(" ", ""))) == 1:
+        # debe contener al menos una letra
+        if not re.search(
+            r'[A-Za-zÁÉÍÓÚáéíóúÑñÜü]',
+            valor
+        ):
+            raise ValidationError(
+                f"{campo.capitalize()} debe contener letras."
+            )
+
+        # evitar "aaaaaa"
+        texto_limpio = (
+            valor.lower()
+            .replace(" ", "")
+            .replace("-", "")
+            .replace(".", "")
+        )
+
+        if texto_limpio and len(set(texto_limpio)) == 1:
             raise ValidationError(
                 f"Ingresa {campo} válido."
             )
@@ -683,33 +798,24 @@ class Ingresar_Dirigentes(forms.ModelForm):
 
     def clean_telefono(self):
 
-        telefono = self.cleaned_data.get(
-            'telefono',
-            ''
-        ).strip()
+        telefono = self.cleaned_data.get('telefono', '')
 
-        telefono_limpio = re.sub(
-            r'[\s\-\+]',
-            '',
-            telefono
-        )
+        if not telefono:
+            raise ValidationError("Debes ingresar un teléfono.")
+
+        # limpiar espacios, guiones, paréntesis y +
+        telefono_limpio = re.sub(r'[\s\-\+\(\)]', '', telefono)
 
         if not telefono_limpio.isdigit():
-            raise ValidationError(
-                "El teléfono solo puede contener números."
-            )
+            raise ValidationError("El teléfono solo puede contener números.")
 
         if len(telefono_limpio) < 8:
-            raise ValidationError(
-                "El teléfono es demasiado corto."
-            )
+            raise ValidationError("El teléfono es demasiado corto.")
 
-        if len(telefono_limpio) > 12:
-            raise ValidationError(
-                "El teléfono es demasiado largo."
-            )
+        if len(telefono_limpio) > 15:
+            raise ValidationError("El teléfono es demasiado largo.")
 
-        return telefono
+        return telefono_limpio
 
     # -------------------------
     # CORREO
@@ -717,35 +823,38 @@ class Ingresar_Dirigentes(forms.ModelForm):
 
     def clean_correo(self):
 
-        correo = self.cleaned_data.get(
-            'correo',
-            ''
-        ).strip().lower()
+        correo = self.cleaned_data.get('correo', '')
 
-        dirigentes = Dirigente.objects.filter(
-            correo__iexact=correo
-        )
+        # normalizar
+        correo = correo.strip().lower().replace(" ", "")
 
-        if (
-            self.instance.pk
-            and self.instance.usuario_id
-            and correo != self.instance.usuario.email.lower()
-        ):
+        if not correo:
+            raise ValidationError("Debes ingresar un correo.")
 
-            raise ValidationError(
-                "No puedes cambiar el correo de un dirigente que ya tiene usuario asociado."
-            )
+        # validar formato real
+        try:
+            validate_email(correo)
+        except ValidationError:
+            raise ValidationError("El formato del correo no es válido.")
+
+        # verificar duplicados
+        dirigentes = Dirigente.objects.filter(correo__iexact=correo)
 
         if self.instance.pk:
-            dirigentes = dirigentes.exclude(
-                pk=self.instance.pk
-            )
+            dirigentes = dirigentes.exclude(pk=self.instance.pk)
 
         if dirigentes.exists():
+            raise ValidationError("Ya existe otro dirigente con este correo.")
 
-            raise ValidationError(
-                "Ya existe otro dirigente con este correo."
-            )
+        # 🔒 regla importante: no cambiar correo si ya tiene usuario
+        if self.instance.pk:
+            usuario = getattr(self.instance, "usuario", None)
+
+            if usuario and usuario.email:
+                if correo != usuario.email.strip().lower():
+                    raise ValidationError(
+                        "No puedes cambiar el correo de un dirigente que ya tiene usuario asociado."
+                    )
 
         return correo
 
@@ -767,6 +876,19 @@ class Editar_Dirigentes(Ingresar_Dirigentes):
             'activo',
             'equipo',
         ]
+
+        labels = {
+
+            'nombre': 'NOMBRE',
+            'rut': 'RUT',
+            'telefono': 'TELÉFONO',
+            'correo': 'CORREO ELECTRÓNICO',
+            'cargo': 'CARGO',
+            'direccion': 'DIRECCIÓN',
+            'fecha_asuncion': 'FECHA DE ASUNCIÓN',
+            'activo': 'ACTIVO',
+            'equipo': 'EQUIPO'
+        }
         
 # TRASPASO
 class Realizar_Traspasos(forms.ModelForm):
@@ -778,6 +900,12 @@ class Realizar_Traspasos(forms.ModelForm):
             'equipo_destino',
             'fecha_inscripcion_actual'
         ]
+
+        labels = {
+
+            'equipo_destino': 'EQUIPO DESTINO',
+            'fecha_inscripcion_actual': 'FECHA DE INSCRIPCIÓN ACTUAL'
+        }
 
         widgets = {
 
@@ -816,7 +944,7 @@ class Realizar_Traspasos(forms.ModelForm):
         # No mismo equipo
         if jugador.equipo == equipo_destino:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "El jugador ya pertenece a ese equipo."
             )
 
@@ -830,14 +958,14 @@ class Realizar_Traspasos(forms.ModelForm):
 
         if fecha_actual < fecha_minima:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 f"El jugador no puede transferirse antes de {fecha_minima}"
             )
 
         # No futura
         if fecha_actual > date.today():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 "No puedes ingresar una fecha futura."
             )
 
@@ -887,6 +1015,12 @@ class Editar_Traspaso(forms.ModelForm):
             'fecha_inscripcion_actual'
         ]
 
+        labels = {
+
+            'equipo_destino': 'EQUIPO DESTINO',
+            'fecha_inscripcion_actual': 'FECHA DE INSCRIPCIÓN ACTUAL'
+        }
+
         widgets = {
 
             'fecha_inscripcion_actual':
@@ -894,7 +1028,6 @@ class Editar_Traspaso(forms.ModelForm):
                     attrs={'type': 'date'}
                 )
         }
-
     def clean(self):
 
         cleaned_data = super().clean()
@@ -919,7 +1052,7 @@ class Editar_Traspaso(forms.ModelForm):
             == equipo_destino
         ):
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 'El equipo destino no puede '
                 'ser igual al equipo origen.'
             )
@@ -936,7 +1069,7 @@ class Editar_Traspaso(forms.ModelForm):
 
         if fecha_actual < fecha_minima:
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 f'El jugador no puede '
                 f'transferirse antes de '
                 f'{fecha_minima}'
@@ -944,7 +1077,7 @@ class Editar_Traspaso(forms.ModelForm):
 
         if fecha_actual > date.today():
 
-            raise forms.ValidationError(
+            raise ValidationError(
                 'No puedes ingresar '
                 'una fecha futura.'
             )
@@ -1002,15 +1135,20 @@ class Ingresar_Liga(forms.ModelForm):
         }
 
         labels = {
-            'fecha_fundacion': 'Fecha fundación',
-            'region': 'Región',
-            'direccion': 'Dirección',
-            'secretario': 'Secretari@',
-            'tesorero': 'Tesorer@',
-            'telefono_contacto': 'Teléfono contacto',
-            'correo_contacto': 'Correo contacto',
-            'redes_sociales': 'Redes sociales',
-            'reglamento': 'Reglamento',
+
+            'nombre': 'NOMBRE DE LA LIGA',
+            'fecha_fundacion': 'FECHA DE FUNDACIÓN',
+            'logo': 'LOGO',
+            'comuna': 'COMUNA',
+            'region': 'REGIÓN',
+            'direccion': 'DIRECCIÓN',
+            'presidente': 'PRESIDENTE',
+            'secretario': 'SECRETARIO',
+            'tesorero': 'TESORERO',
+            'telefono_contacto': 'TELÉFONO DE CONTACTO',
+            'correo_contacto': 'CORREO DE CONTACTO',
+            'redes_sociales': 'REDES SOCIALES',
+            'reglamento': 'REGLAMENTO'
         }
 
     # -------------------------
@@ -1022,27 +1160,39 @@ class Ingresar_Liga(forms.ModelForm):
         valor,
         campo,
         min_length=3,
-        max_length=100
+        max_length=100,
+        obligatorio=True
     ):
 
-        valor = valor.strip()
+        # manejar None
+        valor = (valor or '').strip()
+
+        # quitar espacios múltiples
         valor = " ".join(valor.split())
 
+        # campos opcionales vacíos
         if not valor:
-            raise ValidationError(
-                f"Debes ingresar {campo}."
-            )
 
+            if obligatorio:
+                raise ValidationError(
+                    f"Debes ingresar {campo}."
+                )
+
+            return ''
+
+        # largo mínimo
         if len(valor) < min_length:
             raise ValidationError(
                 f"{campo.capitalize()} demasiado corto."
             )
 
+        # largo máximo
         if len(valor) > max_length:
             raise ValidationError(
                 f"{campo.capitalize()} demasiado largo."
             )
 
+        # caracteres permitidos
         patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-\.\,]+$'
 
         if not re.fullmatch(patron, valor):
@@ -1050,12 +1200,26 @@ class Ingresar_Liga(forms.ModelForm):
                 f"{campo.capitalize()} contiene caracteres inválidos."
             )
 
+        # debe contener al menos una letra
         if not re.search(
             r'[A-Za-zÁÉÍÓÚáéíóúÑñÜü]',
             valor
         ):
             raise ValidationError(
                 f"{campo.capitalize()} debe contener letras."
+            )
+
+        # evitar "aaaaaa"
+        texto_limpio = (
+            valor.lower()
+            .replace(" ", "")
+            .replace("-", "")
+            .replace(".", "")
+        )
+
+        if texto_limpio and len(set(texto_limpio)) == 1:
+            raise ValidationError(
+                f"Ingresa {campo} válido."
             )
 
         return valor.title()
@@ -1124,33 +1288,24 @@ class Ingresar_Liga(forms.ModelForm):
 
     def clean_telefono_contacto(self):
 
-        telefono = self.cleaned_data.get(
-            'telefono_contacto',
-            ''
-        ).strip()
+        telefono = self.cleaned_data.get('telefono_contacto', '')
 
-        telefono_limpio = re.sub(
-            r'[\s\-\+]',
-            '',
-            telefono
-        )
+        if not telefono:
+            raise ValidationError("Debes ingresar un teléfono.")
+
+        # limpiar espacios, guiones, paréntesis y +
+        telefono_limpio = re.sub(r'[\s\-\+\(\)]', '', telefono)
 
         if not telefono_limpio.isdigit():
-            raise ValidationError(
-                "El teléfono solo puede contener números."
-            )
+            raise ValidationError("El teléfono solo puede contener números.")
 
         if len(telefono_limpio) < 8:
-            raise ValidationError(
-                "El teléfono es demasiado corto."
-            )
+            raise ValidationError("El teléfono es demasiado corto.")
 
-        if len(telefono_limpio) > 12:
-            raise ValidationError(
-                "El teléfono es demasiado largo."
-            )
+        if len(telefono_limpio) > 15:
+            raise ValidationError("El teléfono es demasiado largo.")
 
-        return telefono
+        return telefono_limpio
 
     # -------------------------
     # CORREO
@@ -1158,15 +1313,24 @@ class Ingresar_Liga(forms.ModelForm):
 
     def clean_correo_contacto(self):
 
-        correo = self.cleaned_data.get(
-            'correo_contacto',
-            ''
-        ).strip().lower()
+        correo = self.cleaned_data.get('correo_contacto', '')
+
+        # normalizar
+        correo = correo.strip().lower()
+
+        # eliminar espacios internos accidentales
+        correo = correo.replace(" ", "")
+
+        if not correo:
+            raise ValidationError("Debes ingresar un correo.")
 
         if len(correo) > 100:
-            raise ValidationError(
-                "Correo demasiado largo."
-            )
+            raise ValidationError("El correo es demasiado largo.")
+
+        try:
+            validate_email(correo)
+        except ValidationError:
+            raise ValidationError("El formato del correo no es válido.")
 
         return correo
 
@@ -1203,10 +1367,11 @@ class Ingresar_Liga(forms.ModelForm):
     def clean_direccion(self):
 
         return self.validar_texto(
-            self.cleaned_data.get('direccion', ''),
+            self.cleaned_data.get('direccion'),
             'la dirección',
             5,
-            255
+            255,
+            obligatorio=False
         )
 
     # -------------------------
@@ -1216,10 +1381,11 @@ class Ingresar_Liga(forms.ModelForm):
     def clean_presidente(self):
 
         return self.validar_texto(
-            self.cleaned_data.get('presidente', ''),
+            self.cleaned_data.get('presidente'),
             'el presidente',
             5,
-            100
+            100,
+            obligatorio=False
         )
 
     # -------------------------
@@ -1229,10 +1395,11 @@ class Ingresar_Liga(forms.ModelForm):
     def clean_secretario(self):
 
         return self.validar_texto(
-            self.cleaned_data.get('secretario', ''),
+            self.cleaned_data.get('secretario'),
             'el secretario',
             5,
-            100
+            100,
+            obligatorio=False
         )
 
     # -------------------------
@@ -1242,10 +1409,11 @@ class Ingresar_Liga(forms.ModelForm):
     def clean_tesorero(self):
 
         return self.validar_texto(
-            self.cleaned_data.get('tesorero', ''),
+            self.cleaned_data.get('tesorero'),
             'el tesorero',
             5,
-            100
+            100,
+            obligatorio=False
         )
 
     # -------------------------
@@ -1273,4 +1441,34 @@ class Ingresar_Liga(forms.ModelForm):
                 )
 
         return logo
+    def clean_redes_sociales(self):
+
+        valor = (self.cleaned_data.get('redes_sociales') or '').strip()
+        valor = " ".join(valor.split())
+
+        if not valor:
+            raise ValidationError("Debes ingresar redes sociales.")
+
+        # longitud
+        if len(valor) < 3:
+            raise ValidationError("Redes sociales demasiado corto.")
+
+        if len(valor) > 100:
+            raise ValidationError("Redes sociales demasiado largo.")
+
+        # SOLO letras, números, punto y guion
+        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\.\-\s]+$'
+
+        if not re.fullmatch(patron, valor):
+            raise ValidationError(
+                "Redes sociales solo puede contener letras, números, puntos (.) y guiones (-)."
+            )
+
+        # debe tener al menos una letra o número (evita '.....---')
+        if not re.search(r'[A-Za-z0-9]', valor):
+            raise ValidationError(
+                "Redes sociales no es válido."
+            )
+
+        return valor
 

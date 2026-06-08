@@ -21,6 +21,7 @@ def registro_view(request):
         form = RegistroForm(request.POST)
 
         if form.is_valid():
+            print('FORMULARIO VÁLIDO')
             try:
                 with transaction.atomic():
                     usuario = form.save(commit=False)
@@ -45,7 +46,9 @@ def registro_view(request):
 
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('verificacion_pendiente')
-
+        else:
+            print("FORMULARIO INVALIDO")
+            print(form.errors)
     else:
         form = RegistroForm()
 

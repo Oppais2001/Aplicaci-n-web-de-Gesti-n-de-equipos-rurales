@@ -68,6 +68,7 @@ class Equipo(models.Model):
     nombre_entrenador = models.CharField(max_length=100)
     nombre_dueno = models.CharField(max_length=100)
     liga = models.ForeignKey(Liga, on_delete=models.CASCADE)
+    redes_sociales = models.CharField(max_length=100)
 
     def __str__(self):
         return self.nombre
