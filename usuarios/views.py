@@ -39,12 +39,20 @@ def registro_view(request):
                     print("ANTES DE ENVIAR EMAIL")
                     enviar_email_verificacion(request, usuario)
                     print("EMAIL ENVIADO")
-            except (BadHeaderError, SMTPException, OSError):
+   
+            except Exception as e:
+                print("ERROR CORREO:", repr(e))
+
                 messages.error(
                     request,
-                    "No pudimos enviar el correo de verificación. Intenta nuevamente más tarde."
+                    f"Error: {e}"
                 )
-                return render(request, 'usuarios/registro.html', {'form': form})
+
+                return render(
+                    request,
+                    'usuarios/registro.html',
+                    {'form': form}
+                )
 
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('verificacion_pendiente')
