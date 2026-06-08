@@ -5,6 +5,9 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+import socket
+from django.conf import settings
+
 def enviar_email_verificacion(request, usuario):
     uid = urlsafe_base64_encode(force_bytes(usuario.pk))
     token = default_token_generator.make_token(usuario)
@@ -26,7 +29,16 @@ Haz clic en el siguiente enlace para activar tu cuenta:
 
 Si no fuiste tú, ignora este correo.
 """
+    print("EMAIL_HOST:", settings.EMAIL_HOST)
+    print("EMAIL_PORT:", settings.EMAIL_PORT)
+    print("EMAIL_USER:", settings.EMAIL_HOST_USER)
 
+    try:
+        ip = socket.gethostbyname(settings.EMAIL_HOST)
+        print("SMTP IP:", ip)
+    except Exception as e:
+        print("ERROR DNS:", repr(e))
+        
     send_mail(
         asunto,
         mensaje,
