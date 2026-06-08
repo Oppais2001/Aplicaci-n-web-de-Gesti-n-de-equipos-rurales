@@ -1,15 +1,13 @@
-from django.core.mail import send_mail
+import resend
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
-import socket
-from django.conf import settings
-
-
 def enviar_email_verificacion(request, usuario):
+    resend.api_key = settings.RESEND_API_KEY
+
     uid = urlsafe_base64_encode(force_bytes(usuario.pk))
     token = default_token_generator.make_token(usuario)
 
@@ -17,9 +15,11 @@ def enviar_email_verificacion(request, usuario):
         reverse('activar_cuenta', args=[uid, token])
     )
 
-    asunto = "Verifica tu cuenta"
-
-    mensaje = f"""
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",  # ← dominio gratuito de Resend
+        "to": usuario.email,
+        "subject": "Verifica tu cuenta",
+        "text": f"""
 Hola {usuario.username},
 
 Gracias por registrarte.
@@ -29,21 +29,5 @@ Haz clic en el siguiente enlace para activar tu cuenta:
 {link}
 
 Si no fuiste tú, ignora este correo.
-"""
-    print("EMAIL_HOST:", settings.EMAIL_HOST)
-    print("EMAIL_PORT:", settings.EMAIL_PORT)
-    print("EMAIL_USER:", settings.EMAIL_HOST_USER)
-
-    try:
-        ip = socket.gethostbyname(settings.EMAIL_HOST)
-        print("SMTP IP:", ip)
-    except Exception as e:
-        print("ERROR DNS:", repr(e))
-        
-    send_mail(
-        asunto,
-        mensaje,
-        settings.DEFAULT_FROM_EMAIL,
-        [usuario.email],
-        fail_silently=False
-    )
+""",
+    })
