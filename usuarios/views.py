@@ -23,6 +23,7 @@ def registro_view(request):
         if form.is_valid():
             print('FORMULARIO VÁLIDO')
             try:
+                print("ANTES DE CREAR USUARIO")
                 with transaction.atomic():
                     usuario = form.save(commit=False)
                     usuario.email = usuario.email.lower()
@@ -35,8 +36,9 @@ def registro_view(request):
                     )
                     dirigente.usuario = usuario
                     dirigente.save()
-
+                    print("ANTES DE ENVIAR EMAIL")
                     enviar_email_verificacion(request, usuario)
+                    print("EMAIL ENVIADO")
             except (BadHeaderError, SMTPException, OSError):
                 messages.error(
                     request,
