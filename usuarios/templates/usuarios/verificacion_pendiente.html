@@ -7,10 +7,22 @@
     </div>
     <div class="card form-container">
         <p class="detalles">
-            Antes de iniciar sesión debes activar tu cuenta desde el enlace que enviamos a tu correo.
+        Hola {{usuario.username}},
+
+        Gracias por registrarte en Liga Rural Cancura.
+
+        Te hemos enviado un correo de verificación a {{usuario.email}}.
+
+        Haz clic en el enlace que aparece en el correo para activar tu cuenta.
+
         </p>
         <p class="detalles">
-            Revisa tu bandeja de entrada o spam.
+            Si no lo encuentras en tu bandeja de entrada, revisa las carpetas de:
+            - Spam
+            - Correo no deseado
+            - Promociones (en Gmail)
+            
+            Si no recibiste el correo, intenta contactarte con soporte de la liga.
         </p>
         <a href="{% url 'login' %}">Volver al login</a>
     </div>
