@@ -18,6 +18,7 @@ DEBUG = True#os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+EN_RENDER = os.environ.get('RENDER', False)
 # ─────────────────────────────────────────
 # APLICACIONES
 # ─────────────────────────────────────────
@@ -29,10 +30,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'myapp',
-    'usuarios',
-    'cloudinary_storage',
-    'cloudinary',
+    'usuarios'
 ]
+
+if EN_RENDER:
+    INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -103,8 +105,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # ─────────────────────────────────────────
 # ARCHIVOS MEDIA
 # ─────────────────────────────────────────
-
-EN_RENDER = os.environ.get('RENDER', False)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
