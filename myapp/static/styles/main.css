@@ -457,13 +457,20 @@ a {
 
 .swal2-popup select,
 .swal2-popup option {
-    background-color: white !important;
-    color: black !important;
+    background-color: rgb(17, 24, 39) !important;
+    color: whitesmoke !important;
+    border: 1px solid #6b7280 !important;
+    border-radius: 10px !important;
 }
 
 .swal2-select {
-    width: 85% !important;
-    margin: 1em auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background-color: rgb(17, 24, 39) !important;
+    color: whitesmoke !important;
+    border: 1px solid #6b7280 !important;
+    border-radius: 10px !important;
 }
 
 /* PLACEHOLDER */
