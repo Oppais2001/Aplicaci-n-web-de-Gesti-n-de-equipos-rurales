@@ -36,6 +36,13 @@
 </div>
 
 <script>
+const opcionesLigas = `
+    {% for liga in ligas %}
+        <option value="{{ liga.id }}">
+            {{ liga.nombre }}
+        </option>
+    {% endfor %}
+`;
 function abrirPopupEquipo(){
     Swal.fire({
         title: 'Agregar equipo',
@@ -62,7 +69,7 @@ function abrirPopupEquipo(){
                     <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Liga</label>
                     <select id="liga_equipo" class="swal2-select" style="margin:0; width:100%; box-sizing:border-box;">
                         <option value="">Selecciona una liga</option>
-                        ${ligas}
+                        ${opcionesLigas}
                     </select>
                 </div>
                 <div style="grid-column:1/-1;">
