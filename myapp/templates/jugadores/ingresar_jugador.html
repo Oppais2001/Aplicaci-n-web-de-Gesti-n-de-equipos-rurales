@@ -36,233 +36,65 @@
 </div>
 
 <script>
-
-const opcionesLigas = `
-    {% for liga in ligas %}
-        <option value="{{ liga.id }}">
-            {{ liga.nombre }}
-        </option>
-    {% endfor %}
-`;
-
 function abrirPopupEquipo(){
-
     Swal.fire({
-
-        title: 'Agregar Equipo',
-
+        title: 'Agregar equipo',
+        width: 520,
         html: `
-
-            <input
-                id="nombre_equipo"
-                class="swal2-input"
-                placeholder="Nombre equipo"
-            >
-
-            <input
-                id="fecha_creacion_equipo"
-                type="date"
-                class="swal2-input"
-            >
-
-            <input
-                id="nombre_entrenador_equipo"
-                class="swal2-input"
-                placeholder="Nombre entrenador"
-            >
-
-            <input
-                id="nombre_dueno_equipo"
-                class="swal2-input"
-                placeholder="Nombre dueño"
-            >
-
-            <select
-                id="liga_equipo"
-                class="swal2-select"
-            >
-
-                <option value="">
-                    Seleccione una liga
-                </option>
-
-                ${opcionesLigas}
-
-            </select>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; text-align:left;">
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Nombre del equipo</label>
+                    <input id="nombre_equipo" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="Ej: Deportivo Cancura">
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Entrenador</label>
+                    <input id="nombre_entrenador_equipo" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="Nombre completo">
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Dueño</label>
+                    <input id="nombre_dueno_equipo" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="Nombre completo">
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Fecha de creación</label>
+                    <input id="fecha_creacion_equipo" type="date" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Liga</label>
+                    <select id="liga_equipo" class="swal2-select" style="margin:0; width:100%; box-sizing:border-box;">
+                        <option value="">Selecciona una liga</option>
+                        ${opcionesLigas}
+                    </select>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Redes sociales</label>
+                    <input id="redes_sociales_equipo" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="Ej: @deportivocancura">
+                    <small style="color:#999; font-size:12px;">Instagram, Facebook u otra red del equipo</small>
+                </div>
+            </div>
         `,
-
         showCancelButton: true,
-
-        confirmButtonText: 'Guardar',
-
+        confirmButtonText: 'Guardar equipo',
+        cancelButtonText: 'Cancelar',
         preConfirm: () => {
+            const nombre = document.getElementById('nombre_equipo').value.trim();
+            const fecha_creacion = document.getElementById('fecha_creacion_equipo').value;
+            const nombre_entrenador = document.getElementById('nombre_entrenador_equipo').value.trim();
+            const nombre_dueno = document.getElementById('nombre_dueno_equipo').value.trim();
+            const liga = document.getElementById('liga_equipo').value;
+            const redes_sociales = document.getElementById('redes_sociales_equipo').value.trim();
 
-            const nombre =
-                document.getElementById(
-                    'nombre_equipo'
-                ).value.trim();
+            if (!nombre) { Swal.showValidationMessage('Debes ingresar un nombre'); return false; }
+            if (!nombre_entrenador) { Swal.showValidationMessage('Debes ingresar un entrenador'); return false; }
+            if (!nombre_dueno) { Swal.showValidationMessage('Debes ingresar un dueño'); return false; }
+            if (!liga) { Swal.showValidationMessage('Debes seleccionar una liga'); return false; }
+            if (!redes_sociales) { Swal.showValidationMessage('Debes ingresar las redes sociales'); return false; }
 
-            const fecha_creacion =
-                document.getElementById(
-                    'fecha_creacion_equipo'
-                ).value;
-
-            const nombre_entrenador =
-                document.getElementById(
-                    'nombre_entrenador_equipo'
-                ).value.trim();
-
-            const nombre_dueno =
-                document.getElementById(
-                    'nombre_dueno_equipo'
-                ).value.trim();
-
-            const liga =
-                document.getElementById(
-                    'liga_equipo'
-                ).value;
-
-            if(!nombre){
-
-                Swal.showValidationMessage(
-                    'Debes ingresar un nombre'
-                );
-
-                return false;
-            }
-
-            if(!nombre_entrenador){
-
-                Swal.showValidationMessage(
-                    'Debes ingresar un entrenador'
-                );
-
-                return false;
-            }
-
-            if(!nombre_dueno){
-
-                Swal.showValidationMessage(
-                    'Debes ingresar un dueño'
-                );
-
-                return false;
-            }
-
-            if(!liga){
-
-                Swal.showValidationMessage(
-                    'Debes seleccionar una liga'
-                );
-
-                return false;
-            }
-
-            return {
-
-                nombre: nombre,
-                fecha_creacion: fecha_creacion,
-                nombre_entrenador: nombre_entrenador,
-                nombre_dueno: nombre_dueno,
-                liga: liga
-            };
+            return { nombre, fecha_creacion, nombre_entrenador, nombre_dueno, liga, redes_sociales };
         }
-
     }).then((result) => {
-
-        if(result.isConfirmed){
-
-            guardarEquipo(result.value);
-        }
+        if (result.isConfirmed) guardarEquipo(result.value);
     });
 }
-
-function guardarEquipo(datos){
-
-    fetch('/equipos/crear/ajax/', {
-
-        method: 'POST',
-
-        headers: {
-
-            'Content-Type':
-                'application/json',
-
-            'X-CSRFToken':
-                obtenerCSRFToken()
-        },
-
-        body: JSON.stringify(datos)
-    })
-
-    .then(response => response.json())
-
-    .then(data => {
-
-        if(data.success){
-
-            const selectEquipo =
-                document.getElementById(
-                    'id_equipo'
-                );
-
-            const option =
-                document.createElement(
-                    'option'
-                );
-
-            option.value = data.id;
-            option.text = data.nombre;
-
-            selectEquipo.appendChild(option);
-
-            // seleccionar automáticamente
-            selectEquipo.value = data.id;
-
-            Swal.fire({
-
-                icon: 'success',
-
-                title: 'Equipo agregado'
-            });
-
-        } else {
-
-            Swal.fire({
-
-                icon: 'error',
-
-                title: 'Error',
-
-                text: data.error
-            });
-        }
-    });
-}
-
-function obtenerCSRFToken(){
-
-    let cookieValue = null;
-
-    const cookies = document.cookie.split(';');
-
-    for(let i = 0; i < cookies.length; i++){
-
-        const cookie = cookies[i].trim();
-
-        if(cookie.startsWith('csrftoken=')){
-
-            cookieValue = cookie.substring(
-                'csrftoken='.length
-            );
-
-            break;
-        }
-    }
-
-    return cookieValue;
-}
-
 </script>
 
 {% endblock %}

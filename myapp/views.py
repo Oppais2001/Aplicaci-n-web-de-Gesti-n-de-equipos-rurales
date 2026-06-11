@@ -350,7 +350,7 @@ def crear_liga_ajax(request):
 
         }, status=400)
 
-    form = Ingresar_Ligas({
+    form = Ingresar_Liga({
 
         'nombre': data.get(
             'nombre',
