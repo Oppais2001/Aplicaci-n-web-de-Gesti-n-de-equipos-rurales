@@ -20,6 +20,9 @@ from .utils import (
     validate_textarea,
     validate_transfer_date,
     validate_unique_value,
+    validate_google_maps_iframe,
+    validate_integer_range,
+    validate_social_media
 )
 import re
 
@@ -687,129 +690,46 @@ class Ingresar_Canchas(forms.ModelForm):
         }
 
     def clean_nombre(self):
-
-        nombre = self.cleaned_data.get(
-            'nombre',
-            ''
-        ).strip()
-
-        nombre = " ".join(nombre.split())
-
-        if len(nombre) < 3:
-            raise ValidationError(
-                "El nombre es demasiado corto."
-            )
-
-        if len(nombre) > 100:
-            raise ValidationError(
-                "El nombre es demasiado largo."
-            )
-
-        patron = r'^[A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-]+$'
-
-        if not re.fullmatch(patron, nombre):
-            raise ValidationError(
-                "El nombre contiene caracteres inválidos."
-            )
-        
-        liga = self.cleaned_data.get('liga')
-
-        canchas = Cancha.objects.filter(
-            nombre__iexact=nombre,
-            liga=liga
+        nombre = validate_entity_name(
+            self.cleaned_data.get("nombre"),
+            "nombre de la cancha",
+            max_length=100)
+            
+        return validate_unique_value(
+            Cancha,
+            "nombre",
+            nombre,
+            instance=self.instance,
+            filters={"liga": self.cleaned_data.get("liga")},
+            message="Ya existe una cancha con ese nombre.",
+            iexact=True,
         )
-
-        if self.instance.pk:
-            canchas = canchas.exclude(
-                pk=self.instance.pk
-            )
-
-        if canchas.exists():
-            raise ValidationError(
-                "Ya existe una cancha con ese nombre."
-            )
-
-        return nombre.title()
 
     def clean_direccion(self):
-
-        direccion = (
-            self.cleaned_data.get(
-                'direccion',
-                ''
-            ).strip()
-        )
-
-        if direccion:
-
-            direccion = " ".join(
-                direccion.split()
-            )
-
-            if len(direccion) < 5:
-                raise ValidationError(
-                    "La dirección es demasiado corta."
-                )
-
-            if len(direccion) > 255:
-                raise ValidationError(
-                    "La dirección es demasiado larga."
-                )
-
-        return direccion
+        return validate_address(
+            self.cleaned_data.get("direccion"),
+            required=False)
 
     def clean_descripcion(self):
-
-        descripcion = (
-            self.cleaned_data.get(
-                'descripcion',
-                ''
-            ).strip()
+        return validate_textarea(
+            self.cleaned_data.get("descripcion"),
+            "descripción",
+            required=False,
+            max_length=1000,
         )
-
-        if descripcion and len(descripcion) > 1000:
-
-            raise ValidationError(
-                "La descripción es demasiado larga."
-            )
-
-        return descripcion
 
     def clean_capacidad(self):
-
-        capacidad = self.cleaned_data.get(
-            'capacidad'
+        return validate_integer_range(
+            self.cleaned_data.get("capacidad"),
+            "la capacidad",
+            minimum=0,
+            maximum=100000,
         )
-
-        if capacidad is not None:
-
-            if capacidad < 0:
-                raise ValidationError(
-                    "La capacidad no puede ser negativa."
-                )
-
-            if capacidad > 100000:
-                raise ValidationError(
-                    "La capacidad ingresada no es válida."
-                )
-
-        return capacidad
+        
     def clean_mapa_iframe(self):
-
-        iframe = self.cleaned_data.get(
-            'mapa_iframe',
-            ''
-        ).strip()
-
-        if iframe and (
-            '<iframe' not in iframe.lower()
-            or 'google.com/maps/embed' not in iframe.lower()
-        ):
-            raise ValidationError(
-                'Debes pegar un iframe válido de Google Maps.'
-            )
-
-        return iframe
+        return validate_google_maps_iframe(
+            self.cleaned_data.get("mapa_iframe")
+        )
     
 # PARTIDO
 class Ingresar_Partido(forms.ModelForm):
@@ -888,116 +808,75 @@ class Ingresar_Partido(forms.ModelForm):
         self.fields['cancha'].queryset = Cancha.objects.order_by('nombre')
         self.fields['hora'].input_formats = ['%H:%M', '%H:%M:%S']
 
-    def validar_cantidad_tarjetas(self, valor, campo, limite):
-        if valor is None:
-            raise ValidationError(
-                f"Debes ingresar {campo}."
-            )
-
-        if valor < 0:
-            raise ValidationError(
-                f"{campo.capitalize()} no puede ser negativo."
-            )
-
-        if valor > limite:
-            raise ValidationError(
-                f"{campo.capitalize()} no puede superar {limite}."
-            )
-
-        return valor
-
-    def validar_goles(self, valor, campo):
-        if valor is None:
-            return valor
-
-        if valor < 0:
-            raise ValidationError(
-                f"{campo.capitalize()} no puede ser negativo."
-            )
-
-        if valor > Partido.MAX_GOLES_POR_EQUIPO:
-            raise ValidationError(
-                f"{campo.capitalize()} no puede superar "
-                f"{Partido.MAX_GOLES_POR_EQUIPO}."
-            )
-
-        return valor
-
+    def clean_goles_local(self):
+        return validate_integer_range(
+            self.cleaned_data.get("goles_local"),
+            "los goles del equipo local",
+            minimum=0,
+            maximum=Partido.MAX_GOLES_POR_EQUIPO)
+        
+    def clean_goles_visitante(self):
+        return validate_integer_range(
+            self.cleaned_data.get("goles_visitante"),
+            "los goles del equipo visitante",
+            minimum=0,
+            maximum=Partido.MAX_GOLES_POR_EQUIPO,
+        )
+        
+    def clean_amarillas_local(self):
+        return validate_integer_range(
+            self.cleaned_data.get("amarillas_local"),
+            "las amarillas del equipo local",
+            minimum=0,
+            maximum=Partido.MAX_AMARILLAS_POR_EQUIPO,
+            required=True,
+        )
+    def clean_amarillas_visitante(self):
+        return validate_integer_range(
+            self.cleaned_data.get("amarillas_visitante"),
+            "las amarillas del equipo visitante",
+            minimum=0,
+            maximum=Partido.MAX_AMARILLAS_POR_EQUIPO,
+            required=True,
+        )
+        
+    def clean_rojas_local(self):
+        return validate_integer_range(
+            self.cleaned_data.get("rojas_local"),
+            "las rojas del equipo local",
+            minimum=0,
+            maximum=Partido.MAX_ROJAS_POR_EQUIPO,
+            required=True,
+        )
+    def clean_rojas_visitante(self):
+        return validate_integer_range(
+            self.cleaned_data.get("rojas_visitante"),
+            "las rojas del equipo visitante",
+            minimum=0,
+            maximum=Partido.MAX_ROJAS_POR_EQUIPO,
+            required=True,
+        )
     def clean_fecha(self):
-        fecha = self.cleaned_data.get('fecha')
+        fecha = validate_date_not_future(
+            self.cleaned_data.get("fecha"),
+            "La fecha del partido",
+            required=True,
+        )
 
         if fecha and fecha.year < Partido.MIN_ANIO_PARTIDO:
             raise ValidationError(
-                f"No puedes ingresar un partido anterior al ano "
+                f"No puedes ingresar un partido anterior al año "
                 f"{Partido.MIN_ANIO_PARTIDO}."
             )
 
         return fecha
 
-    def clean_goles_local(self):
-        return self.validar_goles(
-            self.cleaned_data.get('goles_local'),
-            'goles del equipo local'
-        )
-
-    def clean_goles_visitante(self):
-        return self.validar_goles(
-            self.cleaned_data.get('goles_visitante'),
-            'goles del equipo visitante'
-        )
-
     def clean_descripcion(self):
-        descripcion = (
-            self.cleaned_data.get('descripcion')
-            or ''
-        ).strip()
-
-        if not descripcion:
-            return ''
-
-        if len(descripcion) > 1000:
-            raise ValidationError(
-                "La descripcion es demasiado larga."
-            )
-
-        patron = (
-            r'^[A-Za-z0-9\u00C0-\u017F\s\.\,\;\:\!\?\u00A1'
-            r'\u00BF\(\)\/"\'\-]+$'
-        )
-
-        if not re.fullmatch(patron, descripcion):
-            raise ValidationError(
-                "La descripcion contiene caracteres no permitidos."
-            )
-
-        return descripcion
-
-    def clean_amarillas_local(self):
-        return self.validar_cantidad_tarjetas(
-            self.cleaned_data.get('amarillas_local'),
-            'amarillas del equipo local',
-            Partido.MAX_AMARILLAS_POR_EQUIPO
-        )
-
-    def clean_amarillas_visitante(self):
-        return self.validar_cantidad_tarjetas(
-            self.cleaned_data.get('amarillas_visitante'),
-            'amarillas del equipo visitante',
-            Partido.MAX_AMARILLAS_POR_EQUIPO
-        )
-
-    def clean_rojas_local(self):
-        return self.validar_cantidad_tarjetas(
-            self.cleaned_data.get('rojas_local'),
-            'rojas del equipo local',
-            Partido.MAX_ROJAS_POR_EQUIPO
-        )
-
-    def clean_rojas_visitante(self):
-        return self.validar_cantidad_tarjetas(
-            self.cleaned_data.get('rojas_visitante'),
-            'rojas del equipo visitante',
-            Partido.MAX_ROJAS_POR_EQUIPO
+        return validate_textarea(
+            self.cleaned_data.get("descripcion"),
+            "descripción",
+            required=False,
+            max_length=1000,
         )
 
     def clean(self):

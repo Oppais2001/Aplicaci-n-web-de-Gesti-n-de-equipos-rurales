@@ -148,15 +148,29 @@ def validate_social_link(value, required=True):
     return value
 
 
-def validate_unique_value(model, field_name, value, instance=None, message=None, iexact=False):
-    lookup = f"{field_name}__iexact" if iexact else field_name
-    query = model.objects.filter(**{lookup: value})
+def validate_unique_value(
+    model,
+    field,
+    value,
+    instance=None,
+    filters=None,
+    message="Este valor ya existe.",
+    iexact=False,
+):
+    if value is None:
+        return value
+
+    lookup = f"{field}__iexact" if iexact else field
+    queryset = model.objects.filter(**{lookup: value})
+
+    if filters:
+        queryset = queryset.filter(**filters)
 
     if instance and instance.pk:
-        query = query.exclude(pk=instance.pk)
+        queryset = queryset.exclude(pk=instance.pk)
 
-    if query.exists():
-        raise ValidationError(message or "Ya existe un registro con este valor.")
+    if queryset.exists():
+        raise ValidationError(message)
 
     return value
 
@@ -346,3 +360,39 @@ def validate_transfer_date(value, base_date):
         raise ValidationError(f"El jugador no puede transferirse antes de {min_date}.")
 
     return value
+def validate_integer_range(
+    value,
+    field_name,
+    minimum=None,
+    maximum=None,
+    required=False,
+):
+    if value is None:
+        if required:
+            raise ValidationError(f"Debes ingresar {field_name}.")
+        return value
+
+    if minimum is not None and value < minimum:
+        raise ValidationError(
+            f"{field_name.capitalize()} no puede ser menor que {minimum}."
+        )
+
+    if maximum is not None and value > maximum:
+        raise ValidationError(
+            f"{field_name.capitalize()} no puede ser mayor que {maximum}."
+        )
+
+    return value
+
+def validate_google_maps_iframe(iframe):
+    iframe = (iframe or "").strip()
+
+    if iframe and (
+        "<iframe" not in iframe.lower()
+        or "google.com/maps/embed" not in iframe.lower()
+    ):
+        raise ValidationError(
+            "Debes pegar un iframe válido de Google Maps."
+        )
+
+    return iframe
