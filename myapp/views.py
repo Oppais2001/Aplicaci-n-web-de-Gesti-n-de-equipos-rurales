@@ -965,7 +965,7 @@ def editar_arbitro(request, id):
 
         if form.is_valid():
             form.save()
-            return redirect('detalle_arbitro', id=arbitro.id)
+            return redirect('arbitros')
 
     else:
         form = Ingresar_Arbitros(instance=arbitro)
