@@ -1,0 +1,36 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="ingresar">
+  <div>
+    <h1>Ingresar Cancha</h1>
+  </div>
+
+  <div class="container-forms-card">
+    <div class="card form-container">
+      <form method="POST" enctype="multipart/form-data" class="form-registro">
+        {% csrf_token %} {{ form }}
+
+        <button>Guardar</button>
+      </form>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Información</h2>
+
+        <p>Registra una cancha asociada a una liga.</p>
+      </div>
+
+      <br />
+
+      <div class="card">
+        <h2>Fotografía</h2>
+
+        <p>Puedes subir una imagen representativa de la cancha.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+

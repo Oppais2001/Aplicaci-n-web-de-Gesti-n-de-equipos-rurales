@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="ingresar">
+    <div class="card-title">
+        <h1>Editar Partido</h1>
+    </div>
+    <div class="container-forms-card">
+        <div>
+            <div class="card">
+                <h2>Datos actuales</h2>
+                <br>
+                <p><strong>Local:</strong> {{ partido.equipo_local }}</p>
+                <p><strong>Visitante:</strong> {{ partido.equipo_visitante }}</p>
+                <p><strong>Cancha:</strong> {{ partido.cancha|default:"-" }}</p>
+                <p><strong>Fecha:</strong> {{ partido.fecha|date:"d/m/Y" }}</p>
+                <p><strong>Hora:</strong> {{ partido.hora|time:"H:i" }}</p>
+                <p><strong>Goles local:</strong> {{ partido.goles_local|default_if_none:"Pendiente" }}</p>
+                <p><strong>Goles visitante:</strong> {{ partido.goles_visitante|default_if_none:"Pendiente" }}</p>
+            </div>
+        </div>
+        <div class="card form-container">
+            <form method="POST" class="form-registro">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Guardar cambios</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

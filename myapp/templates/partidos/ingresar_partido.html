@@ -1,0 +1,29 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="ingresar">
+    <div class="card-title">
+        <h1>Ingresar Partido</h1>
+    </div>
+    <div class="container-forms-card">
+        <div class="card form-container">
+            <form method="POST" class="form-registro">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+        <div>
+            <div class="card">
+                <h2>Registro del partido</h2>
+                <p>Selecciona los equipos, la cancha, la fecha, la hora, los goles, descripcion y tarjetas.</p>
+            </div>
+            <br>
+            <div class="card">
+                <h2>Fecha y hora</h2>
+                <p>La fecha y la hora se registran en campos separados.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

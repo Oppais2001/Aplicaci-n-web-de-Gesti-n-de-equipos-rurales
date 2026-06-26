@@ -26,5 +26,62 @@
             {% endfor %}
         </div>
     </div>
+    <div>
+        <div class="card">
+            <h2><i class="fa fa-users"></i> Canchas</h2>
+
+            <a href="{% url 'canchas' %}" class="menu-lin links-home">
+                <i class="fa fa-futbol"></i> Ver Canchas
+            </a>
+
+            <div class="card-action">
+                <a href="{% url 'ingresar_cancha' %}" class="btn-card links-home">
+                    <i class="fa fa-plus-circle"></i> Agregar Cancha
+                </a>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="card">
+            <h2><i class="fa fa-users"></i> Partidos</h2>
+
+            <a href="{% url 'partidos' %}" class="menu-lin links-home">
+                <i class="fa fa-futbol"></i> Ver Partidos
+            </a>
+
+            <div class="card-action">
+                <a href="{% url 'ingresar_partido' %}" class="btn-card links-home">
+                    <i class="fa fa-plus-circle"></i> Agregar Partidos
+                </a>
+            </div>
+        </div>
+    <br>
+    <div>
+        <div>
+            <div class="card">
+                <h2><i class="fa fa-users"></i> Árbitros</h2>
+
+                <a href="{% url 'arbitros' %}" class="menu-lin links-home">
+                    <i class="fa fa-futbol"></i> Ver Árbitros
+                </a>
+
+                <div class="card-action">
+                    <a href="{% url 'ingresar_arbitro' %}" class="btn-card links-home">
+                        <i class="fa fa-plus-circle"></i> Agregar Árbitros
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+.links-home {
+    font-size: 2rem;
+
+}
+</style>
+
+
 {% endblock %}
+

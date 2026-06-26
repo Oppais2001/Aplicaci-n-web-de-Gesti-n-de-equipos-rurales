@@ -1,0 +1,30 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="ingresar">
+  <div class="card-title">
+    <h1>Editar Cancha</h1>
+  </div>
+
+  <div class="container-forms-card">
+    <div class="card form-container">
+      <form method="POST" enctype="multipart/form-data" class="form-registro">
+        {% csrf_token %} {{ form.as_p }}
+
+        <button type="submit">Guardar cambios</button>
+      </form>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Información</h2>
+
+        <p>Actualiza los datos de la cancha.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+

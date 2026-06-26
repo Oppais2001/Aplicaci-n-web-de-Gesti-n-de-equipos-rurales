@@ -1,0 +1,191 @@
+<div class="redes-widget" data-prefix="{{ redes_formset.prefix }}">
+    <div class="redes-widget-header">
+        <h3>Redes sociales</h3>
+        <button type="button" class="btn-red-agregar" data-action="add-social">
+            <i class="fa-solid fa-plus"></i>
+            Agregar red
+        </button>
+    </div>
+
+    {{ redes_formset.management_form }}
+    {{ redes_formset.non_form_errors }}
+
+    <div class="redes-cards" data-social-cards></div>
+    <p class="redes-empty" data-social-empty>Sin redes sociales agregadas.</p>
+
+    <div class="redes-formset-hidden">
+        {% for red_form in redes_formset %}
+            <div class="red-social-form-row" data-form-index="{{ forloop.counter0 }}">
+                {{ red_form.id }}
+                {{ red_form.tipo }}
+                {{ red_form.enlace }}
+                {{ red_form.DELETE }}
+                {{ red_form.errors }}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+(function() {
+    const widget = document.currentScript.previousElementSibling;
+    const cardsContainer = widget.querySelector("[data-social-cards]");
+    const emptyMessage = widget.querySelector("[data-social-empty]");
+    const addButton = widget.querySelector("[data-action='add-social']");
+    const rows = Array.from(widget.querySelectorAll(".red-social-form-row"));
+
+    function getFields(row) {
+        return {
+            tipo: row.querySelector("select[name$='-tipo']"),
+            enlace: row.querySelector("input[name$='-enlace']"),
+            eliminar: row.querySelector("input[name$='-DELETE']"),
+            id: row.querySelector("input[name$='-id']")
+        };
+    }
+
+    function isDeleted(row) {
+        const fields = getFields(row);
+        return fields.eliminar && fields.eliminar.checked;
+    }
+
+    function hasData(row) {
+        const fields = getFields(row);
+        return Boolean(fields.tipo.value && fields.enlace.value && !isDeleted(row));
+    }
+
+    function optionLabel(select, value) {
+        const option = Array.from(select.options).find(item => item.value === value);
+        return option ? option.text : value;
+    }
+
+    function firstAvailableRow() {
+        return rows.find(row => !hasData(row) && !getFields(row).id.value);
+    }
+
+    function buildOptions(selectedValue) {
+        const firstSelect = getFields(rows[0]).tipo;
+
+        return Array.from(firstSelect.options)
+            .map(option => {
+                const selected = option.value === selectedValue ? "selected" : "";
+                return `<option value="${option.value}" ${selected}>${option.text}</option>`;
+            })
+            .join("");
+    }
+
+    async function openPopup(row) {
+        const fields = getFields(row);
+
+        const result = await Swal.fire({
+            title: fields.tipo.value ? "Editar red social" : "Agregar red social",
+            html: `
+                <div class="swal-form-grid">
+                    <label>Red social</label>
+                    <select id="swal-red-tipo" class="swal2-select">
+                        ${buildOptions(fields.tipo.value)}
+                    </select>
+                    <label>Enlace o usuario</label>
+                    <input id="swal-red-enlace" class="swal2-input" placeholder="Ej: @clubcancura">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Guardar",
+            cancelButtonText: "Cancelar",
+            didOpen: () => {
+                document.getElementById("swal-red-enlace").value = fields.enlace.value || "";
+            },
+            preConfirm: () => {
+                const tipo = document.getElementById("swal-red-tipo").value;
+                const enlace = document.getElementById("swal-red-enlace").value.trim();
+
+                if (!tipo) {
+                    Swal.showValidationMessage("Debes seleccionar una red social.");
+                    return false;
+                }
+
+                if (!enlace) {
+                    Swal.showValidationMessage("Debes ingresar el enlace o usuario.");
+                    return false;
+                }
+
+                return { tipo, enlace };
+            }
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        fields.tipo.value = result.value.tipo;
+        fields.enlace.value = result.value.enlace;
+
+        if (fields.eliminar) {
+            fields.eliminar.checked = false;
+        }
+
+        renderCards();
+    }
+
+    function deleteRow(row) {
+        const fields = getFields(row);
+
+        if (fields.id.value && fields.eliminar) {
+            fields.eliminar.checked = true;
+        } else {
+            fields.tipo.value = "";
+            fields.enlace.value = "";
+        }
+
+        renderCards();
+    }
+
+    function renderCards() {
+        cardsContainer.innerHTML = "";
+        const activeRows = rows.filter(hasData);
+
+        emptyMessage.style.display = activeRows.length ? "none" : "block";
+
+        activeRows.forEach(row => {
+            const fields = getFields(row);
+            const card = document.createElement("div");
+            card.className = "red-social-card";
+            card.innerHTML = `
+                <div>
+                    <strong>${optionLabel(fields.tipo, fields.tipo.value)}</strong>
+                    <span>${fields.enlace.value}</span>
+                </div>
+                <div class="red-social-actions">
+                    <button type="button" class="btn-icon-red" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="btn-icon-red danger" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            const buttons = card.querySelectorAll("button");
+            buttons[0].addEventListener("click", () => openPopup(row));
+            buttons[1].addEventListener("click", () => deleteRow(row));
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    addButton.addEventListener("click", () => {
+        const row = firstAvailableRow();
+
+        if (!row) {
+            Swal.fire({
+                icon: "info",
+                title: "Limite alcanzado",
+                text: "Ya agregaste el maximo de redes sociales permitidas."
+            });
+            return;
+        }
+
+        openPopup(row);
+    });
+
+    renderCards();
+})();
+</script>

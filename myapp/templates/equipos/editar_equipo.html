@@ -10,6 +10,7 @@
             <form method="POST" class="form-registro">
                 {% csrf_token %}
                 {{ form.as_p }}
+                {% include 'includes/redes_sociales_formset.html' %}
                 <button type="submit">Guardar cambios</button>
             </form>
         </div>

@@ -1,0 +1,70 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="contenedor-tablas">
+  <div class="card-title">
+    <h1>{{ cancha.nombre }}</h1>
+  </div>
+
+  <div class="card">
+    {% if cancha.foto %}
+
+    <div style="text-align: center; margin-bottom: 20px">
+      <img
+        src="{{ cancha.foto.url }}"
+        alt="{{ cancha.nombre }}"
+        style="max-width: 500px; width: 100%; border-radius: 10px"
+      />
+    </div>
+
+    {% endif %}
+
+    <table>
+      <tr>
+        <th>Liga</th>
+        <td>{{ cancha.liga }}</td>
+      </tr>
+
+      <tr>
+        <th>Dirección</th>
+        <td>{{ cancha.direccion|default:"-" }}</td>
+      </tr>
+
+      <tr>
+        <th>Tipo Superficie</th>
+        <td>{{ cancha.get_tipo_superficie_display }}</td>
+      </tr>
+
+      <tr>
+        <th>Capacidad</th>
+        <td>{{ cancha.capacidad|default:"-" }}</td>
+      </tr>
+
+      <tr>
+        <th>Iluminación</th>
+        <td>{% if cancha.iluminacion %} Sí {% else %} No {% endif %}</td>
+      </tr>
+
+      <tr>
+        <th>Estado</th>
+        <td>{% if cancha.activa %} Activa {% else %} Inactiva {% endif %}</td>
+      </tr>
+
+      <tr>
+        <th>Descripción</th>
+        <td>{{ cancha.descripcion|default:"Sin descripción." }}</td>
+      </tr>
+    </table>
+
+    {% if cancha.mapa_iframe %}
+
+    <div class="card" style="margin-top: 20px; text-align: center">
+      <h2>Ubicación</h2>
+
+      {{ cancha.mapa_iframe|safe }}
+    </div>
+
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

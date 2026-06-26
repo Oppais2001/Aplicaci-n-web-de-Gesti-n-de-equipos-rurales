@@ -1,0 +1,27 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="ingresar">
+  <div>
+    <h1>Ingresar Árbitro</h1>
+  </div>
+
+  <div class="container-forms-card">
+    <div class="card form-container">
+      <form method="POST" enctype="multipart/form-data" class="form-registro">
+        {% csrf_token %} {{ form }}
+
+        <button>Guardar</button>
+      </form>
+    </div>
+    <div>
+      <div class="card">
+          <h2>Formato de las fechas</h2>
+          <p>Las fechas deben ser ingresadas con el formato DD/MM/AAAA</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+

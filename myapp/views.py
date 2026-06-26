@@ -4,8 +4,22 @@ from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from .models import Dirigente, Equipo, Jugador, Traspaso, Liga
-from .forms import Editar_Dirigentes, Ingresar_Dirigentes, Ingresar_Equipos, Ingresar_Jugadores, Realizar_Traspasos, Ingresar_Liga, Editar_Traspaso
+from django.contrib import messages
+from .models import Dirigente, Equipo, Jugador, Traspaso, Liga, RedSocial, Arbitro, Cancha, Partido
+from .forms import (
+    Editar_Dirigentes,
+    Editar_Traspaso,
+    EquipoRedSocialFormSet,
+    Ingresar_Dirigentes,
+    Ingresar_Equipos,
+    Ingresar_Jugadores,
+    Ingresar_Liga,
+    LigaRedSocialFormSet,
+    Realizar_Traspasos,
+    Ingresar_Arbitros,
+    Ingresar_Canchas,
+    Ingresar_Partido
+)
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
 
 # HOME Y ABOUT
@@ -50,15 +64,23 @@ def about(request):
 def ingresar_equipo(request):
     if request.method == "POST":
         form = Ingresar_Equipos(request.POST)
+        redes_formset = EquipoRedSocialFormSet(
+            request.POST,
+            prefix="redes"
+        )
 
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and redes_formset.is_valid():
+            equipo = form.save()
+            redes_formset.instance = equipo
+            redes_formset.save()
             return redirect('equipos')
     else:
         form = Ingresar_Equipos()
+        redes_formset = EquipoRedSocialFormSet(prefix="redes")
 
     return render(request, "equipos/ingresar_equipo.html", {
         "form": form,
+        "redes_formset": redes_formset,
     })
 
 @admin_required
@@ -103,6 +125,14 @@ def ingresar_equipo_ajax(request):
     if form.is_valid():
 
         equipo = form.save()
+        red_social = data.get('redes_sociales', '').strip()
+
+        if red_social:
+            RedSocial.objects.create(
+                equipo=equipo,
+                tipo=RedSocial.OTRO,
+                enlace=red_social
+            )
 
         return JsonResponse({
 
@@ -148,17 +178,28 @@ def editar_equipo(request, id_equipo):
 
     if request.method == 'POST':
         form = Ingresar_Equipos(request.POST, instance=equipo)
+        redes_formset = EquipoRedSocialFormSet(
+            request.POST,
+            instance=equipo,
+            prefix="redes"
+        )
         
-        if form.is_valid():
+        if form.is_valid() and redes_formset.is_valid():
             form.save()
+            redes_formset.save()
             return redirect('equipos')
 
     else:
         form = Ingresar_Equipos(instance=equipo)
+        redes_formset = EquipoRedSocialFormSet(
+            instance=equipo,
+            prefix="redes"
+        )
 
     return render(request, 'equipos/editar_equipo.html', {
         'form': form,
         'equipo':equipo,
+        'redes_formset': redes_formset,
         
     })
 @admin_required
@@ -259,10 +300,16 @@ def ingresar_liga(request):
             request.POST,
             request.FILES
         )
+        redes_formset = LigaRedSocialFormSet(
+            request.POST,
+            prefix="redes"
+        )
 
-        if form.is_valid():
+        if form.is_valid() and redes_formset.is_valid():
 
             liga = form.save()
+            redes_formset.instance = liga
+            redes_formset.save()
 
             if next_page == 'equipo':
 
@@ -275,12 +322,14 @@ def ingresar_liga(request):
     else:
 
         form = Ingresar_Liga()
+        redes_formset = LigaRedSocialFormSet(prefix="redes")
 
     return render(
         request,
         "ligas/ingresar_liga.html",
         {
-            "form": form
+            "form": form,
+            "redes_formset": redes_formset
         }
     )
 
@@ -313,16 +362,27 @@ def editar_liga(request, id_liga):
 
     if request.method == 'POST':
         form = Ingresar_Liga(request.POST,request.FILES, instance=liga)
+        redes_formset = LigaRedSocialFormSet(
+            request.POST,
+            instance=liga,
+            prefix="redes"
+        )
 
-        if form.is_valid():
+        if form.is_valid() and redes_formset.is_valid():
             form.save()
+            redes_formset.save()
             return redirect('ligas')
     else:
         form = Ingresar_Liga(instance=liga)
+        redes_formset = LigaRedSocialFormSet(
+            instance=liga,
+            prefix="redes"
+        )
 
     return render(request, "ligas/editar_liga.html", {
         "form": form,
-        "liga": liga
+        "liga": liga,
+        "redes_formset": redes_formset
     })
 
 @admin_required
@@ -416,6 +476,14 @@ def crear_liga_ajax(request):
     if form.is_valid():
 
         liga = form.save()
+        red_social = data.get('redes_sociales', '').strip()
+
+        if red_social:
+            RedSocial.objects.create(
+                liga=liga,
+                tipo=RedSocial.OTRO,
+                enlace=red_social
+            )
 
         return JsonResponse({
 
@@ -647,3 +715,284 @@ def eliminar_traspaso(request, id):
         'success': True
     })
     
+
+#Canchas
+@admin_required
+def ingresar_cancha(request):
+
+    if request.method == "POST":
+
+        form = Ingresar_Canchas(
+            request.POST,
+            request.FILES
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            return redirect('canchas')
+
+    else:
+
+        form = Ingresar_Canchas()
+
+    return render(
+        request,
+        "canchas/ingresar_cancha.html",
+        {
+            "form": form,
+        }
+    )
+
+@usuario_autorizado_required
+def lista_canchas(request):
+
+    buscar = request.GET.get('buscar')
+
+    canchas = Cancha.objects.select_related(
+        'liga'
+    )
+
+    canchas_totales = canchas
+
+    if buscar:
+
+        canchas = canchas.filter(
+            nombre__icontains=buscar
+        )
+
+    return render(
+        request,
+        "canchas/canchas.html",
+        {
+            "canchas": canchas,
+            "hay_canchas": canchas_totales.exists(),
+        }
+    )
+
+@admin_required
+def editar_cancha(
+    request,
+    id_cancha
+):
+
+    cancha = get_object_or_404(
+        Cancha,
+        id=id_cancha
+    )
+
+    if request.method == 'POST':
+
+        form = Ingresar_Canchas(
+            request.POST,
+            request.FILES,
+            instance=cancha
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            return redirect(
+                'canchas'
+            )
+
+    else:
+
+        form = Ingresar_Canchas(
+            instance=cancha
+        )
+
+    return render(
+        request,
+        'canchas/editar_cancha.html',
+        {
+            'form': form,
+            'cancha': cancha,
+        }
+    )
+
+@admin_required
+def eliminar_cancha(
+    request,
+    id_cancha
+):
+
+    cancha = get_object_or_404(
+        Cancha,
+        id=id_cancha
+    )
+
+    cancha.delete()
+
+    return redirect(
+        'canchas'
+    )
+
+@usuario_autorizado_required
+def detalle_cancha(request, id_cancha):
+
+    cancha = get_object_or_404(
+        Cancha,
+        id=id_cancha
+    )
+
+    return render(
+        request,
+        "canchas/detalle_cancha.html",
+        {
+            "cancha": cancha
+        }
+    )
+    
+# PARTIDOS
+@admin_required
+def ingresar_partido(request):
+    if request.method == "POST":
+        form = Ingresar_Partido(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect('partidos')
+    else:
+        form = Ingresar_Partido()
+
+    return render(request, "partidos/ingresar_partido.html", {
+        "form": form
+    })
+
+
+@usuario_autorizado_required
+def lista_partidos(request):
+    buscar = request.GET.get('buscar')
+    partidos = Partido.objects.select_related(
+        'equipo_local',
+        'equipo_visitante',
+        'cancha'
+    )
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        partidos = partidos.filter(
+            Q(equipo_local=dirigente.equipo)
+            | Q(equipo_visitante=dirigente.equipo)
+        )
+
+    partidos_totales = partidos
+
+    if buscar:
+        filtros = (
+            Q(equipo_local__nombre__icontains=buscar)
+            | Q(equipo_visitante__nombre__icontains=buscar)
+            | Q(cancha__nombre__icontains=buscar)
+            | Q(descripcion__icontains=buscar)
+        )
+
+        if buscar.isdigit():
+            filtros = (
+                filtros
+                | Q(goles_local=int(buscar))
+                | Q(goles_visitante=int(buscar))
+            )
+
+        partidos = partidos.filter(filtros)
+
+    return render(request, "partidos/partidos.html", {
+        "partidos": partidos,
+        "hay_partidos": partidos_totales.exists()
+    })
+
+
+@admin_required
+def editar_partido(request, id):
+    partido = get_object_or_404(Partido, id=id)
+
+    if request.method == 'POST':
+        form = Ingresar_Partido(request.POST, instance=partido)
+
+        if form.is_valid():
+            form.save()
+            return redirect('partidos')
+
+    else:
+        form = Ingresar_Partido(instance=partido)
+
+    return render(request, "partidos/editar_partido.html", {
+        "form": form,
+        "partido": partido
+    })
+
+
+@admin_required
+@require_POST
+def eliminar_partido(request, id):
+    partido = get_object_or_404(Partido, id=id)
+    partido.delete()
+
+    return JsonResponse({
+        'success': True
+    })
+    
+# arbitro
+
+@admin_required
+def ingresar_arbitro(request):
+    if request.method == "POST":
+        form = Ingresar_Arbitros(request.POST, request.FILES)
+
+        if form.is_valid():
+            arbitro = form.save()
+            return redirect('arbitros')
+
+    else:
+        form = Ingresar_Arbitros()
+
+    return render(request, "arbitros/ingresar_arbitro.html", {
+        "form": form
+    })
+    
+@admin_required
+def editar_arbitro(request, id):
+    arbitro = get_object_or_404(Arbitro, id=id)
+
+    if request.method == "POST":
+        form = Ingresar_Arbitros(
+            request.POST,
+            request.FILES,
+            instance=arbitro
+        )
+
+        if form.is_valid():
+            form.save()
+            return redirect('detalle_arbitro', id=arbitro.id)
+
+    else:
+        form = Ingresar_Arbitros(instance=arbitro)
+
+    return render(request, "arbitros/editar_arbitro.html", {
+        "form": form,
+        "arbitro": arbitro
+    })
+@admin_required
+def eliminar_arbitro(request, id):
+    arbitro = get_object_or_404(Arbitro, id=id)
+    arbitro.delete()
+
+    return redirect("arbitros")
+
+@usuario_autorizado_required
+def arbitros(request):
+
+    buscar = request.GET.get("buscar")
+
+    if buscar:
+        arbitros = Arbitro.objects.filter(
+            nombre__icontains=buscar
+        )
+    else:
+        arbitros = Arbitro.objects.all()
+
+    return render(request, "arbitros/arbitros.html", {
+        "arbitros": arbitros
+    })

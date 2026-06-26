@@ -40,20 +40,12 @@
     <p><strong>Reglamento:</strong></p>
 
     <p>{{ liga.reglamento }}</p>
-    <p>
-        <strong>Redes sociales:</strong>
-
-        <a href="{% if liga.redes_sociales|slice:":4" == "http" %}
-                    {{ liga.redes_sociales }}
-                {% else %}
-                    https://{{ liga.redes_sociales }}
-                {% endif %}"
-          target="_blank"
-          rel="noopener noreferrer">
-
-            {{ liga.redes_sociales }}
-        </a>
-    </p>
+    <p><strong>Redes sociales:</strong></p>
+    {% for red in liga.redes.all %}
+      <p>{{ red.get_tipo_display }}: {{ red.enlace }}</p>
+    {% empty %}
+      <p>Sin redes sociales registradas.</p>
+    {% endfor %}
   </div>
 </div>
 

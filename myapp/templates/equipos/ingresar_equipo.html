@@ -11,6 +11,7 @@
                 <form method="POST" class="form-registro">
                     {% csrf_token %}
                     {{ form }}
+                    {% include 'includes/redes_sociales_formset.html' %}
                     <button>Guardar</button>
                 </form>
             </div>

@@ -1,0 +1,116 @@
+{% extends 'layouts/base.html' %} {% block content %}
+
+<div class="contenedor-tablas">
+  <div class="card-title">
+    <h1>Visualizador de Canchas</h1>
+  </div>
+
+  <div class="card">
+    {% if hay_canchas %}
+
+    <form method="GET">
+      <input type="text" name="buscar" placeholder="Buscar cancha..." />
+
+      <button type="submit">Buscar</button>
+    </form>
+
+    {% endif %} {% if not canchas %}
+
+    <p class="empty-message">No hay datos para mostrar.</p>
+
+    {% else %}
+
+    <table>
+      <tr class="encabezado">
+        <th>Nombre</th>
+
+        <th>Liga</th>
+
+        <th>Superficie</th>
+
+        <th>Capacidad</th>
+
+        <th>Iluminación</th>
+
+        <th>Acciones</th>
+      </tr>
+
+      {% for cancha in canchas %}
+
+      <tr>
+        <td>{{ cancha.nombre }}</td>
+
+        <td>{{ cancha.liga }}</td>
+
+        <td>{{ cancha.get_tipo_superficie_display }}</td>
+
+        <td>{{ cancha.capacidad }}</td>
+
+        <td>{% if cancha.iluminacion %} Sí {% else %} No {% endif %}</td>
+
+        <td>
+          <button
+            class="btn ver"
+            title="Ver detalles"
+            onclick="window.location='/canchas/{{ cancha.id }}/'"
+          >
+            <i class="fa-solid fa-eye"></i>
+          </button>
+
+          {% if user.is_staff %}
+
+          <button
+            class="btn editar"
+            title="Editar"
+            onclick="window.location='/canchas/editar/{{ cancha.id }}'"
+          >
+            <i class="fa-solid fa-pen"></i>
+          </button>
+
+          <button
+            onclick='confirmarEliminar(
+                                        "{{ cancha.nombre }}",
+                                        "{{ cancha.id }}"
+                                    )'
+            class="btn eliminar"
+            title="Eliminar"
+          >
+            <i class="fa-solid fa-trash"></i>
+          </button>
+
+          {% endif %}
+        </td>
+      </tr>
+
+      {% endfor %}
+    </table>
+
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function confirmarEliminar(nombre, id) {
+    Swal.fire({
+      title: "¿Estás seguro?",
+
+      text: 'Eliminarás la cancha "' + nombre + '"',
+
+      icon: "warning",
+
+      showCancelButton: true,
+
+      confirmButtonText: "Sí, eliminar",
+
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "/canchas/eliminar/" + id + "/";
+      }
+    });
+  }
+</script>
+
+{% endblock %}
+
+

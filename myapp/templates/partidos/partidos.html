@@ -1,0 +1,117 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+    <div class="contenedor-tablas">
+        <div class="card-title">
+            <h1>Visualizador de Partidos</h1>
+        </div>
+        <div class="card">
+            {% if hay_partidos %}
+                <form method="GET">
+                    <input type="text" name="buscar" placeholder="Buscar partido...">
+                    <button type="submit">Buscar</button>
+                </form>
+            {% endif %}
+
+            {% if not partidos %}
+                <p class="empty-message">No hay datos para mostrar.</p>
+            {% else %}
+                <table>
+                    <tr class="encabezado">
+                        <th>Local</th>
+                        <th>Visitante</th>
+                        <th>Cancha</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Goles local</th>
+                        <th>Goles visitante</th>
+                        {% if user.is_staff %}
+                            <th>Acciones</th>
+                        {% endif %}
+                    </tr>
+                    {% for partido in partidos %}
+                        <tr id="fila-{{ partido.id }}">
+                            <td>{{ partido.equipo_local }}</td>
+                            <td>{{ partido.equipo_visitante }}</td>
+                            <td>{{ partido.cancha|default:"-" }}</td>
+                            <td>{{ partido.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ partido.hora|time:"H:i" }}</td>
+                            <td>{{ partido.goles_local|default_if_none:"Pendiente" }}</td>
+                            <td>{{ partido.goles_visitante|default_if_none:"Pendiente" }}</td>
+                            {% if user.is_staff %}
+                                <td>
+                                    <button class="btn editar" title="Editar"
+                                    onclick="window.location='/partidos/editar/{{ partido.id }}/'">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button type="button"
+                                    onclick='confirmarEliminar("{{ partido.id }}")'
+                                    class="btn eliminar" title="Eliminar">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+        </div>
+    </div>
+
+<script>
+function confirmarEliminar(id) {
+    Swal.fire({
+        title: 'Estas seguro?',
+        text: 'Eliminaras este partido.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if(result.isConfirmed){
+            fetch('/partidos/eliminar/' + id + '/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': obtenerCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Partido eliminado',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    document.getElementById('fila-' + id).remove();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo eliminar el partido.'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function obtenerCSRFToken(){
+    let cookieValue = null;
+    const cookies = document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+        const cookie = cookies[i].trim();
+
+        if(cookie.startsWith('csrftoken=')){
+            cookieValue = cookie.substring('csrftoken='.length);
+            break;
+        }
+    }
+
+    return cookieValue;
+}
+</script>
+{% endblock %}

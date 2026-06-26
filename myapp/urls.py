@@ -30,7 +30,21 @@ urlpatterns = [
     path('traspasos/eliminar/<int:id>/', views.eliminar_traspaso, name='eliminar_traspaso'),
     path('ligas/ajax/crear/', views.crear_liga_ajax, name='crear_liga_ajax'),
     path('equipos/crear/ajax/', views.ingresar_equipo_ajax, name='crear_equipo_ajax'),
-    path('ligas/detalle/<int:id_liga>/',views.detalle_liga,name='detalle_liga')
+    path('ligas/detalle/<int:id_liga>/',views.detalle_liga,name='detalle_liga'),
+    path('arbitros/', views.arbitros, name='arbitros'),
+    path('arbitros/crear/', views.ingresar_arbitro, name='ingresar_arbitro'),
+    path('arbitros/editar/<int:id>/', views.editar_arbitro, name='editar_arbitro'),
+    path('arbitros/eliminar/<int:id>/', views.eliminar_arbitro, name='eliminar_arbitro'),
+    path('canchas/',views.lista_canchas,name='canchas'),
+    path('canchas/ingresar/',views.ingresar_cancha,name='ingresar_cancha'),
+    path('canchas/editar/<int:id_cancha>/',views.editar_cancha,name='editar_cancha'),
+    path('canchas/eliminar/<int:id_cancha>/',views.eliminar_cancha,name='eliminar_cancha'),
+    path('canchas/<int:id_cancha>/',views.detalle_cancha,name='detalle_cancha'),
+    path('partidos', views.lista_partidos, name='partidos'),
+    path('partidos/ingresar_partido', views.ingresar_partido, name='ingresar_partido'),
+    path('partidos/editar/<int:id>/', views.editar_partido, name='editar_partido'),
+    path('partidos/eliminar/<int:id>/', views.eliminar_partido, name='eliminar_partido'),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

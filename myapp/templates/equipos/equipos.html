@@ -63,7 +63,11 @@
                             {{equipo.cantidad_jugadores}}
                         </td>
                         <td>
-                            {{equipo.redes_sociales}}
+                            {% for red in equipo.redes.all %}
+                                <div>{{ red.get_tipo_display }}: {{ red.enlace }}</div>
+                            {% empty %}
+                                Sin redes
+                            {% endfor %}
                         </td>
                         <td>
                             <button class="btn ver" onclick="window.location='/equipos/{{ equipo.nombre }}/'" title="Ver Jugadores">

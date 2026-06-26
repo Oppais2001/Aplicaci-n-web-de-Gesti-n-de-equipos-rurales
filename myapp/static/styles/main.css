@@ -333,6 +333,109 @@ button {
     font-size: 1.5rem;
 }
 
+.redes-widget {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    margin: 1rem 0;
+    padding: 1rem;
+}
+
+.redes-widget-header {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.redes-widget-header h3 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.redes-formset-hidden {
+    display: none;
+}
+
+.redes-cards {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.red-social-card {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    padding: 0.75rem;
+}
+
+.red-social-card strong,
+.red-social-card span {
+    display: block;
+}
+
+.red-social-card span {
+    color: #ddd;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+}
+
+.red-social-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.35rem;
+}
+
+.form-registro .btn-red-agregar,
+.form-registro .btn-icon-red {
+    align-items: center;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.95rem;
+    gap: 0.35rem;
+    justify-content: center;
+    padding: 0.45rem 0.65rem;
+}
+
+.form-registro .btn-red-agregar {
+    background: brown;
+    color: #fff;
+}
+
+.form-registro .btn-icon-red {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    height: 36px;
+    width: 36px;
+}
+
+.form-registro .btn-icon-red.danger {
+    background: #7f1d1d;
+}
+
+.redes-empty {
+    color: #ccc;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.swal-form-grid {
+    display: grid;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.swal-form-grid label {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
 .empty-message {
     text-align: center;
 }
