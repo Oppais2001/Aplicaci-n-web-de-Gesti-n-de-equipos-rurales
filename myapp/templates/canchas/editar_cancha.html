@@ -1,30 +1,557 @@
-{% extends 'layouts/base.html' %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% block content %}
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 
 <div class="ingresar">
-  <div class="card-title">
-    <h1>Editar Cancha</h1>
-  </div>
 
-  <div class="container-forms-card">
-    <div class="card form-container">
-      <form method="POST" enctype="multipart/form-data" class="form-registro">
-        {% csrf_token %} {{ form.as_p }}
-
-        <button type="submit">Guardar cambios</button>
-      </form>
-    </div>
 
     <div>
-      <div class="card">
-        <h2>Información</h2>
-
-        <p>Actualiza los datos de la cancha.</p>
-      </div>
+        <h1>Editar Cancha</h1>
     </div>
-  </div>
+
+
+
+    <div class="container-forms-card">
+
+
+
+        <div class="card form-container">
+
+
+            <form method="POST" enctype="multipart/form-data" class="form-registro">
+
+
+                {% csrf_token %}
+
+
+               {% for field in form %}
+
+                {% if forloop.counter == 3 %}
+
+                    <div class="form-group">
+
+                        {% if cancha.foto %}
+                            <label>FOTOGRAFÍA INGRESADA</label>
+
+                            <br>
+
+                            <img
+                                src="{{ cancha.foto.url }}"
+                                alt="{{ cancha.nombre }}"
+                                style="
+                                    max-width:500px;
+                                    width:100%;
+                                    border-radius:10px;
+                                "
+                            />
+
+                            <br>
+
+                            <label>
+                                En caso de querer editar ingresar una nueva:
+                            </label>
+
+                        {% else %}
+
+                            {{ form.foto.label_tag }}
+
+                        {% endif %}
+
+
+                        {{ form.foto }}
+
+                    </div>
+
+
+                {% endif %}
+
+
+
+                {% if field.name != "foto" %}
+
+                    <div class="form-group">
+
+                        {{ field.label_tag }}
+                        {{ field }}
+
+                    </div>
+
+                {% endif %}
+
+
+            {% endfor %}
+
+
+                <h3 style="margin-top:20px;">
+                    Ubicación de la cancha
+                </h3>
+
+
+
+                <p>
+                    Puede buscar una dirección o modificar la ubicación actual de la cancha.
+                </p>
+
+
+
+
+                <!-- Buscador -->
+                <div class="buscador-mapa">
+
+
+                    <input 
+                        type="text"
+                        id="buscarDireccion"
+                        placeholder="Buscar dirección..."
+                    >
+
+
+
+                    <button 
+                        type="button"
+                        id="btnBuscarDireccion">
+
+                        Buscar
+
+                    </button>
+
+
+                </div>
+
+
+
+                <br>
+
+
+
+                <div id="mapa"
+                     style="
+                        height:450px;
+                        width:100%;
+                        border-radius:10px;
+                        border:1px solid #ccc;">
+                </div>
+
+
+
+                <br>
+
+
+
+                <button type="submit">
+                    Guardar cambios
+                </button>
+
+
+
+            </form>
+
+
+        </div>
+
+
+
+
+
+        <div>
+
+
+            <div class="card">
+
+
+                <h2>
+                    Información
+                </h2>
+
+
+                <p>
+                    Actualiza los datos de la cancha.
+                </p>
+
+
+            </div>
+
+
+
+
+            <br>
+
+
+
+            <div class="card">
+
+
+                <h2>
+                    Fotografía
+                </h2>
+
+
+                <p>
+                    Puedes modificar la imagen representativa de la cancha.
+                </p>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <div class="card">
+
+
+                <h2>
+                    Ancho y Largo Reglamentarios
+                </h2>
+
+
+                <p>
+                    El largo debe estar entre 60 metros y 150 metros,
+                    mientras que el ancho debe estar entre 30 metros y 105 metros.
+                </p>
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+    </div>
+
+
 </div>
 
+
+
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
+<script>
+
+
+document.addEventListener(
+"DOMContentLoaded",
+function(){
+
+
+
+    const latInput =
+        document.getElementById("id_latitud");
+
+
+    const lngInput =
+        document.getElementById("id_longitud");
+
+
+
+
+    let lat = -40.573;
+    let lng = -73.135;
+
+
+
+    // Cargar ubicación existente
+    if(
+        latInput.value &&
+        lngInput.value
+    ){
+
+        lat =
+        parseFloat(
+            latInput.value
+        );
+
+
+        lng =
+        parseFloat(
+            lngInput.value
+        );
+
+    }
+
+
+
+
+
+    const mapa =
+        L.map('mapa')
+        .setView(
+            [
+                lat,
+                lng
+            ],
+            14
+        );
+
+
+
+
+
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution:
+            '&copy; OpenStreetMap'
+        }
+    )
+    .addTo(mapa);
+
+
+
+
+
+
+    let marcador =
+        L.marker(
+            [
+                lat,
+                lng
+            ],
+            {
+                draggable:true
+            }
+        )
+        .addTo(mapa);
+
+
+
+
+
+
+
+    function actualizarCoordenadas(
+        latitud,
+        longitud
+    ){
+
+
+        latInput.value =
+            latitud.toFixed(6);
+
+
+
+        lngInput.value =
+            longitud.toFixed(6);
+
+
+    }
+
+
+
+
+
+
+
+    // Click en mapa
+    mapa.on(
+        'click',
+        function(e){
+
+
+            marcador.setLatLng(
+                e.latlng
+            );
+
+
+            actualizarCoordenadas(
+                e.latlng.lat,
+                e.latlng.lng
+            );
+
+
+        }
+    );
+
+
+
+
+
+
+
+    // Mover marcador
+    marcador.on(
+        'dragend',
+        function(){
+
+
+            const posicion =
+                marcador.getLatLng();
+
+
+
+            actualizarCoordenadas(
+                posicion.lat,
+                posicion.lng
+            );
+
+
+        }
+    );
+
+
+
+
+
+
+
+    // Buscador
+    const botonBuscar =
+        document.getElementById(
+            "btnBuscarDireccion"
+        );
+
+
+
+    botonBuscar.addEventListener(
+        "click",
+        buscarDireccion
+    );
+
+
+
+
+
+
+    function buscarDireccion(){
+
+
+        const direccion =
+            document.getElementById(
+                "buscarDireccion"
+            ).value;
+
+
+
+
+        if(
+            direccion.trim() === ""
+        ){
+
+            return;
+
+        }
+
+
+
+
+
+
+        fetch(
+            "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
+            +
+            encodeURIComponent(
+                direccion
+            )
+        )
+
+
+
+        .then(
+            respuesta =>
+            respuesta.json()
+        )
+
+
+
+        .then(
+            datos => {
+
+
+
+                if(
+                    datos.length === 0
+                ){
+
+                    alert(
+                        "No se encontró la dirección"
+                    );
+
+                    return;
+
+                }
+
+
+
+
+
+                const ubicacion =
+                    datos[0];
+
+
+
+                const nuevaLat =
+                    parseFloat(
+                        ubicacion.lat
+                    );
+
+
+
+                const nuevoLng =
+                    parseFloat(
+                        ubicacion.lon
+                    );
+
+
+
+
+
+
+
+                mapa.setView(
+                    [
+                        nuevaLat,
+                        nuevoLng
+                    ],
+                    17
+                );
+
+
+
+
+
+                marcador.setLatLng(
+                    [
+                        nuevaLat,
+                        nuevoLng
+                    ]
+                );
+
+
+
+
+
+                actualizarCoordenadas(
+                    nuevaLat,
+                    nuevoLng
+                );
+
+
+
+            }
+        );
+
+
+
+    }
+
+
+
+});
+
+
+
+</script>
+
+
 {% endblock %}
-
-
-

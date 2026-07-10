@@ -26,11 +26,9 @@
 
         <th>Liga</th>
 
-        <th>Superficie</th>
+        <th>Dirección</th>
 
         <th>Capacidad</th>
-
-        <th>Iluminación</th>
 
         <th>Acciones</th>
       </tr>
@@ -42,11 +40,9 @@
 
         <td>{{ cancha.liga }}</td>
 
-        <td>{{ cancha.get_tipo_superficie_display }}</td>
+        <td>{{ cancha.direccion }}</td>
 
-        <td>{{ cancha.capacidad }}</td>
-
-        <td>{% if cancha.iluminacion %} Sí {% else %} No {% endif %}</td>
+        <td>{{ cancha.capacidad_maxima }}</td>
 
         <td>
           <button

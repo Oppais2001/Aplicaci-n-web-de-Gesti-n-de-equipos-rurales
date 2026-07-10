@@ -19,10 +19,11 @@
                 <div class="card">
                     <h2>¿No encuentras tu liga?</h2>
                     <p>Ingresala desde aquí, sin borrar los datos ya ingresados.
-                        <a href="{% url 'modal_ingresar_liga' %}"
-                        class="link-button enlace-ayuda abrir-modal">
+                        <button type="button"
+                                class="link-button enlace-ayuda"
+                                onclick="abrirPopupLiga()">
                             Haz click aquí.
-                        </a>
+                        </button>
                     </p>
                 </div>
                 <br>
@@ -34,26 +35,200 @@
         </div>
 </div>
 
-<div class="modal fade" id="ligas" role="dialog">
-
-</div>
-
 <script>
 
-$(document).on('click', '.abrir-modal', function(e) {
+function abrirPopupLiga(){
 
-    e.preventDefault();
+    Swal.fire({
+        title: 'Agregar liga',
+        width: 700,
+        html: `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;">
 
-    var url = $(this).attr('href');
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Nombre de la liga
+                    </label>
+                    <input id="nombre_liga" class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="Ej: Liga Rural Cancura">
+                </div>
 
-    $('#ligas').load(url, function() {
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Fecha de fundación
+                    </label>
+                    <input id="fecha_fundacion"
+                           type="date"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;">
+                </div>
 
-        $('#ligas').addClass('show');
-        $('#ligas').css('display', 'block');
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Comuna
+                    </label>
+                    <input id="comuna"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="Ej: Osorno">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Región
+                    </label>
+                    <input id="region"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="Ej: Los Lagos">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Dirección
+                    </label>
+                    <input id="direccion"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="Dirección">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Teléfono
+                    </label>
+                    <input id="telefono"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="+56912345678">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Correo
+                    </label>
+                    <input id="correo"
+                           type="email"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="correo@ejemplo.cl">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Presidente
+                    </label>
+                    <input id="presidente"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Secretario
+                    </label>
+                    <input id="secretario"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;">
+                </div>
+
+                <div>
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Tesorero
+                    </label>
+                    <input id="tesorero"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;">
+                </div>
+
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Redes sociales
+                    </label>
+                    <input id="redes_sociales"
+                           class="swal2-input"
+                           style="margin:0;width:100%;box-sizing:border-box;"
+                           placeholder="Facebook, Instagram o enlace">
+                </div>
+
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">
+                        Reglamento
+                    </label>
+                    <textarea id="reglamento"
+                              class="swal2-textarea"
+                              style="margin:0;width:100%;height:100px;"></textarea>
+                </div>
+
+            </div>
+        `,
+
+        showCancelButton: true,
+        confirmButtonText: 'Guardar liga',
+        cancelButtonText: 'Cancelar',
+
+        preConfirm: () => {
+
+            const datos = {
+
+                nombre: document.getElementById('nombre_liga').value.trim(),
+                fecha_fundacion: document.getElementById('fecha_fundacion').value,
+                comuna: document.getElementById('comuna').value.trim(),
+                region: document.getElementById('region').value.trim(),
+                direccion: document.getElementById('direccion').value.trim(),
+                telefono_contacto: document.getElementById('telefono').value.trim(),
+                correo_contacto: document.getElementById('correo').value.trim(),
+                presidente: document.getElementById('presidente').value.trim(),
+                secretario: document.getElementById('secretario').value.trim(),
+                tesorero: document.getElementById('tesorero').value.trim(),
+                redes_sociales: document.getElementById('redes_sociales').value.trim(),
+                reglamento: document.getElementById('reglamento').value.trim()
+
+            };
+
+            if (!datos.nombre) {
+                Swal.showValidationMessage('Debes ingresar el nombre de la liga');
+                return false;
+            }
+
+            if (!datos.fecha_fundacion) {
+                Swal.showValidationMessage('Debes ingresar la fecha de fundación');
+                return false;
+            }
+
+            if (!datos.comuna) {
+                Swal.showValidationMessage('Debes ingresar la comuna');
+                return false;
+            }
+
+            if (!datos.region) {
+                Swal.showValidationMessage('Debes ingresar la región');
+                return false;
+            }
+
+            if (!datos.telefono_contacto) {
+                Swal.showValidationMessage('Debes ingresar el teléfono');
+                return false;
+            }
+
+            if (!datos.correo_contacto) {
+                Swal.showValidationMessage('Debes ingresar el correo');
+                return false;
+            }
+
+            return datos;
+        }
+
+    }).then((result) => {
+
+        if(result.isConfirmed){
+            guardarLiga(result.value);
+        }
 
     });
 
-});
+}
 
 </script>
 

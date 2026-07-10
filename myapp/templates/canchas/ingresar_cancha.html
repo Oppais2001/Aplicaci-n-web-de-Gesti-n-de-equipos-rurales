@@ -1,36 +1,404 @@
-{% extends 'layouts/base.html' %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% block content %}
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 
 <div class="ingresar">
-  <div>
-    <h1>Ingresar Cancha</h1>
-  </div>
 
-  <div class="container-forms-card">
-    <div class="card form-container">
-      <form method="POST" enctype="multipart/form-data" class="form-registro">
-        {% csrf_token %} {{ form }}
-
-        <button>Guardar</button>
-      </form>
-    </div>
 
     <div>
-      <div class="card">
-        <h2>Información</h2>
-
-        <p>Registra una cancha asociada a una liga.</p>
-      </div>
-
-      <br />
-
-      <div class="card">
-        <h2>Fotografía</h2>
-
-        <p>Puedes subir una imagen representativa de la cancha.</p>
-      </div>
+        <h1>Ingresar Cancha</h1>
     </div>
-  </div>
+
+
+    <div class="container-forms-card">
+
+
+        <div class="card form-container">
+
+
+            <form method="POST" enctype="multipart/form-data" class="form-registro">
+
+
+                {% csrf_token %}
+
+
+                {{ form }}
+
+
+
+                <h3 style="margin-top:20px;">
+                    Seleccione la ubicación
+                </h3>
+
+
+                <p>
+                    Puede buscar una dirección o hacer clic sobre el mapa para establecer la ubicación exacta de la cancha.
+                </p>
+
+
+
+                <!-- Buscador integrado -->
+                <div class="buscador-mapa">
+
+                    <input 
+                        type="text"
+                        id="buscarDireccion"
+                        placeholder="Buscar dirección..."
+                    >
+
+
+                    <button 
+                        type="button"
+                        id="btnBuscarDireccion">
+                        Buscar
+                    </button>
+
+                </div>
+
+
+
+                <br>
+
+
+                <div id="mapa"
+                     style="
+                        height:450px;
+                        width:100%;
+                        border-radius:10px;
+                        border:1px solid #ccc;">
+                </div>
+
+
+
+                <br>
+
+
+                <button type="submit">
+                    Guardar
+                </button>
+
+
+            </form>
+
+
+        </div>
+
+
+
+        <div>
+
+            <div class="card">
+
+
+                <h2>
+                    Información
+                </h2>
+
+
+                <p>
+                    Registra una cancha asociada a una liga.
+                </p>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <div class="card">
+
+
+                <h2>
+                    Fotografía
+                </h2>
+
+
+                <p>
+                    Puedes subir una imagen representativa de la cancha.
+                </p>
+
+            </div>
+            <br>
+            <div class="card">
+
+                <h2>
+                    Ancho y Largo Reglamentarios
+                </h2>
+
+
+                <p>
+                    El Largo debe de estar entre 60 metros y 150 metros, así como también el ancho deberá estar en el rango de 30 metros y 105 metros.
+                </p>
+
+
+            </div>
+
+        </div>
+
+      
+    </div>
+
+
 </div>
 
-{% endblock %}
 
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
+<script>
+
+
+document.addEventListener(
+"DOMContentLoaded",
+function(){
+
+
+    const latInput =
+        document.getElementById("id_latitud");
+
+
+    const lngInput =
+        document.getElementById("id_longitud");
+
+
+
+    let lat = -40.573;
+    let lng = -73.135;
+
+
+
+    if(
+        latInput.value &&
+        lngInput.value
+    ){
+
+        lat =
+        parseFloat(
+            latInput.value
+        );
+
+
+        lng =
+        parseFloat(
+            lngInput.value
+        );
+
+    }
+
+
+
+    const mapa =
+        L.map('mapa')
+        .setView(
+            [
+                lat,
+                lng
+            ],
+            14
+        );
+
+
+
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution:
+            '&copy; OpenStreetMap'
+        }
+    ).addTo(mapa);
+
+
+
+
+    let marcador =
+        L.marker(
+            [
+                lat,
+                lng
+            ],
+            {
+                draggable:true
+            }
+        )
+        .addTo(mapa);
+
+
+
+
+
+    function actualizarCoordenadas(
+        latitud,
+        longitud
+    ){
+
+        latInput.value =
+            latitud.toFixed(6);
+
+
+        lngInput.value =
+            longitud.toFixed(6);
+
+    }
+
+
+
+
+
+    mapa.on(
+        'click',
+        function(e){
+
+
+            actualizarCoordenadas(
+                e.latlng.lat,
+                e.latlng.lng
+            );
+
+
+            marcador.setLatLng(
+                e.latlng
+            );
+
+
+        }
+    );
+
+
+
+
+
+    marcador.on(
+        'dragend',
+        function(){
+
+            const posicion =
+                marcador.getLatLng();
+
+
+            actualizarCoordenadas(
+                posicion.lat,
+                posicion.lng
+            );
+
+        }
+    );
+
+    const botonBuscar =
+        document.getElementById("btnBuscarDireccion");
+
+
+    botonBuscar.addEventListener(
+        "click",
+        buscarDireccion
+    );
+
+    function buscarDireccion(){
+
+
+        const direccion =
+            document.getElementById(
+                "buscarDireccion"
+            ).value;
+
+
+
+        if(direccion.trim() === "")
+        {
+            return;
+        }
+
+
+
+        fetch(
+            "https://nominatim.openstreetmap.org/search?format=json&q="
+            +
+            encodeURIComponent(direccion)
+        )
+
+
+        .then(
+            respuesta => respuesta.json()
+        )
+
+
+        .then(
+            datos => {
+
+
+                if(datos.length === 0)
+                {
+
+                    alert(
+                        "No se encontró la dirección"
+                    );
+
+                    return;
+
+                }
+
+
+
+                const ubicacion =
+                    datos[0];
+
+
+
+                const nuevaLat =
+                    parseFloat(
+                        ubicacion.lat
+                    );
+
+
+                const nuevoLng =
+                    parseFloat(
+                        ubicacion.lon
+                    );
+
+
+
+                mapa.setView(
+                    [
+                        nuevaLat,
+                        nuevoLng
+                    ],
+                    17
+                );
+
+
+
+                marcador.setLatLng(
+                    [
+                        nuevaLat,
+                        nuevoLng
+                    ]
+                );
+
+
+
+                actualizarCoordenadas(
+                    nuevaLat,
+                    nuevoLng
+                );
+
+
+            }
+        );
+
+
+    }
+
+});
+
+
+</script>
+
+
+{% endblock %}

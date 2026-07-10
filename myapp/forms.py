@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido
+from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido
 from .utils import (
     calculate_age,
     validate_address,
@@ -20,12 +20,9 @@ from .utils import (
     validate_textarea,
     validate_transfer_date,
     validate_unique_value,
-    validate_google_maps_iframe,
     validate_integer_range,
-    validate_social_media
+    validate_decimal_range
 )
-import re
-
 class RedSocialForm(forms.ModelForm):
     class Meta:
         model = RedSocial
@@ -324,9 +321,9 @@ class Ingresar_Equipos(forms.ModelForm):
         ]
         labels = {
             "nombre": "NOMBRE DEL EQUIPO",
-            "fecha_creacion": "FECHA DE CREACION",
+            "fecha_creacion": "FECHA DE CREACIÓN",
             "nombre_entrenador": "NOMBRE DEL ENTRENADOR",
-            "nombre_dueno": "NOMBRE DEL DUENO",
+            "nombre_dueno": "NOMBRE DEL DUEÑO",
             "liga": "LIGA",
         }
 
@@ -659,21 +656,68 @@ class Ingresar_Liga(forms.ModelForm):
         )
 
 class Ingresar_Canchas(forms.ModelForm):
+    foto = forms.ImageField(
+        required=False,
+        label="Fotografía",
+        widget=forms.FileInput(
+            attrs={
+                "accept": "image/*"
+            }
+        )
+    )
+    largo_metros = forms.IntegerField(
+        widget=forms.NumberInput(
+            attrs={
+                "min": 60,
+                "max": 150
+            }
+        )
+    )
 
+    ancho_metros = forms.IntegerField(
+        widget=forms.NumberInput(
+            attrs={
+                "min": 30,
+                "max": 105
+            }
+        )
+    )    
+    capacidad_minima = forms.IntegerField(
+        widget=forms.NumberInput(
+            attrs={
+                "min": 1,
+                "max": 100000
+            }
+        )
+    )
+
+    capacidad_maxima = forms.IntegerField(
+        widget=forms.NumberInput(
+            attrs={
+                "min": 1,
+                "max": 100000
+            }
+        )
+    )
     class Meta:
         model = Cancha
+        
 
         fields = [
             'nombre',
             'liga',
             'foto',
             'direccion',
-            'mapa_iframe',
             'descripcion',
             'tipo_superficie',
-            'capacidad',
+            'capacidad_minima',
+            'capacidad_maxima',
+            'largo_metros',
+            'ancho_metros',
             'iluminacion',
-            'activa'
+            'activa',
+            'latitud',
+            'longitud'
         ]
 
         labels = {
@@ -681,20 +725,25 @@ class Ingresar_Canchas(forms.ModelForm):
             'liga': 'LIGA',
             'foto': 'FOTOGRAFÍA',
             'direccion': 'DIRECCIÓN',
-            'mapa_iframe': 'MAPA DE GOOGLE',
             'descripcion': 'DESCRIPCIÓN',
             'tipo_superficie': 'TIPO DE SUPERFICIE',
-            'capacidad': 'CAPACIDAD',
+            'capacidad_minima': 'CAPACIDAD MÍNIMA',
+            'capacidad_maxima': 'CAPACIDAD MÁXIMA',
+            'largo_metros': 'LARGO (m)',
+            'ancho_metros': 'ANCHO (m)',
             'iluminacion': 'ILUMINACIÓN',
-            'activa': 'ACTIVA'
+            'activa': 'ACTIVA',
+            'latitud': 'LATITUD',
+            'longitud': 'LONGITUD',
         }
 
     def clean_nombre(self):
         nombre = validate_entity_name(
             self.cleaned_data.get("nombre"),
             "nombre de la cancha",
-            max_length=100)
-            
+            max_length=100
+        )
+
         return validate_unique_value(
             Cancha,
             "nombre",
@@ -708,7 +757,8 @@ class Ingresar_Canchas(forms.ModelForm):
     def clean_direccion(self):
         return validate_address(
             self.cleaned_data.get("direccion"),
-            required=False)
+            required=False
+        )
 
     def clean_descripcion(self):
         return validate_textarea(
@@ -718,23 +768,65 @@ class Ingresar_Canchas(forms.ModelForm):
             max_length=1000,
         )
 
-    def clean_capacidad(self):
+    def clean_capacidad_minima(self):
         return validate_integer_range(
-            self.cleaned_data.get("capacidad"),
-            "la capacidad",
-            minimum=0,
+            self.cleaned_data.get("capacidad_minima"),
+            "la capacidad mínima",
+            minimum=1,
             maximum=100000,
+            required=True,
         )
-        
-    def clean_mapa_iframe(self):
-        return validate_google_maps_iframe(
-            self.cleaned_data.get("mapa_iframe")
+
+    def clean_capacidad_maxima(self):
+        return validate_integer_range(
+            self.cleaned_data.get("capacidad_maxima"),
+            "la capacidad máxima",
+            minimum=1,
+            maximum=100000,
+            required=True,
         )
-    
+
+    def clean_largo_metros(self):
+        return validate_decimal_range(
+            self.cleaned_data.get("largo_metros"),
+            "el largo de la cancha",
+            minimum=1,
+            maximum=1000,
+            required=False,
+        )
+
+    def clean_ancho_metros(self):
+        return validate_decimal_range(
+            self.cleaned_data.get("ancho_metros"),
+            "el ancho de la cancha",
+            minimum=1,
+            maximum=1000,
+            required=False,
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        capacidad_minima = cleaned_data.get("capacidad_minima")
+        capacidad_maxima = cleaned_data.get("capacidad_maxima")
+
+        if (
+            capacidad_minima is not None
+            and capacidad_maxima is not None
+            and capacidad_minima > capacidad_maxima
+        ):
+            self.add_error(
+                "capacidad_maxima",
+                "La capacidad máxima debe ser mayor o igual a la capacidad mínima."
+            )
+
+        return cleaned_data
+
 # PARTIDO
 class Ingresar_Partido(forms.ModelForm):
 
     class Meta:
+
         model = Partido
 
         fields = [
@@ -746,10 +838,6 @@ class Ingresar_Partido(forms.ModelForm):
             'goles_local',
             'goles_visitante',
             'descripcion',
-            'amarillas_local',
-            'amarillas_visitante',
-            'rojas_local',
-            'rojas_visitante',
         ]
 
         labels = {
@@ -760,159 +848,107 @@ class Ingresar_Partido(forms.ModelForm):
             'hora': 'HORA',
             'goles_local': 'GOLES LOCAL',
             'goles_visitante': 'GOLES VISITANTE',
-            'descripcion': 'DESCRIPCION DEL PARTIDO',
-            'amarillas_local': 'AMARILLAS EQUIPO LOCAL',
-            'amarillas_visitante': 'AMARILLAS EQUIPO VISITANTE',
-            'rojas_local': 'ROJAS EQUIPO LOCAL',
-            'rojas_visitante': 'ROJAS EQUIPO VISITANTE',
+            'descripcion': 'DESCRIPCIÓN DEL PARTIDO',
         }
 
         widgets = {
+
             'fecha': forms.DateInput(
                 attrs={
                     'type': 'date',
                     'min': f'{Partido.MIN_ANIO_PARTIDO}-01-01'
                 }
             ),
+
             'hora': forms.TimeInput(
-                attrs={'type': 'time'},
+                attrs={
+                    'type':'time'
+                },
                 format='%H:%M'
             ),
+
             'goles_local': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_GOLES_POR_EQUIPO}
+                attrs={
+                    'min':0,
+                    'max':Partido.MAX_GOLES_POR_EQUIPO
+                }
             ),
+
             'goles_visitante': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_GOLES_POR_EQUIPO}
+                attrs={
+                    'min':0,
+                    'max':Partido.MAX_GOLES_POR_EQUIPO
+                }
             ),
-            'descripcion': forms.Textarea(attrs={'rows': 4}),
-            'amarillas_local': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_AMARILLAS_POR_EQUIPO}
-            ),
-            'amarillas_visitante': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_AMARILLAS_POR_EQUIPO}
-            ),
-            'rojas_local': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_ROJAS_POR_EQUIPO}
-            ),
-            'rojas_visitante': forms.NumberInput(
-                attrs={'min': 0, 'max': Partido.MAX_ROJAS_POR_EQUIPO}
+
+            'descripcion': forms.Textarea(
+                attrs={
+                    'rows':4
+                }
             ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TarjetaPartidoForm(forms.ModelForm):
 
-        equipos = Equipo.objects.order_by('nombre')
-        self.fields['equipo_local'].queryset = equipos
-        self.fields['equipo_visitante'].queryset = equipos
-        self.fields['cancha'].queryset = Cancha.objects.order_by('nombre')
-        self.fields['hora'].input_formats = ['%H:%M', '%H:%M:%S']
+    class Meta:
+        model = TarjetaPartido
 
-    def clean_goles_local(self):
-        return validate_integer_range(
-            self.cleaned_data.get("goles_local"),
-            "los goles del equipo local",
-            minimum=0,
-            maximum=Partido.MAX_GOLES_POR_EQUIPO)
+        fields = [
+            "equipo",
+            "tipo_tarjeta",
+            "afectado",
+            "numero_camiseta",
+            "nombre_persona",
+        ]
+
+        labels = {
+            "equipo": "EQUIPO",
+            "tipo_tarjeta": "TIPO DE TARJETA",
+            "afectado": "CATEGORÍA",
+            "numero_camiseta": "NÚMERO",
+            "nombre_persona": "NOMBRE",
+        }
         
-    def clean_goles_visitante(self):
-        return validate_integer_range(
-            self.cleaned_data.get("goles_visitante"),
-            "los goles del equipo visitante",
-            minimum=0,
-            maximum=Partido.MAX_GOLES_POR_EQUIPO,
-        )
-        
-    def clean_amarillas_local(self):
-        return validate_integer_range(
-            self.cleaned_data.get("amarillas_local"),
-            "las amarillas del equipo local",
-            minimum=0,
-            maximum=Partido.MAX_AMARILLAS_POR_EQUIPO,
-            required=True,
-        )
-    def clean_amarillas_visitante(self):
-        return validate_integer_range(
-            self.cleaned_data.get("amarillas_visitante"),
-            "las amarillas del equipo visitante",
-            minimum=0,
-            maximum=Partido.MAX_AMARILLAS_POR_EQUIPO,
-            required=True,
-        )
-        
-    def clean_rojas_local(self):
-        return validate_integer_range(
-            self.cleaned_data.get("rojas_local"),
-            "las rojas del equipo local",
-            minimum=0,
-            maximum=Partido.MAX_ROJAS_POR_EQUIPO,
-            required=True,
-        )
-    def clean_rojas_visitante(self):
-        return validate_integer_range(
-            self.cleaned_data.get("rojas_visitante"),
-            "las rojas del equipo visitante",
-            minimum=0,
-            maximum=Partido.MAX_ROJAS_POR_EQUIPO,
-            required=True,
-        )
-    def clean_fecha(self):
-        fecha = validate_date_not_future(
-            self.cleaned_data.get("fecha"),
-            "La fecha del partido",
-            required=True,
-        )
-
-        if fecha and fecha.year < Partido.MIN_ANIO_PARTIDO:
-            raise ValidationError(
-                f"No puedes ingresar un partido anterior al año "
-                f"{Partido.MIN_ANIO_PARTIDO}."
-            )
-
-        return fecha
-
-    def clean_descripcion(self):
-        return validate_textarea(
-            self.cleaned_data.get("descripcion"),
-            "descripción",
-            required=False,
-            max_length=1000,
-        )
-
+class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
     def clean(self):
-        cleaned_data = super().clean()
+        super().clean()
 
-        equipo_local = cleaned_data.get('equipo_local')
-        equipo_visitante = cleaned_data.get('equipo_visitante')
-        cancha = cleaned_data.get('cancha')
-        goles_local = cleaned_data.get('goles_local')
-        goles_visitante = cleaned_data.get('goles_visitante')
+        if any(self.errors):
+            return
 
-        if (
-            equipo_local
-            and equipo_visitante
-            and equipo_local == equipo_visitante
-        ):
-            raise ValidationError(
-                "El equipo local y el equipo visitante no pueden ser el mismo."
-            )
+        contador_rojas = {}  # (equipo, afectado) -> cantidad
 
-        if cancha and equipo_local and equipo_visitante:
-            ligas_equipos = {
-                equipo_local.liga_id,
-                equipo_visitante.liga_id,
-            }
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or form.cleaned_data.get("DELETE"):
+                continue
 
-            if cancha.liga_id not in ligas_equipos:
-                self.add_error(
-                    'cancha',
-                    "La cancha debe pertenecer a la liga de uno de los equipos."
+            equipo = form.cleaned_data.get("equipo")
+            tipo_tarjeta = form.cleaned_data.get("tipo_tarjeta")
+            afectado = form.cleaned_data.get("afectado")
+
+            if not equipo or tipo_tarjeta != "roja" or not afectado:
+                continue
+
+            clave = (equipo, afectado)
+            contador_rojas[clave] = contador_rojas.get(clave, 0) + 1
+
+        etiquetas_afectado = dict(TarjetaPartido.TIPOS_AFECTADO)
+
+        for (equipo, afectado), cantidad in contador_rojas.items():
+            limite = TarjetaPartido.LIMITES_ROJAS_POR_AFECTADO.get(afectado)
+
+            if limite is not None and cantidad > limite:
+                raise ValidationError(
+                    f"{equipo} no puede tener más de {limite} tarjetas rojas "
+                    f"para '{etiquetas_afectado.get(afectado, afectado)}'."
                 )
 
-        if (goles_local is None) != (goles_visitante is None):
-            raise ValidationError(
-                "Debes ingresar goles locales y visitantes, o dejar ambos vacios."
-            )
 
-        return cleaned_data
-
+TarjetaPartidoFormSet = inlineformset_factory(
+    Partido,
+    TarjetaPartido,
+    form=TarjetaPartidoForm,
+    formset=BaseTarjetaPartidoFormSet,
+    extra=10,
+    can_delete=True,
+)

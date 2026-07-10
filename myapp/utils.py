@@ -5,7 +5,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
-
+from decimal import Decimal, InvalidOperation
 
 LETTERS = "A-Za-zÁÉÍÓÚáéíóúÑñÜü"
 
@@ -384,15 +384,39 @@ def validate_integer_range(
 
     return value
 
-def validate_google_maps_iframe(iframe):
-    iframe = (iframe or "").strip()
+def validate_decimal_range(
+    value,
+    field_name,
+    minimum=None,
+    maximum=None,
+    required=True,
+):
+    """
+    Valida un número decimal dentro de un rango permitido.
+    """
 
-    if iframe and (
-        "<iframe" not in iframe.lower()
-        or "google.com/maps/embed" not in iframe.lower()
-    ):
+    if value in (None, ""):
+        if required:
+            raise ValidationError(
+                f"Debe ingresar {field_name}."
+            )
+        return None
+
+    try:
+        value = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
         raise ValidationError(
-            "Debes pegar un iframe válido de Google Maps."
+            f"{field_name.capitalize()} debe ser un número válido."
         )
 
-    return iframe
+    if minimum is not None and value < Decimal(str(minimum)):
+        raise ValidationError(
+            f"{field_name.capitalize()} debe ser mayor o igual a {minimum}."
+        )
+
+    if maximum is not None and value > Decimal(str(maximum)):
+        raise ValidationError(
+            f"{field_name.capitalize()} debe ser menor o igual a {maximum}."
+        )
+
+    return value

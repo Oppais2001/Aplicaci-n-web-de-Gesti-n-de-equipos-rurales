@@ -18,7 +18,8 @@ from .forms import (
     Realizar_Traspasos,
     Ingresar_Arbitros,
     Ingresar_Canchas,
-    Ingresar_Partido
+    Ingresar_Partido,
+    TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
 
@@ -397,112 +398,49 @@ def eliminar_liga(request, id_liga):
 def crear_liga_ajax(request):
 
     try:
-
         data = json.loads(request.body)
-
     except json.JSONDecodeError:
-
         return JsonResponse({
-
-            'success': False,
-
-            'error': 'Datos inválidos'
-
+            "success": False,
+            "error": "Datos inválidos."
         }, status=400)
 
     form = Ingresar_Liga({
-
-        'nombre': data.get(
-            'nombre',
-            ''
-        ),
-
-        'fecha_fundacion': data.get(
-            'fecha_fundacion',
-            ''
-        ),
-
-        'comuna': data.get(
-            'comuna',
-            ''
-        ),
-
-        'region': data.get(
-            'region',
-            ''
-        ),
-
-        'direccion': data.get(
-            'direccion',
-            ''
-        ),
-
-        'presidente': data.get(
-            'presidente',
-            ''
-        ),
-
-        'secretario': data.get(
-            'secretario',
-            ''
-        ),
-
-        'tesorero': data.get(
-            'tesorero',
-            ''
-        ),
-
-        'telefono_contacto': data.get(
-            'telefono_contacto',
-            ''
-        ),
-
-        'correo_contacto': data.get(
-            'correo_contacto',
-            ''
-        ),
-
-        'redes_sociales': data.get(
-            'redes_sociales',
-            ''
-        ),
-
-        'reglamento': data.get(
-            'reglamento',
-            ''
-        )
+        "nombre": data.get("nombre", ""),
+        "fecha_fundacion": data.get("fecha_fundacion", ""),
+        "comuna": data.get("comuna", ""),
+        "region": data.get("region", ""),
+        "direccion": data.get("direccion", ""),
+        "presidente": data.get("presidente", ""),
+        "secretario": data.get("secretario", ""),
+        "tesorero": data.get("tesorero", ""),
+        "telefono_contacto": data.get("telefono_contacto", ""),
+        "correo_contacto": data.get("correo_contacto", ""),
+        "reglamento": data.get("reglamento", ""),
     })
 
-    if form.is_valid():
-
-        liga = form.save()
-        red_social = data.get('redes_sociales', '').strip()
-
-        if red_social:
-            RedSocial.objects.create(
-                liga=liga,
-                tipo=RedSocial.OTRO,
-                enlace=red_social
-            )
-
+    if not form.is_valid():
         return JsonResponse({
+            "success": False,
+            "errores": form.errors.get_json_data()
+        }, status=400)
 
-            'success': True,
+    liga = form.save()
 
-            'id': liga.id,
+    red_social = data.get("redes_sociales", "").strip()
 
-            'nombre': liga.nombre
-        })
+    if red_social:
+        RedSocial.objects.create(
+            liga=liga,
+            tipo=RedSocial.OTRO,
+            enlace=red_social
+        )
 
     return JsonResponse({
-
-        'success': False,
-
-        'error': form.errors.as_text(),
-
-        'errores': form.errors
-
-    }, status=400)
+        "success": True,
+        "id": liga.id,
+        "nombre": liga.nombre,
+    })
     
 @usuario_autorizado_required
 def detalle_liga(request, id_liga):
@@ -849,18 +787,49 @@ def detalle_cancha(request, id_cancha):
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
+
     if request.method == "POST":
+
         form = Ingresar_Partido(request.POST)
 
-        if form.is_valid():
-            form.save()
+        tarjetas_formset = TarjetaPartidoFormSet(
+            request.POST,
+            prefix="tarjetas"
+        )
+
+
+        if form.is_valid() and tarjetas_formset.is_valid():
+
+            partido = form.save()
+
+
+            tarjetas_formset.instance = partido
+
+            tarjetas_formset.save()
+
+
             return redirect('partidos')
+
+
     else:
+
         form = Ingresar_Partido()
 
-    return render(request, "partidos/ingresar_partido.html", {
-        "form": form
-    })
+
+        tarjetas_formset = TarjetaPartidoFormSet(
+            prefix="tarjetas"
+        )
+
+
+
+    return render(
+        request,
+        "partidos/ingresar_partido.html",
+        {
+            "form":form,
+            "tarjetas_formset":tarjetas_formset
+        }
+    )
 
 
 @usuario_autorizado_required
@@ -910,20 +879,29 @@ def editar_partido(request, id):
 
     if request.method == 'POST':
         form = Ingresar_Partido(request.POST, instance=partido)
+        tarjetas_formset = TarjetaPartidoFormSet(
+            request.POST,
+            instance=partido,
+            prefix="tarjetas"
+        )
 
-        if form.is_valid():
+        if form.is_valid() and tarjetas_formset.is_valid():
             form.save()
+            tarjetas_formset.save()
             return redirect('partidos')
 
     else:
         form = Ingresar_Partido(instance=partido)
+        tarjetas_formset = TarjetaPartidoFormSet(
+            instance=partido,
+            prefix="tarjetas"
+        )
 
     return render(request, "partidos/editar_partido.html", {
         "form": form,
-        "partido": partido
+        "partido": partido,
+        "tarjetas_formset": tarjetas_formset,
     })
-
-
 @admin_required
 @require_POST
 def eliminar_partido(request, id):

@@ -394,7 +394,7 @@ class Cancha(models.Model):
     )
 
     foto = models.ImageField(
-        upload_to='canchas/',
+        upload_to="canchas/",
         blank=True,
         null=True
     )
@@ -404,11 +404,7 @@ class Cancha(models.Model):
         blank=True,
         null=True
     )
-    mapa_iframe = models.TextField(
-        "Código HTML del mapa",
-        blank=True,
-        null=True
-    )
+
     descripcion = models.TextField(
         blank=True,
         null=True
@@ -420,7 +416,30 @@ class Cancha(models.Model):
         default="NATURAL"
     )
 
-    capacidad = models.PositiveIntegerField(
+    capacidad_minima = models.PositiveIntegerField(
+        "Capacidad mínima de espectadores",
+        blank=True,
+        null=True
+    )
+
+    capacidad_maxima = models.PositiveIntegerField(
+        "Capacidad máxima de espectadores",
+        blank=True,
+        null=True
+    )
+
+    largo_metros = models.DecimalField(
+        "Largo de la cancha (m)",
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
+
+    ancho_metros = models.DecimalField(
+        "Ancho de la cancha (m)",
+        max_digits=5,
+        decimal_places=2,
         blank=True,
         null=True
     )
@@ -432,10 +451,41 @@ class Cancha(models.Model):
     activa = models.BooleanField(
         default=True
     )
+    latitud = models.DecimalField(
+        "Latitud",
+        max_digits=9,
+        decimal_places=6,
+        blank=True,
+        null=True
+    )
+
+    longitud = models.DecimalField(
+        "Longitud",
+        max_digits=9,
+        decimal_places=6,
+        blank=True,
+        null=True
+    )
+
+    @property
+    def dimensiones(self):
+        if self.largo_metros and self.ancho_metros:
+            return f"{self.largo_metros} x {self.ancho_metros} m"
+        return "No especificadas"
+    
+    @property
+    def coordenadas_google_maps(self):
+
+        if self.latitud is None or self.longitud is None:
+            return None
+
+        lat = str(self.latitud).replace(",", ".")
+        lng = str(self.longitud).replace(",", ".")
+
+        return f"{lat},{lng}"
 
     def __str__(self):
         return self.nombre
-
 class Partido(models.Model):
     MIN_ANIO_PARTIDO = 1900
     MAX_GOLES_POR_EQUIPO = 99
@@ -447,34 +497,91 @@ class Partido(models.Model):
         on_delete=models.CASCADE,
         related_name="partidos_local"
     )
+
     equipo_visitante = models.ForeignKey(
         Equipo,
         on_delete=models.CASCADE,
         related_name="partidos_visitante"
     )
+
     cancha = models.ForeignKey(
         "Cancha",
         on_delete=models.SET_NULL,
         null=True,
         related_name="partidos"
     )
+
     fecha = models.DateField()
+
     hora = models.TimeField()
+
     goles_local = models.PositiveIntegerField(
         null=True,
         blank=True
     )
+
     goles_visitante = models.PositiveIntegerField(
         null=True,
         blank=True
     )
-    descripcion = models.TextField(blank=True)
-    amarillas_local = models.PositiveIntegerField(default=0)
-    amarillas_visitante = models.PositiveIntegerField(default=0)
-    rojas_local = models.PositiveIntegerField(default=0)
-    rojas_visitante = models.PositiveIntegerField(default=0)
 
+    descripcion = models.TextField(
+        blank=True
+    )
     
+    
+class TarjetaPartido(models.Model):
+
+    TIPOS_TARJETA = [
+        ("amarilla", "Amarilla"),
+        ("roja", "Roja"),
+    ]
 
 
+    TIPOS_AFECTADO = [
+        ("campo", "Jugador en cancha"),
+        ("banca", "Jugador en banca"),
+        ("tecnico", "Cuerpo técnico"),
+    ]
 
+    LIMITES_ROJAS_POR_AFECTADO = {
+        "campo": 4,
+        "banca": 7,
+        "tecnico": 5,
+    }
+
+    partido = models.ForeignKey(
+        Partido,
+        on_delete=models.CASCADE,
+        related_name="tarjetas"
+    )
+
+
+    equipo = models.ForeignKey(
+        Equipo,
+        on_delete=models.CASCADE
+    )
+
+
+    tipo_tarjeta = models.CharField(
+        max_length=10,
+        choices=TIPOS_TARJETA
+    )
+
+
+    afectado = models.CharField(
+        max_length=15,
+        choices=TIPOS_AFECTADO
+    )
+
+
+    numero_camiseta = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+
+
+    nombre_persona = models.CharField(
+        max_length=100,
+        blank=True
+    )

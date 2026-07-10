@@ -1,70 +1,257 @@
-{% extends 'layouts/base.html' %} {% block content %}
+{% extends 'layouts/base.html' %}
+{% block content %}
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 
 <div class="contenedor-tablas">
-  <div class="card-title">
-    <h1>{{ cancha.nombre }}</h1>
-  </div>
 
-  <div class="card">
-    {% if cancha.foto %}
 
-    <div style="text-align: center; margin-bottom: 20px">
-      <img
-        src="{{ cancha.foto.url }}"
-        alt="{{ cancha.nombre }}"
-        style="max-width: 500px; width: 100%; border-radius: 10px"
-      />
+    <div class="card-title">
+
+        <h1>
+            {{ cancha.nombre }}
+        </h1>
+
     </div>
 
-    {% endif %}
 
-    <table>
-      <tr>
-        <th>Liga</th>
-        <td>{{ cancha.liga }}</td>
-      </tr>
 
-      <tr>
-        <th>Dirección</th>
-        <td>{{ cancha.direccion|default:"-" }}</td>
-      </tr>
+    <div class="card">
 
-      <tr>
-        <th>Tipo Superficie</th>
-        <td>{{ cancha.get_tipo_superficie_display }}</td>
-      </tr>
 
-      <tr>
-        <th>Capacidad</th>
-        <td>{{ cancha.capacidad|default:"-" }}</td>
-      </tr>
+        {% if cancha.foto %}
 
-      <tr>
-        <th>Iluminación</th>
-        <td>{% if cancha.iluminacion %} Sí {% else %} No {% endif %}</td>
-      </tr>
+        <div style="text-align: center; margin-bottom: 20px">
 
-      <tr>
-        <th>Estado</th>
-        <td>{% if cancha.activa %} Activa {% else %} Inactiva {% endif %}</td>
-      </tr>
+            <img
+                src="{{ cancha.foto.url }}"
+                alt="{{ cancha.nombre }}"
+                style="
+                    max-width:500px;
+                    width:100%;
+                    border-radius:10px;
+                "
+            />
 
-      <tr>
-        <th>Descripción</th>
-        <td>{{ cancha.descripcion|default:"Sin descripción." }}</td>
-      </tr>
-    </table>
+        </div>
 
-    {% if cancha.mapa_iframe %}
+        {% endif %}
 
-    <div class="card" style="margin-top: 20px; text-align: center">
-      <h2>Ubicación</h2>
 
-      {{ cancha.mapa_iframe|safe }}
+
+
+
+        <table>
+
+
+            <tr>
+                <th>Liga</th>
+                <td>{{ cancha.liga }}</td>
+            </tr>
+
+
+
+            <tr>
+                <th>Dirección</th>
+                <td>
+                    {{ cancha.direccion|default:"-" }}
+                </td>
+            </tr>
+
+
+
+            <tr>
+                <th>Tipo Superficie</th>
+                <td>
+                    {{ cancha.get_tipo_superficie_display }}
+                </td>
+            </tr>
+
+
+
+            <tr>
+                <th>Dimensiones</th>
+                <td>
+                    {{ cancha.largo_metros }} m x {{ cancha.ancho_metros }} m
+                </td>
+            </tr>
+
+
+
+            <tr>
+                <th>Capacidad</th>
+                <td>
+                    {{ cancha.capacidad_minima }}
+                    -
+                    {{ cancha.capacidad_maxima }}
+                    personas
+                </td>
+            </tr>
+
+
+
+            <tr>
+                <th>Iluminación</th>
+
+                <td>
+                    {% if cancha.iluminacion %}
+                        Sí
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+
+            </tr>
+
+
+
+
+            <tr>
+                <th>Estado</th>
+
+                <td>
+                    {% if cancha.activa %}
+                        Activa
+                    {% else %}
+                        Inactiva
+                    {% endif %}
+                </td>
+
+            </tr>
+
+
+
+
+            <tr>
+                <th>Descripción</th>
+
+                <td>
+                    {{ cancha.descripcion|default:"Sin descripción." }}
+                </td>
+
+            </tr>
+
+
+        </table>
+
+
+        {% if cancha.latitud and cancha.longitud %}
+
+
+        <div class="card" style="margin-top:20px">
+
+
+            <h2>
+                Ubicación
+            </h2>
+
+
+
+            <div 
+                id="mapa"
+                style="
+                    height:400px;
+                    width:100%;
+                    border-radius:10px;
+                    border:1px solid #ccc;
+                ">
+            </div>
+
+
+        </div>
+
+        <div style="text-align:center; margin-top:20px;">
+
+            <a 
+                href="https://www.google.com/maps?q={{ cancha.coordenadas_google_maps }}"
+                target="_blank"
+                class="btn-maps">
+
+                📍 Abrir ubicación en Google Maps
+
+            </a>
+
+        </div>
+
+        {% endif %}
+
+
+
     </div>
 
-    {% endif %}
-  </div>
+
+
 </div>
+
+
+
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
+<script>
+
+
+document.addEventListener(
+"DOMContentLoaded",
+function(){
+
+
+    {% if cancha.latitud and cancha.longitud %}
+
+
+    const lat = Number("{{ cancha.latitud|stringformat:'f' }}".replace(",", "."));
+    const lng = Number("{{ cancha.longitud|stringformat:'f' }}".replace(",", "."));
+
+    const mapa =
+        L.map('mapa')
+        .setView(
+            [
+                lat,
+                lng
+            ],
+            16
+        );
+
+
+
+
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution:
+            '&copy; OpenStreetMap'
+        }
+    ).addTo(mapa);
+
+
+
+
+    L.marker(
+        [
+            lat,
+            lng
+        ]
+    )
+    .addTo(mapa)
+    .bindPopup(
+        "{{ cancha.nombre }}"
+    )
+    .openPopup();
+
+
+
+    {% endif %}
+
+
+});
+
+
+</script>
+
 
 {% endblock %}

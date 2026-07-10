@@ -18,11 +18,30 @@
                 <p><strong>Goles local:</strong> {{ partido.goles_local|default_if_none:"Pendiente" }}</p>
                 <p><strong>Goles visitante:</strong> {{ partido.goles_visitante|default_if_none:"Pendiente" }}</p>
             </div>
+
+            <br>
+
+            <div class="card">
+
+                <h2>
+                    Límite de tarjetas rojas
+                </h2>
+
+                <p>
+                    Un equipo no puede superar
+                    <strong>4 rojas</strong> en jugadores de cancha,
+                    <strong>7 rojas</strong> en banca, ni
+                    <strong>5 rojas</strong> en cuerpo técnico.
+                </p>
+
+            </div>
         </div>
+
         <div class="card form-container">
             <form method="POST" class="form-registro">
                 {% csrf_token %}
                 {{ form.as_p }}
+                {% include 'includes/tarjetas_formset.html' %}
                 <button type="submit">Guardar cambios</button>
             </form>
         </div>

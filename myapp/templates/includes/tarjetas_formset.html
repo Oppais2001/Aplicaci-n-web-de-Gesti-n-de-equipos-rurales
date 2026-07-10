@@ -1,0 +1,246 @@
+<div class="tarjetas-widget" data-prefix="{{ tarjetas_formset.prefix }}">
+    <div class="tarjetas-widget-header">
+        <h3>Tarjetas del partido</h3>
+        <button type="button" class="btn-red-agregar" data-action="add-tarjeta">
+            <i class="fa-solid fa-plus"></i>
+            Agregar tarjeta
+        </button>
+    </div>
+
+    {{ tarjetas_formset.management_form }}
+    {{ tarjetas_formset.non_form_errors }}
+
+    <div class="redes-cards" data-tarjeta-cards></div>
+    <p class="redes-empty" data-tarjeta-empty>Sin tarjetas agregadas.</p>
+
+    <div class="redes-formset-hidden">
+        {% for tarjeta_form in tarjetas_formset %}
+            <div class="tarjeta-row" data-form-index="{{ forloop.counter0 }}">
+                {{ tarjeta_form.id }}
+                {{ tarjeta_form.equipo }}
+                {{ tarjeta_form.tipo_tarjeta }}
+                {{ tarjeta_form.afectado }}
+                {{ tarjeta_form.numero_camiseta }}
+                {{ tarjeta_form.nombre_persona }}
+                {{ tarjeta_form.DELETE }}
+                {{ tarjeta_form.errors }}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+(function() {
+    const widget = document.currentScript.previousElementSibling;
+    const cardsContainer = widget.querySelector("[data-tarjeta-cards]");
+    const emptyMessage = widget.querySelector("[data-tarjeta-empty]");
+    const addButton = widget.querySelector("[data-action='add-tarjeta']");
+    const rows = Array.from(widget.querySelectorAll(".tarjeta-row"));
+
+    // "afectado" cuyo valor requiere nombre de la persona en vez de número de camiseta
+    const AFECTADO_TECNICO = "tecnico";
+
+    function getFields(row) {
+        return {
+            equipo: row.querySelector("select[name$='-equipo']"),
+            tipo_tarjeta: row.querySelector("select[name$='-tipo_tarjeta']"),
+            afectado: row.querySelector("select[name$='-afectado']"),
+            numero_camiseta: row.querySelector("input[name$='-numero_camiseta']"),
+            nombre_persona: row.querySelector("input[name$='-nombre_persona']"),
+            eliminar: row.querySelector("input[name$='-DELETE']"),
+            id: row.querySelector("input[name$='-id']")
+        };
+    }
+
+    function isDeleted(row) {
+        const fields = getFields(row);
+        return fields.eliminar && fields.eliminar.checked;
+    }
+
+    function hasData(row) {
+        const f = getFields(row);
+        return Boolean(
+            f.equipo.value &&
+            f.tipo_tarjeta.value &&
+            f.afectado.value &&
+            !isDeleted(row)
+        );
+    }
+
+    function optionLabel(select, value) {
+        const option = Array.from(select.options).find(item => item.value === value);
+        return option ? option.text : value;
+    }
+
+    function firstAvailableRow() {
+        return rows.find(row => !hasData(row) && !getFields(row).id.value);
+    }
+
+    function buildOptions(select, selectedValue) {
+        return Array.from(select.options)
+            .map(option => {
+                const selected = option.value === selectedValue ? "selected" : "";
+                return `<option value="${option.value}" ${selected}>${option.text}</option>`;
+            })
+            .join("");
+    }
+
+    async function openPopup(row) {
+        const fields = getFields(row);
+
+        const result = await Swal.fire({
+            title: fields.equipo.value ? "Editar tarjeta" : "Agregar tarjeta",
+            html: `
+                <div class="swal-form-grid">
+                    <label>Equipo</label>
+                    <select id="swal-tarjeta-equipo" class="swal2-select">
+                        ${buildOptions(fields.equipo, fields.equipo.value)}
+                    </select>
+
+                    <label>Tipo de tarjeta</label>
+                    <select id="swal-tarjeta-tipo" class="swal2-select">
+                        ${buildOptions(fields.tipo_tarjeta, fields.tipo_tarjeta.value)}
+                    </select>
+
+                    <label>Categoría</label>
+                    <select id="swal-tarjeta-afectado" class="swal2-select">
+                        ${buildOptions(fields.afectado, fields.afectado.value)}
+                    </select>
+
+                    <label>Número de camiseta</label>
+                    <input id="swal-tarjeta-numero" class="swal2-input" placeholder="Ej: 10">
+
+                    <label>Nombre (si aplica)</label>
+                    <input id="swal-tarjeta-nombre" class="swal2-input" placeholder="Ej: Juan Pérez">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Guardar",
+            cancelButtonText: "Cancelar",
+            didOpen: () => {
+                document.getElementById("swal-tarjeta-numero").value = fields.numero_camiseta.value || "";
+                document.getElementById("swal-tarjeta-nombre").value = fields.nombre_persona.value || "";
+            },
+            preConfirm: () => {
+                const equipo = document.getElementById("swal-tarjeta-equipo").value;
+                const tipo_tarjeta = document.getElementById("swal-tarjeta-tipo").value;
+                const afectado = document.getElementById("swal-tarjeta-afectado").value;
+                const numero_camiseta = document.getElementById("swal-tarjeta-numero").value.trim();
+                const nombre_persona = document.getElementById("swal-tarjeta-nombre").value.trim();
+
+                if (!equipo) {
+                    Swal.showValidationMessage("Debes seleccionar el equipo.");
+                    return false;
+                }
+
+                if (!tipo_tarjeta) {
+                    Swal.showValidationMessage("Debes seleccionar el tipo de tarjeta.");
+                    return false;
+                }
+
+                if (!afectado) {
+                    Swal.showValidationMessage("Debes seleccionar la categoría.");
+                    return false;
+                }
+
+                if (afectado === "tecnico" && !nombre_persona) {
+                    Swal.showValidationMessage("Debes ingresar el nombre del miembro del cuerpo técnico.");
+                    return false;
+                }
+
+                if (afectado !== "tecnico" && !numero_camiseta) {
+                    Swal.showValidationMessage("Debes ingresar el número de camiseta del jugador.");
+                    return false;
+                }
+
+                return { equipo, tipo_tarjeta, afectado, numero_camiseta, nombre_persona };
+            }
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        fields.equipo.value = result.value.equipo;
+        fields.tipo_tarjeta.value = result.value.tipo_tarjeta;
+        fields.afectado.value = result.value.afectado;
+        fields.numero_camiseta.value = result.value.numero_camiseta;
+        fields.nombre_persona.value = result.value.nombre_persona;
+
+        if (fields.eliminar) {
+            fields.eliminar.checked = false;
+        }
+
+        renderCards();
+    }
+
+    function deleteRow(row) {
+        const fields = getFields(row);
+
+        if (fields.id.value && fields.eliminar) {
+            fields.eliminar.checked = true;
+        } else {
+            fields.equipo.value = "";
+            fields.tipo_tarjeta.value = "";
+            fields.afectado.value = "";
+            fields.numero_camiseta.value = "";
+            fields.nombre_persona.value = "";
+        }
+
+        renderCards();
+    }
+
+    function renderCards() {
+        cardsContainer.innerHTML = "";
+        const activeRows = rows.filter(hasData);
+
+        emptyMessage.style.display = activeRows.length ? "none" : "block";
+
+        activeRows.forEach(row => {
+            const fields = getFields(row);
+            const detalle = fields.afectado.value === AFECTADO_TECNICO
+                ? fields.nombre_persona.value
+                : `N° ${fields.numero_camiseta.value}`;
+
+            const card = document.createElement("div");
+            card.className = "red-social-card";
+            card.innerHTML = `
+                <div>
+                    <strong>${optionLabel(fields.tipo_tarjeta, fields.tipo_tarjeta.value)}</strong>
+                    <span>${optionLabel(fields.equipo, fields.equipo.value)} - ${detalle}</span>
+                </div>
+                <div class="red-social-actions">
+                    <button type="button" class="btn-icon-red" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="btn-icon-red danger" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            const buttons = card.querySelectorAll("button");
+            buttons[0].addEventListener("click", () => openPopup(row));
+            buttons[1].addEventListener("click", () => deleteRow(row));
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    addButton.addEventListener("click", () => {
+        const row = firstAvailableRow();
+
+        if (!row) {
+            Swal.fire({
+                icon: "info",
+                title: "Límite alcanzado",
+                text: "Ya agregaste el máximo de tarjetas permitidas."
+            });
+            return;
+        }
+
+        openPopup(row);
+    });
+
+    renderCards();
+})();
+</script>
