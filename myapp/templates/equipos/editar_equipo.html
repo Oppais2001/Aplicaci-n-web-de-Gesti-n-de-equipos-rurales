@@ -7,7 +7,7 @@
     </div>
     <div class="container-forms-card">
         <div class="card form-container">
-            <form method="POST" class="form-registro">
+            <form method="POST" enctype="multipart/form-data" class="form-registro">
                 {% csrf_token %}
                 {{ form.as_p }}
                 {% include 'includes/redes_sociales_formset.html' %}

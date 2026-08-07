@@ -20,64 +20,65 @@
 
     {% else %}
 
-    <table>
-      <tr class="encabezado">
-        <th>Nombre</th>
+    <table class="tabla-responsive">
+      <thead>
+        <tr class="encabezado">
+          <th>Nombre</th>
 
-        <th>Liga</th>
+          <th>Liga</th>
 
-        <th>Dirección</th>
+          <th>Dirección</th>
 
-        <th>Capacidad</th>
+          <th>Capacidad</th>
 
-        <th>Acciones</th>
-      </tr>
-
+          <th>Acciones</th>
+        </tr>
+      </thead>
       {% for cancha in canchas %}
+      <tbody>
+        <tr>
+          <td>{{ cancha.nombre }}</td>
 
-      <tr>
-        <td>{{ cancha.nombre }}</td>
+          <td>{{ cancha.liga }}</td>
 
-        <td>{{ cancha.liga }}</td>
+          <td>{{ cancha.direccion }}</td>
 
-        <td>{{ cancha.direccion }}</td>
+          <td>{{ cancha.capacidad_maxima }}</td>
 
-        <td>{{ cancha.capacidad_maxima }}</td>
+          <td>
+            <button
+              class="btn ver"
+              title="Ver detalles"
+              onclick="window.location='/canchas/{{ cancha.id }}/'"
+            >
+              <i class="fa-solid fa-eye"></i>
+            </button>
 
-        <td>
-          <button
-            class="btn ver"
-            title="Ver detalles"
-            onclick="window.location='/canchas/{{ cancha.id }}/'"
-          >
-            <i class="fa-solid fa-eye"></i>
-          </button>
+            {% if user.is_staff %}
 
-          {% if user.is_staff %}
+            <button
+              class="btn editar"
+              title="Editar"
+              onclick="window.location='/canchas/editar/{{ cancha.id }}'"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
 
-          <button
-            class="btn editar"
-            title="Editar"
-            onclick="window.location='/canchas/editar/{{ cancha.id }}'"
-          >
-            <i class="fa-solid fa-pen"></i>
-          </button>
+            <button
+              onclick='confirmarEliminar(
+                                          "{{ cancha.nombre }}",
+                                          "{{ cancha.id }}"
+                                      )'
+              class="btn eliminar"
+              title="Eliminar"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
 
-          <button
-            onclick='confirmarEliminar(
-                                        "{{ cancha.nombre }}",
-                                        "{{ cancha.id }}"
-                                    )'
-            class="btn eliminar"
-            title="Eliminar"
-          >
-            <i class="fa-solid fa-trash"></i>
-          </button>
-
-          {% endif %}
-        </td>
-      </tr>
-
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
       {% endfor %}
     </table>
 

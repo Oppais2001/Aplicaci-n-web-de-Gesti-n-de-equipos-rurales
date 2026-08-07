@@ -7,7 +7,16 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
 from decimal import Decimal, InvalidOperation
 
+from io import BytesIO
+
+from django.http import HttpResponse
+from PIL import Image, ImageDraw, ImageFont
+
 LETTERS = "A-Za-zÁÉÍÓÚáéíóúÑñÜü"
+
+DIAS = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+MESES = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+         7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
 
 def normalize_spaces(value):
@@ -420,3 +429,125 @@ def validate_decimal_range(
         )
 
     return value
+
+# Creador de imagenes de la tabla de posiciones
+ANCHO = 900
+ALTO = 700
+
+def crear_img_tabla(torneo):
+    imagen = Image.new(
+        "RGB",
+        (ANCHO, ALTO),
+        "#202020"
+    )
+
+    draw = ImageDraw.Draw(imagen)
+
+    fuente_titulo = ImageFont.truetype(
+        "C:/Windows/Fonts/arialbd.ttf",
+        38
+    )
+
+    fuente_normal = ImageFont.truetype(
+        "C:/Windows/Fonts/arial.ttf",
+        24
+    )
+
+    draw.text(
+
+        (40,40),
+
+        "Liga Rural",
+
+        fill="gold",
+
+        font=fuente_titulo
+
+    )
+    draw.text(
+
+        (40,90),
+
+        torneo.nombre,
+
+        fill="white",
+
+        font=fuente_normal
+
+    )
+    draw.line(
+
+    (40,140,860,140),
+
+    fill="gold",
+
+    width=3
+
+    )
+    y = 170
+
+    draw.text((40,y),"Pos",fill="gold",font=fuente_normal)
+    draw.text((110,y),"Club",fill="gold",font=fuente_normal)
+    draw.text((520,y),"PJ",fill="gold",font=fuente_normal)
+    draw.text((600,y),"DG",fill="gold",font=fuente_normal)
+    draw.text((700,y),"PTS",fill="gold",font=fuente_normal)
+    y = 220
+
+    for posicion, fila in enumerate(tabla_posiciones, start=1):
+
+        draw.text(
+            (40,y),
+            str(posicion),
+            fill="white",
+            font=fuente_normal
+        )
+
+        draw.text(
+            (110,y),
+            fila["equipo"].nombre,
+            fill="white",
+            font=fuente_normal
+        )
+
+        draw.text(
+            (530,y),
+            str(fila["pj"]),
+            fill="white",
+            font=fuente_normal
+        )
+
+        draw.text(
+            (610,y),
+            str(fila["dg"]),
+            fill="white",
+            font=fuente_normal
+        )
+
+        draw.text(
+            (710,y),
+            str(fila["pts"]),
+            fill="gold",
+            font=fuente_normal
+        )
+
+        y += 45
+        buffer = BytesIO()
+
+    imagen.save(
+        buffer,
+        format="PNG"
+    )
+
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="image/png"
+    )
+
+    response["Content-Disposition"] = (
+        'attachment; filename="tabla.png"'
+    )
+
+    return response
+    

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido
+from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, Torneo
 
 admin.site.register(Arbitro)
 admin.site.register(Dirigente)
@@ -10,3 +10,4 @@ admin.site.register(RedSocial)
 admin.site.register(Traspaso)
 admin.site.register(Cancha)
 admin.site.register(Partido)
+admin.site.register(Torneo)

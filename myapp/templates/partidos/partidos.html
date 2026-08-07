@@ -16,28 +16,23 @@
             {% if not partidos %}
                 <p class="empty-message">No hay datos para mostrar.</p>
             {% else %}
-                <table>
-                    <tr class="encabezado">
-                        <th>Local</th>
-                        <th>Visitante</th>
-                        <th>Cancha</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Goles local</th>
-                        <th>Goles visitante</th>
-                        {% if user.is_staff %}
-                            <th>Acciones</th>
-                        {% endif %}
-                    </tr>
+                <table class="tabla-responsive">
+                    <thead>
+                        <tr class="encabezado">
+                            <th>Torneo</th>
+                            <th>Cancha</th>
+                            <th>Fecha</th>
+                            {% if user.is_staff %}
+                                <th>Acciones</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
                     {% for partido in partidos %}
+                    <tbody>
                         <tr id="fila-{{ partido.id }}">
-                            <td>{{ partido.equipo_local }}</td>
-                            <td>{{ partido.equipo_visitante }}</td>
-                            <td>{{ partido.cancha|default:"-" }}</td>
-                            <td>{{ partido.fecha|date:"d/m/Y" }}</td>
-                            <td>{{ partido.hora|time:"H:i" }}</td>
-                            <td>{{ partido.goles_local|default_if_none:"Pendiente" }}</td>
-                            <td>{{ partido.goles_visitante|default_if_none:"Pendiente" }}</td>
+                            <td>{{ partido.torneo|default:"-" }}</td>
+                            <td>{{ partido.resumen_partido }}</td>
+                            <td>{{ partido.fecha_hora }}</td>
                             {% if user.is_staff %}
                                 <td>
                                     <button class="btn editar" title="Editar"
@@ -52,6 +47,7 @@
                                 </td>
                             {% endif %}
                         </tr>
+                    </tbody>
                     {% endfor %}
                 </table>
             {% endif %}

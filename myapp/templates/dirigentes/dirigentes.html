@@ -15,36 +15,39 @@
             {% if not dirigentes %}
             <p class="empty-message">No hay datos para mostrar.</p>
             {% else %}
-            <table>
-                <tr class="encabezado">
-                    <th>
-                        Equipo
-                    </th>
-                    <th>
-                        Cargo
-                    </th>
-                    <th>
-                        Nombre
-                    </th>
-                    <th>
-                        Rut
-                    </th>
-                    <th>
-                        Telefono
-                    </th>
-                    <th>
-                        Correo
-                    </th>
-                    <th>
-                        direccion
-                    </th>
-
-                    {% if user.is_staff %}
+            <table class="tabla-responsive">
+                <thead>
+                    <tr class="encabezado">
                         <th>
-                            Acciones
+                            Equipo
                         </th>
-                    {% endif %}
-                </tr>
+                        <th>
+                            Cargo
+                        </th>
+                        <th>
+                            Nombre
+                        </th>
+                        <th>
+                            Rut
+                        </th>
+                        <th>
+                            Telefono
+                        </th>
+                        <th>
+                            Correo
+                        </th>
+                        <th>
+                            direccion
+                        </th>
+
+                        {% if user.is_staff %}
+                            <th>
+                                Acciones
+                            </th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
                 {% for dirigente in dirigentes %}
                     {% if dirigente.activo %}
                     <tr>
@@ -84,6 +87,7 @@
                         {% endif %}
                     </tr>
                 {% endfor %}
+                </tbody>
             </table>
             {% endif %}
         </div>

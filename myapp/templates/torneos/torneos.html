@@ -1,0 +1,88 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="contenedor-tablas">
+    <div class="card-title">
+        <h1>Visualizador de Torneos</h1>
+    </div>
+
+    <div class="card">
+        {% if hay_torneos %}
+            <form method="GET">
+                <input type="text" name="buscar" placeholder="Buscar torneo..." />
+                <button type="submit">Buscar</button>
+            </form>
+        {% endif %}
+
+        {% if not torneos %}
+            <p class="empty-message">No hay datos para mostrar.</p>
+        {% else %}
+            <table class="tabla-responsive">
+                <thead>
+                    <tr class="encabezado">
+                        <th>Nombre</th>
+                        <th>Inicio</th>
+                        <th>Termino</th>
+                        <th>Equipos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for torneo in torneos %}
+                    <tr>
+                        <td>{{ torneo.nombre }}</td>
+                        <td>{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
+                        <td>{{ torneo.fecha_fin|date:"d/m/Y" }}</td>
+                        <td>{{ torneo.total_equipos_anotado }}</td>
+                        <td>
+                            <button
+                                class="btn ver"
+                                title="Ver detalles"
+                                onclick="window.location='{% url 'detalle_torneo' torneo.id %}'"
+                            >
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+
+                            {% if user.is_staff %}
+                                <button
+                                    class="btn editar"
+                                    title="Editar"
+                                    onclick="window.location='{% url 'editar_torneo' torneo.id %}'"
+                                >
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+
+                                <button
+                                    onclick='confirmarEliminar("{{ torneo.id }}", "{{ torneo.nombre|escapejs }}")'
+                                    class="btn eliminar"
+                                    title="Eliminar"
+                                >
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function confirmarEliminar(id, nombre) {
+        Swal.fire({
+            title: "Estas seguro?",
+            text: 'Eliminaras el torneo "' + nombre + '".',
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Si, eliminar",
+            cancelButtonText: "Cancelar",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "/torneos/eliminar/" + id + "/";
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+<div class="torneo-selector" id="torneoSelectorEquipos">
+    <label for="filtroLigaTorneo">FILTRAR EQUIPOS POR LIGA</label>
+    <select id="filtroLigaTorneo">
+        <option value="">Todas las ligas</option>
+        {% for liga in ligas %}
+            <option value="{{ liga.id }}">{{ liga.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="equipoDisponibleTorneo">EQUIPO</label>
+    <div class="torneo-selector-row">
+        <select id="equipoDisponibleTorneo">
+            <option value="">Selecciona un equipo</option>
+            {% for equipo in equipos_disponibles %}
+                <option
+                    value="{{ equipo.id }}"
+                    data-liga="{{ equipo.liga_id }}"
+                    data-liga-nombre="{{ equipo.liga.nombre }}"
+                >
+                    {{ equipo.nombre }} - {{ equipo.liga.nombre }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="button" id="agregarEquipoTorneo">
+            Agregar
+        </button>
+    </div>
+
+    {{ form.equipos }}
+    {{ form.equipos.errors }}
+
+    <div class="equipos-seleccionados">
+        <h3>Equipos seleccionados</h3>
+        <p class="empty-message" id="sinEquiposSeleccionados">No hay equipos seleccionados.</p>
+        <div class="equipos-seleccionados-lista" id="equiposSeleccionadosLista"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const contenedor = document.getElementById("torneoSelectorEquipos");
+
+    if (!contenedor) {
+        return;
+    }
+
+    const filtroLiga = document.getElementById("filtroLigaTorneo");
+    const selectEquipo = document.getElementById("equipoDisponibleTorneo");
+    const botonAgregar = document.getElementById("agregarEquipoTorneo");
+    const lista = document.getElementById("equiposSeleccionadosLista");
+    const mensajeVacio = document.getElementById("sinEquiposSeleccionados");
+    const opcionesEquipos = Array.from(selectEquipo.querySelectorAll("option[data-liga]"));
+    const seleccionados = new Map();
+
+    contenedor.querySelectorAll('input[name="equipos"]').forEach(function(input) {
+        const option = opcionesEquipos.find(function(opcion) {
+            return opcion.value === input.value;
+        });
+
+        if (option) {
+            seleccionados.set(input.value, {
+                nombre: option.textContent.trim(),
+                liga: option.dataset.liga,
+            });
+        }
+
+        input.remove();
+    });
+
+    function sincronizarInputs() {
+        contenedor.querySelectorAll('input[name="equipos"]').forEach(function(input) {
+            input.remove();
+        });
+
+        seleccionados.forEach(function(_equipo, id) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "equipos";
+            input.value = id;
+            contenedor.appendChild(input);
+        });
+    }
+
+    function actualizarOpciones() {
+        const ligaSeleccionada = filtroLiga.value;
+        let primeraOpcionVisible = "";
+
+        opcionesEquipos.forEach(function(option) {
+            const estaSeleccionado = seleccionados.has(option.value);
+            const coincideLiga = !ligaSeleccionada || option.dataset.liga === ligaSeleccionada;
+            const visible = coincideLiga && !estaSeleccionado;
+
+            option.hidden = !visible;
+            option.disabled = !visible;
+
+            if (visible && !primeraOpcionVisible) {
+                primeraOpcionVisible = option.value;
+            }
+        });
+
+        selectEquipo.value = primeraOpcionVisible;
+    }
+
+    function renderSeleccionados() {
+        lista.innerHTML = "";
+        mensajeVacio.style.display = seleccionados.size ? "none" : "block";
+
+        seleccionados.forEach(function(equipo, id) {
+            const item = document.createElement("div");
+            item.className = "equipo-seleccionado";
+
+            const nombre = document.createElement("span");
+            nombre.textContent = equipo.nombre;
+
+            const botonQuitar = document.createElement("button");
+            botonQuitar.type = "button";
+            botonQuitar.className = "btn-equipo-quitar";
+            botonQuitar.title = "Quitar";
+            botonQuitar.setAttribute("aria-label", "Quitar " + equipo.nombre);
+            botonQuitar.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            botonQuitar.addEventListener("click", function() {
+                seleccionados.delete(id);
+                sincronizarInputs();
+                actualizarOpciones();
+                renderSeleccionados();
+            });
+
+            item.appendChild(nombre);
+            item.appendChild(botonQuitar);
+            lista.appendChild(item);
+        });
+    }
+
+    botonAgregar.addEventListener("click", function() {
+        const option = selectEquipo.selectedOptions[0];
+
+        if (!option || !option.value) {
+            return;
+        }
+
+        seleccionados.set(option.value, {
+            nombre: option.textContent.trim(),
+            liga: option.dataset.liga,
+        });
+
+        sincronizarInputs();
+        actualizarOpciones();
+        renderSeleccionados();
+    });
+
+    filtroLiga.addEventListener("change", actualizarOpciones);
+
+    sincronizarInputs();
+    actualizarOpciones();
+    renderSeleccionados();
+});
+</script>

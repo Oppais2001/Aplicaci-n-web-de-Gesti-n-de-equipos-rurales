@@ -12,53 +12,58 @@
     {% endif %} {% if not ligas %}
     <p class="empty-message">No hay datos para mostrar.</p>
     {% else %}
-    <table>
-      <tr class="encabezado">
-        <th>Logo</th>
-        <th>Nombre</th>
-        <th>Ubicación</th>
-        <th>Equipos</th>
-        {% if user.is_staff %}
-        <th>Acciones</th>
-        {% endif %}
-      </tr>
+    <table class="tabla-responsive">
+      <thead>
+        <tr class="encabezado">
+          <th>Liga</th>
+          <th>Ubicación</th>
+          <th>Equipos</th>
+          {% if user.is_staff %}
+          <th>Acciones</th>
+          {% endif %}
+        </tr>
+      </thead>
       {% for liga in ligas %}
-      <tr>
-        <th>
-          {% if liga.logo %}
-          <img src="{{ liga.logo.url }}" alt="Logo" width="50" />
-          {% else %} Sin logo {% endif %}
-        </th>
-        <td>{{ liga.nombre }}</td>
-        <td>{{ liga.comuna }},{{ liga.region }}</td>
-        <td>{{ liga.total_equipos }}</td>
-        {% if user.is_staff %}
-        <td>
-          <button
-            class="btn detalles"
-            title="Ver Detalles"
-            onclick="window.location='/ligas/detalle/{{ liga.id }}/'"
-          >
-            <i class="fa-solid fa-eye"></i>
-          </button>
-          <button
-            class="btn editar"
-            title="Editar"
-            onclick="window.location='/ligas/editar/{{ liga.id }}/'"
-          >
-            <i class="fa-solid fa-pen"></i>
-          </button>
+      <tbody>
+        <tr>
+          <td>
+            {% if liga.logo %}
+            <div class="logo-nombre">
+              <img src="{{ liga.logo.url }}" alt="Logo" width="50" />
+              <strong>{{ liga.nombre }}</strong>
+            </div>
+            {% else %} Sin logo {% endif %}
+          </td>
+          <td data-label="Locación">{{ liga.comuna }},{{ liga.region }}</td>
+          <td data-label="N° Equipos">{{ liga.total_equipos }}</td>
+          {% if user.is_staff %}
+          <td>
+            <button
+              class="btn detalles"
+              title="Ver Detalles"
+              onclick="window.location='/ligas/detalle/{{ liga.id }}/'"
+            >
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button
+              class="btn editar"
+              title="Editar"
+              onclick="window.location='/ligas/editar/{{ liga.id }}/'"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
 
-          <button
-            onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")'
-            class="btn eliminar"
-            title="Eliminar"
-          >
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </td>
-        {% endif %}
-      </tr>
+            <button
+              onclick='confirmarEliminar("{{ liga.id }}", "{{ liga.nombre|escapejs }}")'
+              class="btn eliminar"
+              title="Eliminar"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+      </tbody>
       {% endfor %}
     </table>
     {% endif %}
@@ -82,5 +87,13 @@
     });
   }
 </script>
+
+<style>
+  .logo-nombre {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+</style>
 
 {% endblock %}

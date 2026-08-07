@@ -1,0 +1,43 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="ingresar">
+    <div>
+        <h1>Ingresar Torneo</h1>
+    </div>
+
+    <div class="container-forms-card">
+        <div class="card form-container">
+            <form method="POST" class="form-registro">
+                {% csrf_token %}
+                {% for field in form %}
+                    {% if field.name != "equipos" %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                {% include 'includes/selector_equipos_torneo.html' %}
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>Informacion</h2>
+                <p>Registra el nombre, fechas y equipos participantes del torneo.</p>
+            </div>
+
+            <br>
+
+            <div class="card">
+                <h2>Tabla de posiciones</h2>
+                <p>La tabla se calcula automaticamente con los partidos finalizados del torneo.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

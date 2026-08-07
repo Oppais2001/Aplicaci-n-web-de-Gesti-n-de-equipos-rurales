@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Jugadores</title>
+    <title>Gestion de Jugadores</title>
 
     <!-- ICONO -->
     <link rel="icon" href="{% static 'img/logo_liga.png' %}">
@@ -27,64 +27,261 @@
 <body>
     <header>
         <!-- NAVBAR -->
-        <nav class="navbar">
+        <nav class="navbar" aria-label="Navegacion principal">
             <div class="nav-container">
+                <a href="{% url 'home' %}" class="logo" aria-label="Ir al inicio">
+                    <span class="logo-mark"><i class="fa fa-shield-halved"></i></span>
+                    <span>LigaRural</span>
+                </a>
 
-                <!-- BOTÓN HAMBURGUESA -->
-                <a href="{% url 'home' %}" class="logo">LigaRural</a>
-                <button class="menu-btn" id="menuBtn">☰</button>
-                <!-- MENÚ -->
+                <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menu" aria-controls="nav-menu" aria-expanded="false">
+                    <i class="fa fa-bars"></i>
+                </button>
+
                 <ul class="nav-menu" id="nav-menu">
                     {% if user.is_authenticated %}
-                    <li><a href="{% url 'home' %}"><i class="fa fa-home"></i> Home</a></li>
-                    <li><a href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a></li>
-                    <li><a href="{% url 'ligas' %}"><i class="fa fa-trophy"></i> Ligas</a></li>
-                    <li><a href="{% url 'equipos' %}"><i class="fa fa-users"></i> Equipos</a></li>
-                    <li><a href="{% url 'dirigentes' %}"><i class="fa fa-user-tie"></i> Dirigentes</a></li>
-                    <li><a href="{% url 'traspasos' %}"><i class="fa fa-right-left"></i> Traspasos</a></li>
-                    {% if user.is_staff %}
-                    <li><a href="{% url 'ingresar_liga' %}"><i class="fa fa-plus"></i> Liga</a></li>
-                    <li><a href="{% url 'ingresar_equipo' %}"><i class="fa fa-plus"></i> Equipo</a></li>
-                    <li><a href="{% url 'ingresar_dirigente' %}"><i class="fa fa-user-plus"></i> Dirigente</a></li>
-                    <li><a href="{% url 'ingresar_jugador' %}"><i class="fa fa-user-plus"></i> Jugador</a></li>
-                    {% endif %}
-                    <li>Hola, {{user.username}}</li>
-                    <li>
-                        <a href="{% url 'logout' %}">
-                            <i class="fa fa-sign-out-alt"></i> Cerrar sesión
-                        </a>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-trophy"></i> Ligas
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de ligas">
+                            <li>
+                                <a href="{% url 'ligas' %}"><i class="fa fa-eye"></i> Ver ligas</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_liga' %}"><i class="fa fa-plus"></i> Crear liga</a>
+                            </li>
+                            {% endif %}
+                        </ul>
                     </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-users"></i> Equipos
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de equipos">
+                            <li>
+                                <a href="{% url 'equipos' %}"><i class="fa fa-eye"></i> Ver equipos</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_equipo' %}"><i class="fa fa-plus"></i> Crear equipo</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-futbol"></i> Jugadores
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de jugadores">
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_jugador' %}"><i class="fa fa-plus"></i> Crear jugador</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-user-tie"></i> Dirigentes
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de dirigentes">
+                            <li>
+                                <a href="{% url 'dirigentes' %}"><i class="fa fa-eye"></i> Ver dirigentes</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_dirigente' %}"><i class="fa fa-plus"></i> Crear dirigente</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-right-left"></i> Traspasos
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de traspasos">
+                            <li>
+                                <a href="{% url 'traspasos' %}"><i class="fa fa-eye"></i> Ver traspasos</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-medal"></i> Torneos
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de torneos">
+                            <li>
+                                <a href="{% url 'torneos' %}"><i class="fa fa-eye"></i> Ver torneos</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_torneo' %}"><i class="fa fa-plus"></i> Crear torneo</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-map-location-dot"></i> Canchas
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de canchas">
+                            <li>
+                                <a href="{% url 'canchas' %}"><i class="fa fa-eye"></i> Ver canchas</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_cancha' %}"><i class="fa fa-plus"></i> Crear cancha</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-person-running"></i> Arbitros
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de arbitros">
+                            <li>
+                                <a href="{% url 'arbitros' %}"><i class="fa fa-eye"></i> Ver arbitros</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_arbitro' %}"><i class="fa fa-plus"></i> Crear arbitro</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-calendar-days"></i> Partidos
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de partidos">
+                            <li>
+                                <a href="{% url 'partidos' %}"><i class="fa fa-eye"></i> Ver partidos</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_partido' %}"><i class="fa fa-plus"></i> Crear partido</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a>
+                    </li>
+                    <li class="nav-item nav-dropdown user-dropdown">
+                        <button class="dropdown-btn user-btn" type="button" aria-expanded="false">
+                            <span class="user-avatar"><i class="fa fa-user"></i></span>
+                            {{user.username}}
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content user-menu" aria-label="Menu de usuario">
+                            <li>
+                                <a href="{% url 'logout' %}"><i class="fa fa-sign-out-alt"></i> Cerrar sesion</a>
+                            </li>
+                        </ul>
+                    </li>
+                    
                     {% else %}
-                    <li>
-                        <a href="{% url 'login' %}">
-                            <i class="fa fa-key"></i> Login
-                        </a>
+                    <li class="nav-item nav-login">
+                        <a class="nav-link" href="{% url 'login' %}"><i class="fa fa-key"></i> Login</a>
                     </li>
                     {% endif %}
                 </ul>
-
             </div>
         </nav>
     </header>
+
     <!-- SCRIPT MENU -->
     <script>
-        const toggle = document.getElementById("menuBtn");
-        const menu = document.getElementById("nav-menu");
+        const menuButton = document.getElementById("menuBtn");
+        const navMenu = document.getElementById("nav-menu");
+        const dropdowns = document.querySelectorAll(".nav-dropdown");
 
-        toggle.addEventListener("click", () => {
-            menu.classList.toggle("active");
-            if (menu.classList.contains("active")) {
-                toggle.innerHTML = '✖'
-                toggle.setAttribute("aria-expanded", "true");
-            }else{
-                toggle.innerHTML = '☰'
-                toggle.setAttribute("aria-expanded", "false");
+        function closeDropdowns(exceptDropdown = null) {
+            dropdowns.forEach((dropdown) => {
+                if (dropdown !== exceptDropdown) {
+                    dropdown.classList.remove("open");
+                    const button = dropdown.querySelector(".dropdown-btn");
+
+                    if (button) {
+                        button.setAttribute("aria-expanded", "false");
+                    }
+                }
+            });
+        }
+
+        function closeMobileMenu() {
+            navMenu.classList.remove("active");
+            menuButton.setAttribute("aria-expanded", "false");
+            menuButton.setAttribute("aria-label", "Abrir menu");
+            menuButton.innerHTML = '<i class="fa fa-bars"></i>';
+        }
+
+        menuButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const isOpen = navMenu.classList.toggle("active");
+
+            menuButton.setAttribute("aria-expanded", String(isOpen));
+            menuButton.setAttribute("aria-label", isOpen ? "Cerrar menu" : "Abrir menu");
+            menuButton.innerHTML = isOpen ? '<i class="fa fa-xmark"></i>' : '<i class="fa fa-bars"></i>';
+
+            if (!isOpen) {
+                closeDropdowns();
+            }
+        });
+
+        dropdowns.forEach((dropdown) => {
+            const button = dropdown.querySelector(".dropdown-btn");
+
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const willOpen = !dropdown.classList.contains("open");
+                closeDropdowns(dropdown);
+
+                dropdown.classList.toggle("open", willOpen);
+                button.setAttribute("aria-expanded", String(willOpen));
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!event.target.closest(".navbar")) {
+                closeDropdowns();
+                closeMobileMenu();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeDropdowns();
+                closeMobileMenu();
             }
         });
     </script>
-    <!-- FONDO -->
+
     <!-- CONTENIDO -->
     {% block content %}
     {% endblock %}
-    </body>
+</body>
 </html>

@@ -40,6 +40,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware', 
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -90,10 +91,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # ─────────────────────────────────────────
 # INTERNACIONALIZACIÓN
 # ─────────────────────────────────────────
-LANGUAGE_CODE = 'es'
+LANGUAGE_CODE = 'es-cl'
 TIME_ZONE = 'America/Santiago'
 USE_I18N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ('es', 'Español'),
+]
 
 # ─────────────────────────────────────────
 # ARCHIVOS ESTÁTICOS

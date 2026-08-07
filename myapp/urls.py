@@ -40,11 +40,16 @@ urlpatterns = [
     path('canchas/editar/<int:id_cancha>/',views.editar_cancha,name='editar_cancha'),
     path('canchas/eliminar/<int:id_cancha>/',views.eliminar_cancha,name='eliminar_cancha'),
     path('canchas/<int:id_cancha>/',views.detalle_cancha,name='detalle_cancha'),
+    path('torneos/', views.lista_torneos, name='torneos'),
+    path('torneos/ingresar/', views.ingresar_torneo, name='ingresar_torneo'),
+    path('torneos/detalle/<int:id_torneo>/', views.detalle_torneo, name='detalle_torneo'),
+    path('torneos/editar/<int:id_torneo>/', views.editar_torneo, name='editar_torneo'),
+    path('torneos/eliminar/<int:id_torneo>/', views.eliminar_torneo, name='eliminar_torneo'),
     path('partidos', views.lista_partidos, name='partidos'),
     path('partidos/ingresar_partido', views.ingresar_partido, name='ingresar_partido'),
     path('partidos/editar/<int:id>/', views.editar_partido, name='editar_partido'),
     path('partidos/eliminar/<int:id>/', views.eliminar_partido, name='eliminar_partido'),
-
+    path("torneos/<int:torneo_id>/tabla/imagen/",views.descargar_tabla_imagen, name="descargar_tabla_imagen"),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

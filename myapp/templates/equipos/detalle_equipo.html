@@ -2,12 +2,23 @@
 
 {% block content %}
 
-<div class="contenedor-tablas"> 
+<div class="contenedor-tablas">
 
-    <div class="card-title">
-        <h1>
-            {{ equipo.nombre }} - Liga {{ equipo.liga }}
-        </h1>
+    <div class="equipo-header-card">
+        {% if equipo.logo %}
+            <div class="equipo-logo">
+                <img src="{{ equipo.logo.url }}" alt="Logo de {{ equipo.nombre }}">
+            </div>
+        {% else %}
+            <div class="equipo-logo equipo-logo-placeholder">
+                <span>{{ equipo.nombre|slice:":1" }}</span>
+            </div>
+        {% endif %}
+
+        <div class="equipo-header-info">
+            <h1>{{ equipo.nombre }}</h1>
+            <span class="equipo-liga-badge">{{ equipo.liga }}</span>
+        </div>
     </div>
 
     <div class="card">
@@ -36,137 +47,182 @@
 
             <br>
 
-            <table>
+            <div class="tabla-wrapper">
+                <table class="tabla-responsive">
+                    <thead>
+                    <tr class="encabezado">
 
-                <tr class="encabezado">
+                        <th>Nombre</th>
 
-                    <th>Nombre</th>
+                        <th>RUT</th>
 
-                    <th>RUT</th>
+                        <th>Edad</th>
 
-                    <th>Edad</th>
+                        <th>Tel.</th>
 
-                    <th>Teléfono</th>
+                        <th>Tel. Emerg.</th>
 
-                    <th>Emergencia</th>
-
-                    <th>Inscripción</th>
-
-                    {% if user.is_staff %}
-                        <th>Acciones</th>
-                    {% endif %}
-
-                </tr>
-
-                {% for jugador in jugadores %}
-
-                    <tr>
-
-                        <!-- NOMBRE -->
-                        <td>
-                            {{ jugador.nombre }}
-                        </td>
-
-                        <!-- RUT -->
-                        <td>
-                            {{ jugador.rut_formateado }}
-                        </td>
-
-                        <!-- EDAD -->
-                        <td>
-
-                            {% if jugador.fecha_nacimiento %}
-                                {{ jugador.fecha_nacimiento|timesince }}
-                            {% else %}
-                                -
-                            {% endif %}
-
-                        </td>
-
-                        <!-- TELEFONO -->
-                        <td>
-
-                            {% if jugador.telefono %}
-                                {{ jugador.telefono }}
-                            {% else %}
-                                -
-                            {% endif %}
-
-                        </td>
-
-                        <!-- CONTACTO EMERGENCIA -->
-                        <td>
-
-                            {% if jugador.contacto_emergencia %}
-                                {{ jugador.contacto_emergencia }}
-                            {% else %}
-                                -
-                            {% endif %}
-
-                        </td>
-                        <!-- FECHA INSCRIPCION -->
-                        <td>
-                            {{ jugador.fecha_inscripcion }}
-                        </td>
-    
+                        <th>F. Inscrip.</th>
 
                         {% if user.is_staff %}
-
-                            <td>
-
-                                <!-- TRASPASO -->
-                                <button
-                                    class="btn ver"
-                                    title="Realizar Traspaso"
-
-                                    data-fecha="{{ jugador.fecha_inscripcion|date:'Y-m-d' }}"
-                                    data-jugador="{{ jugador.id }}"
-
-                                    onclick="ValidarTraspaso(this)"
-                                >
-                                    <i class="fas fa-right-left"></i>
-                                </button>
-
-                                <!-- EDITAR -->
-                                <button
-                                    class="btn editar"
-                                    title="Editar"
-
-                                    onclick="
-                                        window.location='/jugadores/editar/{{ jugador.id }}'
-                                    "
-                                >
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-
-                                <!-- ELIMINAR -->
-                                <button
-                                    onclick='confirmarEliminar(
-                                        "{{ jugador.nombre }}",
-                                        "{{ jugador.rut }}"
-                                    )'
-
-                                    class="btn eliminar"
-                                    title="Eliminar"
-                                >
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-
-                            </td>
-
+                            <th>Acciones</th>
                         {% endif %}
 
                     </tr>
+                    </thead>
+                    {% for jugador in jugadores %}
+                    <tbody>
+                        <tr>
+                            <td>
+                                {{ jugador.nombre }}
+                            </td>
+                            <td>
+                                {{ jugador.rut_formateado }}
+                            </td>
+                            <td>
+                                {% if jugador.fecha_nacimiento %}
+                                    {{ jugador.fecha_nacimiento|timesince }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if jugador.telefono %}
+                                    {{ jugador.telefono }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if jugador.contacto_emergencia %}
+                                    {{ jugador.contacto_emergencia }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ jugador.fecha_inscripcion }}
+                            </td>
 
-                {% endfor %}
+                            {% if user.is_staff %}
 
-            </table>
+                                <td>
+
+                                    <button
+                                        class="btn ver"
+                                        title="Realizar Traspaso"
+
+                                        data-fecha="{{ jugador.fecha_inscripcion|date:'Y-m-d' }}"
+                                        data-jugador="{{ jugador.id }}"
+
+                                        onclick="ValidarTraspaso(this)"
+                                    >
+                                        <i class="fas fa-right-left"></i>
+                                    </button>
+
+                                    <button
+                                        class="btn editar"
+                                        title="Editar"
+
+                                        onclick="
+                                            window.location='/jugadores/editar/{{ jugador.id }}'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+
+                                    <button
+                                        onclick='confirmarEliminar(
+                                            "{{ jugador.nombre }}",
+                                            "{{ jugador.rut }}"
+                                        )'
+
+                                        class="btn eliminar"
+                                        title="Eliminar"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                </td>
+
+                            {% endif %}
+
+                        </tr>
+                    </tbody>
+                    {% endfor %}
+
+                </table>
+            </div>
 
         {% endif %}
 
     </div>
 
 </div>
+
+<style>
+    .equipo-header-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--borde);
+        border-radius: var(--radio-lg);
+        padding: 20px 28px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .equipo-logo {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: var(--bg-principal);
+        border: 2px solid var(--color-principal);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .equipo-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .equipo-logo-placeholder span {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--color-principal);
+    }
+
+    .equipo-header-info h1 {
+        margin: 0 0 6px;
+        text-align: left;
+        font-size: 1.6rem;
+        color: whitesmoke;
+    }
+
+    .equipo-liga-badge {
+        display: inline-block;
+        background: rgba(255, 215, 0, 0.12);
+        border: 1px solid var(--color-principal);
+        color: var(--color-principal);
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    @media (max-width: 600px) {
+        .equipo-header-card {
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+    }
+</style>
 
 <script>
 

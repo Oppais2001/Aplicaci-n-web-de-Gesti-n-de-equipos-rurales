@@ -5,48 +5,317 @@
     <h1>Detalle de Liga</h1>
   </div>
 
-  <div class="card">
-    {% if liga.logo %}
-    <div class="logo-centrado">
-      <img src="{{ liga.logo.url }}" width="150" />
+  <div class="liga-detalle-card">
+
+    <div class="liga-header">
+      {% if liga.logo %}
+        <div class="liga-logo">
+          <img src="{{ liga.logo.url }}" alt="Logo {{ liga.nombre }}">
+        </div>
+      {% else %}
+        <div class="liga-logo liga-logo-placeholder">
+          <span>{{ liga.nombre|slice:":1" }}</span>
+        </div>
+      {% endif %}
+
+      <div class="liga-header-info">
+        <h2>{{ liga.nombre }}</h2>
+        <p class="liga-subtitulo">{{ liga.comuna }}, {{ liga.region }}</p>
+        <span class="badge-equipos">{{ total_equipos }} equipo{{ total_equipos|pluralize }}</span>
+      </div>
     </div>
-    {% endif %}
-    <p><strong>Nombre:</strong> {{ liga.nombre }}</p>
 
-    <p><strong>Fecha Fundación:</strong> {{ liga.fecha_fundacion }}</p>
+    <div class="liga-body">
 
-    <p><strong>Comuna:</strong> {{ liga.comuna }}</p>
+      <div class="liga-columnas">
 
-    <p><strong>Región:</strong> {{ liga.region }}</p>
+        <div class="liga-col-principal">
 
-    <p><strong>Dirección:</strong> {{ liga.direccion }}</p>
+          <section class="liga-seccion">
+            <h3>Información General</h3>
+            <div class="liga-grid">
+              <div class="liga-dato">
+                <span class="liga-label">Fecha de Fundación</span>
+                <span class="liga-valor">{{ liga.fecha_fundacion|default:"No definido" }}</span>
+              </div>
+              <div class="liga-dato">
+                <span class="liga-label">Dirección</span>
+                <span class="liga-valor">{{ liga.direccion|default:"No definido" }}</span>
+              </div>
+              <div class="liga-dato">
+                <span class="liga-label">Teléfono</span>
+                <span class="liga-valor">{{ liga.telefono_contacto|default:"No definido" }}</span>
+              </div>
+              <div class="liga-dato">
+                <span class="liga-label">Correo</span>
+                <span class="liga-valor">{{ liga.correo_contacto|default:"No definido" }}</span>
+              </div>
+            </div>
+          </section>
 
-    <p><strong>Presidente:</strong> {{ liga.presidente }}</p>
+          <section class="liga-seccion">
+            <h3>Reglamento</h3>
+            {% if liga.reglamento %}
+              <p class="liga-reglamento">{{ liga.reglamento }}</p>
+            {% else %}
+              <p class="liga-vacio">Sin reglamento registrado.</p>
+            {% endif %}
+          </section>
 
-    <p><strong>Teléfono:</strong> {{ liga.telefono_contacto }}</p>
+        </div>
 
-    <p><strong>Correo:</strong> {{ liga.correo_contacto }}</p>
+        <div class="liga-col-lateral">
 
-    <p><strong>Total de equipos:</strong> {{ total_equipos }}</p>
+          <section class="liga-seccion">
+            <h3>Directiva</h3>
+            <div class="liga-lista-directiva">
+              <div class="liga-dato">
+                <span class="liga-label">Presidente</span>
+                <span class="liga-valor">{{ liga.presidente|default:"No definido" }}</span>
+              </div>
+              <div class="liga-dato">
+                <span class="liga-label">Secretari@</span>
+                <span class="liga-valor">{{ liga.secretario|default:"No definido" }}</span>
+              </div>
+              <div class="liga-dato">
+                <span class="liga-label">Tesorer@</span>
+                <span class="liga-valor">{{ liga.tesorero|default:"No definido" }}</span>
+              </div>
+            </div>
+          </section>
 
-    <p>
-      <strong>Estado:</strong>
-      {% if liga.activa %} Activa {% else %} Inactiva {% endif %}
-    </p>
+          <section class="liga-seccion">
+            <h3>Redes Sociales</h3>
+            {% if liga.redes.all %}
+              <ul class="liga-redes">
+                {% for red in liga.redes.all %}
+                  <li>
+                    <span class="red-tipo">{{ red.get_tipo_display }}</span>
+                    <a href="{{ red.enlace }}" target="_blank" rel="noopener noreferrer" class="red-enlace">
+                      {{ red.enlace }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="liga-vacio">Sin redes sociales registradas.</p>
+            {% endif %}
+          </section>
 
-    <p><strong>Presidente:</strong> {{ liga.presidente|default:"No definido" }}</p>
-    <p><strong>Secretari@:</strong> {{ liga.secretario|default:"No definido" }}</p>
-    <p><strong>Tesorer@:</strong> {{ liga.tesorero|default:"No definido" }}</p>
-    <p><strong>Reglamento:</strong></p>
+        </div>
 
-    <p>{{ liga.reglamento }}</p>
-    <p><strong>Redes sociales:</strong></p>
-    {% for red in liga.redes.all %}
-      <p>{{ red.get_tipo_display }}: {{ red.enlace }}</p>
-    {% empty %}
-      <p>Sin redes sociales registradas.</p>
-    {% endfor %}
+      </div>
+    </div>
   </div>
 </div>
+
+<style>
+  .contenedor-tablas {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .liga-detalle-card {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .liga-header {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 40px 48px;
+    background: linear-gradient(135deg, #3a2f0f, #1a1a1a);
+    border-bottom: 1px solid #444;
+  }
+
+  .liga-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #202020;
+    border: 3px solid gold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .liga-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .liga-logo-placeholder span {
+    font-size: 3rem;
+    font-weight: 700;
+    color: gold;
+  }
+
+  .liga-header-info h2 {
+    margin: 0 0 8px;
+    font-size: 2.1rem;
+    color: #f5f5f5;
+  }
+
+  .liga-subtitulo {
+    margin: 0 0 14px;
+    color: #bbb;
+    font-size: 1.1rem;
+  }
+
+  .badge-equipos {
+    display: inline-block;
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid gold;
+    color: gold;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .liga-body {
+    padding: 40px 48px;
+  }
+
+  .liga-columnas {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 48px;
+  }
+
+  .liga-seccion {
+    margin-bottom: 36px;
+  }
+
+  .liga-seccion:last-child {
+    margin-bottom: 0;
+  }
+
+  .liga-seccion h3 {
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: gold;
+    border-bottom: 2px solid #444;
+    padding-bottom: 12px;
+    margin-bottom: 22px;
+  }
+
+  .liga-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px 32px;
+  }
+
+  .liga-lista-directiva {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .liga-dato {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .liga-label {
+    font-size: 0.85rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .liga-valor {
+    font-size: 1.15rem;
+    color: #f0f0f0;
+    font-weight: 500;
+  }
+
+  .liga-reglamento {
+    background: #202020;
+    border: 1px solid #444;
+    border-left: 4px solid gold;
+    padding: 22px 28px;
+    border-radius: 0 8px 8px 0;
+    line-height: 1.75;
+    font-size: 1.05rem;
+    color: #ddd;
+    white-space: pre-line;
+  }
+
+  .liga-vacio {
+    color: #777;
+    font-style: italic;
+    font-size: 1rem;
+  }
+
+  .liga-redes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .liga-redes li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .red-tipo {
+    background: rgba(139, 69, 19, 0.25);
+    border: 1px solid brown;
+    color: #e0a96d;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    width: fit-content;
+  }
+
+  .red-enlace {
+    color: gold;
+    text-decoration: none;
+    word-break: break-all;
+    font-size: 1rem;
+  }
+
+  .red-enlace:hover {
+    text-decoration: underline;
+    color: #ffe98a;
+  }
+
+  @media (max-width: 900px) {
+    .liga-columnas {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .liga-header {
+      flex-direction: column;
+      text-align: center;
+      padding: 32px 24px;
+    }
+    .liga-body {
+      padding: 28px 24px;
+    }
+  }
+</style>
 
 {% endblock %}

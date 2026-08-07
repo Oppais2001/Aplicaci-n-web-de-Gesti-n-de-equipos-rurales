@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido
+from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido, Torneo
 from .utils import (
     calculate_age,
     validate_address,
@@ -202,7 +202,6 @@ class Ingresar_Arbitros(forms.ModelForm):
         model = Arbitro
         fields = [
             "nombre",
-            "apellido",
             "rut",
             "fecha_nacimiento",
             "telefono",
@@ -219,7 +218,6 @@ class Ingresar_Arbitros(forms.ModelForm):
         ]
         labels = {
             "nombre": "NOMBRE",
-            "apellido": "APELLIDO",
             "rut": "RUT",
             "fecha_nacimiento": "FECHA DE NACIMIENTO",
             "telefono": "TELEFONO",
@@ -240,9 +238,6 @@ class Ingresar_Arbitros(forms.ModelForm):
 
     def clean_nombre(self):
         return validate_person_name(self.cleaned_data.get("nombre"), "un nombre")
-
-    def clean_apellido(self):
-        return validate_person_name(self.cleaned_data.get("apellido"), "un apellido")
 
     def clean_rut(self):
         return validate_rut(
@@ -315,6 +310,7 @@ class Ingresar_Equipos(forms.ModelForm):
         fields = [
             "nombre",
             "fecha_creacion",
+            "logo",
             "nombre_entrenador",
             "nombre_dueno",
             "liga",
@@ -322,9 +318,13 @@ class Ingresar_Equipos(forms.ModelForm):
         labels = {
             "nombre": "NOMBRE DEL EQUIPO",
             "fecha_creacion": "FECHA DE CREACIÓN",
+            "logo": "LOGO",
             "nombre_entrenador": "NOMBRE DEL ENTRENADOR",
             "nombre_dueno": "NOMBRE DEL DUEÑO",
             "liga": "LIGA",
+        }
+        widgets = {
+            "logo": forms.FileInput(attrs={"class": "form-control"}),
         }
 
     def clean_nombre(self):
@@ -348,6 +348,14 @@ class Ingresar_Equipos(forms.ModelForm):
             "La fecha de creacion",
             required=True,
             max_age_years=150,
+        )
+
+    def clean_logo(self):
+        return validate_file_upload(
+            self.cleaned_data.get("logo"),
+            allowed_extensions=["jpg", "jpeg", "png", "webp"],
+            max_size_mb=5,
+            field_name="El logo",
         )
 
     def clean_nombre_entrenador(self):
@@ -822,6 +830,69 @@ class Ingresar_Canchas(forms.ModelForm):
 
         return cleaned_data
 
+
+class Ingresar_Torneo(forms.ModelForm):
+    equipos = forms.ModelMultipleChoiceField(
+        queryset=Equipo.objects.select_related("liga").order_by("liga__nombre", "nombre"),
+        widget=forms.MultipleHiddenInput,
+        label="EQUIPOS PARTICIPANTES",
+    )
+
+    class Meta:
+        model = Torneo
+        fields = [
+            "nombre",
+            "fecha_inicio",
+            "fecha_fin",
+            "equipos",
+        ]
+        labels = {
+            "nombre": "NOMBRE DEL TORNEO",
+            "fecha_inicio": "FECHA DE INICIO",
+            "fecha_fin": "FECHA DE TERMINO",
+        }
+        widgets = {
+            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
+            "fecha_fin": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def clean_nombre(self):
+        nombre = validate_text(
+            self.cleaned_data.get("nombre"),
+            "nombre del torneo",
+            max_length=100,
+            allowed_symbols=r"\-\/",
+        )
+        return validate_unique_value(
+            Torneo,
+            "nombre",
+            nombre,
+            instance=self.instance,
+            message="Ya existe un torneo con ese nombre.",
+            iexact=True,
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_inicio = cleaned_data.get("fecha_inicio")
+        fecha_fin = cleaned_data.get("fecha_fin")
+        equipos = cleaned_data.get("equipos")
+
+        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+            self.add_error(
+                "fecha_fin",
+                "La fecha de termino debe ser igual o posterior a la fecha de inicio."
+            )
+
+        if equipos is not None and equipos.count() < 2:
+            self.add_error(
+                "equipos",
+                "Un torneo formato liga debe tener al menos dos equipos."
+            )
+
+        return cleaned_data
+
+
 # PARTIDO
 class Ingresar_Partido(forms.ModelForm):
 
@@ -830,6 +901,7 @@ class Ingresar_Partido(forms.ModelForm):
         model = Partido
 
         fields = [
+            'torneo',
             'equipo_local',
             'equipo_visitante',
             'cancha',
@@ -841,6 +913,7 @@ class Ingresar_Partido(forms.ModelForm):
         ]
 
         labels = {
+            'torneo': 'TORNEO',
             'equipo_local': 'EQUIPO LOCAL',
             'equipo_visitante': 'EQUIPO VISITANTE',
             'cancha': 'CANCHA',
@@ -887,6 +960,68 @@ class Ingresar_Partido(forms.ModelForm):
                 }
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        torneo = None
+
+        if self.is_bound:
+            torneo_id = self.data.get(self.add_prefix("torneo"))
+
+            if torneo_id:
+                try:
+                    torneo = Torneo.objects.get(pk=torneo_id)
+                except (Torneo.DoesNotExist, ValueError):
+                    torneo = None
+        elif self.instance and self.instance.pk:
+            torneo = self.instance.torneo
+
+        if torneo:
+            equipos = torneo.equipos.order_by("nombre")
+            self.fields["equipo_local"].queryset = equipos
+            self.fields["equipo_visitante"].queryset = equipos
+
+        self.fields["torneo"].queryset = Torneo.objects.prefetch_related("equipos").all()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        torneo = cleaned_data.get("torneo")
+        equipo_local = cleaned_data.get("equipo_local")
+        equipo_visitante = cleaned_data.get("equipo_visitante")
+        fecha = cleaned_data.get("fecha")
+
+        if not torneo:
+            self.add_error("torneo", "Debes seleccionar un torneo.")
+            return cleaned_data
+
+        if equipo_local and equipo_visitante and equipo_local == equipo_visitante:
+            self.add_error(
+                "equipo_visitante",
+                "El equipo visitante debe ser distinto al equipo local."
+            )
+
+        if fecha and (fecha < torneo.fecha_inicio or fecha > torneo.fecha_fin):
+            self.add_error(
+                "fecha",
+                "La fecha del partido debe estar dentro del periodo del torneo."
+            )
+
+        equipos_torneo = torneo.equipos.all()
+
+        if equipo_local and not equipos_torneo.filter(pk=equipo_local.pk).exists():
+            self.add_error(
+                "equipo_local",
+                "El equipo local no pertenece al torneo seleccionado."
+            )
+
+        if equipo_visitante and not equipos_torneo.filter(pk=equipo_visitante.pk).exists():
+            self.add_error(
+                "equipo_visitante",
+                "El equipo visitante no pertenece al torneo seleccionado."
+            )
+
+        return cleaned_data
 
 class TarjetaPartidoForm(forms.ModelForm):
 

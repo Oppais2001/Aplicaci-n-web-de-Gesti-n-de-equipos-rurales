@@ -5,7 +5,7 @@ from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Dirigente, Equipo, Jugador, Traspaso, Liga, RedSocial, Arbitro, Cancha, Partido
+from .models import Dirigente, Equipo, Jugador, Traspaso, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo
 from .forms import (
     Editar_Dirigentes,
     Editar_Traspaso,
@@ -19,6 +19,7 @@ from .forms import (
     Ingresar_Arbitros,
     Ingresar_Canchas,
     Ingresar_Partido,
+    Ingresar_Torneo,
     TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
@@ -64,7 +65,7 @@ def about(request):
 @admin_required
 def ingresar_equipo(request):
     if request.method == "POST":
-        form = Ingresar_Equipos(request.POST)
+        form = Ingresar_Equipos(request.POST, request.FILES)
         redes_formset = EquipoRedSocialFormSet(
             request.POST,
             prefix="redes"
@@ -178,7 +179,7 @@ def editar_equipo(request, id_equipo):
     equipo = get_object_or_404(Equipo, id = id_equipo)
 
     if request.method == 'POST':
-        form = Ingresar_Equipos(request.POST, instance=equipo)
+        form = Ingresar_Equipos(request.POST, request.FILES, instance=equipo)
         redes_formset = EquipoRedSocialFormSet(
             request.POST,
             instance=equipo,
@@ -784,6 +785,185 @@ def detalle_cancha(request, id_cancha):
         }
     )
     
+# TORNEOS
+def calcular_tabla_posiciones(torneo):
+    tabla = {
+        equipo.id: {
+            "equipo": equipo,
+            "pj": 0,
+            "pg": 0,
+            "pe": 0,
+            "pp": 0,
+            "gf": 0,
+            "gc": 0,
+            "dg": 0,
+            "pts": 0,
+        }
+        for equipo in torneo.equipos.order_by("nombre")
+    }
+
+    partidos = torneo.partidos.select_related(
+        "equipo_local",
+        "equipo_visitante"
+    ).filter(
+        goles_local__isnull=False,
+        goles_visitante__isnull=False
+    )
+
+    for partido in partidos:
+        local = tabla.get(partido.equipo_local_id)
+        visitante = tabla.get(partido.equipo_visitante_id)
+
+        if not local or not visitante:
+            continue
+
+        local["pj"] += 1
+        visitante["pj"] += 1
+        local["gf"] += partido.goles_local
+        local["gc"] += partido.goles_visitante
+        visitante["gf"] += partido.goles_visitante
+        visitante["gc"] += partido.goles_local
+
+        if partido.goles_local > partido.goles_visitante:
+            local["pg"] += 1
+            local["pts"] += 3
+            visitante["pp"] += 1
+        elif partido.goles_local < partido.goles_visitante:
+            visitante["pg"] += 1
+            visitante["pts"] += 3
+            local["pp"] += 1
+        else:
+            local["pe"] += 1
+            visitante["pe"] += 1
+            local["pts"] += 1
+            visitante["pts"] += 1
+
+    for fila in tabla.values():
+        fila["dg"] = fila["gf"] - fila["gc"]
+
+    return sorted(
+        tabla.values(),
+        key=lambda fila: (
+            -fila["pts"],
+            -fila["dg"],
+            -fila["gf"],
+            fila["equipo"].nombre.lower()
+        )
+    )
+
+
+def datos_selector_equipos_torneo():
+    return {
+        "ligas": Liga.objects.order_by("nombre"),
+        "equipos_disponibles": Equipo.objects.select_related("liga").order_by(
+            "liga__nombre",
+            "nombre"
+        )
+    }
+
+
+@admin_required
+def ingresar_torneo(request):
+    if request.method == "POST":
+        form = Ingresar_Torneo(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect("torneos")
+    else:
+        form = Ingresar_Torneo()
+
+    context = {
+        "form": form
+    }
+    context.update(datos_selector_equipos_torneo())
+
+    return render(request, "torneos/ingresar_torneo.html", context)
+
+
+@usuario_autorizado_required
+def lista_torneos(request):
+    buscar = request.GET.get("buscar")
+    torneos = Torneo.objects.prefetch_related("equipos")
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        torneos = torneos.filter(equipos=dirigente.equipo)
+
+    torneos_totales = torneos
+
+    if buscar:
+        torneos = torneos.filter(nombre__icontains=buscar)
+
+    torneos = torneos.annotate(
+        total_partidos=Count("partidos", distinct=True),
+        total_equipos_anotado=Count("equipos", distinct=True)
+    ).order_by("-fecha_inicio", "nombre")
+
+    return render(request, "torneos/torneos.html", {
+        "torneos": torneos,
+        "hay_torneos": torneos_totales.exists()
+    })
+
+
+@usuario_autorizado_required
+def detalle_torneo(request, id_torneo):
+    torneo = get_object_or_404(
+        Torneo.objects.prefetch_related("equipos").prefetch_related("partidos"),
+        id=id_torneo
+    )
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+
+        if not torneo.equipos.filter(id=dirigente.equipo_id).exists():
+            return HttpResponseForbidden("Solo puedes ver torneos de tu equipo.")
+
+    tabla_posiciones = calcular_tabla_posiciones(torneo)
+    partidos = torneo.partidos.select_related(
+        "equipo_local",
+        "equipo_visitante",
+        "cancha"
+    ).order_by("fecha", "hora")
+
+    return render(request, "torneos/detalle_torneo.html", {
+        "torneo": torneo,
+        "tabla_posiciones": tabla_posiciones,
+        "partidos": partidos
+    })
+
+
+@admin_required
+def editar_torneo(request, id_torneo):
+    torneo = get_object_or_404(Torneo, id=id_torneo)
+
+    if request.method == "POST":
+        form = Ingresar_Torneo(request.POST, instance=torneo)
+
+        if form.is_valid():
+            form.save()
+            return redirect("torneos")
+    else:
+        form = Ingresar_Torneo(instance=torneo)
+
+    context = {
+        "form": form,
+        "torneo": torneo
+    }
+    context.update(datos_selector_equipos_torneo())
+
+    return render(request, "torneos/editar_torneo.html", context)
+
+
+@admin_required
+def eliminar_torneo(request, id_torneo):
+    torneo = get_object_or_404(Torneo, id=id_torneo)
+    torneo.delete()
+
+    return redirect("torneos")
+
+def descargar_tabla_imagen():
+    pass
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
@@ -836,6 +1016,7 @@ def ingresar_partido(request):
 def lista_partidos(request):
     buscar = request.GET.get('buscar')
     partidos = Partido.objects.select_related(
+        'torneo',
         'equipo_local',
         'equipo_visitante',
         'cancha'
@@ -854,6 +1035,7 @@ def lista_partidos(request):
         filtros = (
             Q(equipo_local__nombre__icontains=buscar)
             | Q(equipo_visitante__nombre__icontains=buscar)
+            | Q(torneo__nombre__icontains=buscar)
             | Q(cancha__nombre__icontains=buscar)
             | Q(descripcion__icontains=buscar)
         )

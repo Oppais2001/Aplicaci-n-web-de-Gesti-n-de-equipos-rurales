@@ -10,6 +10,7 @@
             <div class="card">
                 <h2>Datos actuales</h2>
                 <br>
+                <p><strong>Torneo:</strong> {{ partido.torneo|default:"-" }}</p>
                 <p><strong>Local:</strong> {{ partido.equipo_local }}</p>
                 <p><strong>Visitante:</strong> {{ partido.equipo_visitante }}</p>
                 <p><strong>Cancha:</strong> {{ partido.cancha|default:"-" }}</p>

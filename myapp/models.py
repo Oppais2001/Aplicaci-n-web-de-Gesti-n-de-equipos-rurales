@@ -1,6 +1,8 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from .utils import DIAS, MESES
 
 class Liga(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -69,6 +71,11 @@ class Equipo(models.Model):
         null=True,
         blank=True
     )
+    logo = models.ImageField(
+        upload_to='equipos/logos/',
+        null=True,
+        blank=True
+    )
     nombre_entrenador = models.CharField(max_length=100)
     nombre_dueno = models.CharField(max_length=100)
     liga = models.ForeignKey(Liga, on_delete=models.CASCADE)
@@ -79,7 +86,11 @@ class Equipo(models.Model):
     )
 
     def __str__(self):
-        return self.nombre
+        palabras_repetidas = ['Club', 'Deportivo']
+        texto = self.nombre
+        for palabra in palabras_repetidas: 
+            texto = texto.replace(palabra, "")
+        return texto
     
     def cantidad_jugadores(self):
         return self.jugadores.count()
@@ -328,7 +339,6 @@ class Arbitro(models.Model):
     ]
 
     nombre = models.CharField(max_length=100)
-    apellido = models.CharField(max_length=100)
     rut = models.CharField(max_length=12, unique=True)
     fecha_nacimiento = models.DateField()
     telefono = models.CharField(max_length=20)
@@ -360,7 +370,7 @@ class Arbitro(models.Model):
     )
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
+        return f"{self.nombre}"
 
     def partidos_arbitrados(self):
         return self.partidos.count()
@@ -486,6 +496,34 @@ class Cancha(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Torneo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    equipos = models.ManyToManyField(
+        Equipo,
+        related_name="torneos"
+    )
+
+    class Meta:
+        ordering = ["-fecha_inicio", "nombre"]
+
+    def clean(self):
+        if self.fecha_inicio and self.fecha_fin and self.fecha_inicio > self.fecha_fin:
+            raise ValidationError("La fecha de inicio no puede ser posterior a la fecha de fin.")
+
+    @property
+    def total_equipos(self):
+        if not self.pk:
+            return 0
+        return self.equipos.count()
+
+    def __str__(self):
+        return self.nombre
+
+
 class Partido(models.Model):
     MIN_ANIO_PARTIDO = 1900
     MAX_GOLES_POR_EQUIPO = 99
@@ -496,6 +534,13 @@ class Partido(models.Model):
         Equipo,
         on_delete=models.CASCADE,
         related_name="partidos_local"
+    )
+
+    torneo = models.ForeignKey(
+        Torneo,
+        on_delete=models.PROTECT,
+        related_name="partidos",
+        null=True
     )
 
     equipo_visitante = models.ForeignKey(
@@ -528,7 +573,15 @@ class Partido(models.Model):
     descripcion = models.TextField(
         blank=True
     )
-    
+    @property
+    def resumen_partido(self):
+        return f"{self.equipo_local} {self.goles_local} V/S {self.equipo_visitante} {self.goles_visitante}"
+
+    @property
+    def fecha_hora(self):
+        dia = DIAS[self.fecha.weekday()]
+        mes = MESES[self.fecha.month]
+        return f"{dia} {self.fecha.day:02d} {mes}, {self.hora.strftime('%H:%M')}"
     
 class TarjetaPartido(models.Model):
 

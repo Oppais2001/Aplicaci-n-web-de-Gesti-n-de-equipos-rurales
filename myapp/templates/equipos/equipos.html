@@ -15,52 +15,50 @@
             {% if not equipos %}
             <p class="empty-message">No hay datos para mostrar.</p>
             {% else %}
-            <table>
-                <tr class="encabezado">
-                    <th>
-                        Nombre
-                    </th>
-                    <th>
-                        Liga
-                    </th>
-                    <th>
-                        Fecha creación
-                    </th>
-                    <th>
-                        Dueño
-                    </th>
-                    <th>
-                        Entrenador
-                    </th>
-                    <th>
-                        N° Jugadores
-                    </th>
-                    <th>
-                        Redes Sociales
-                    </th>
-                    <th>
-                        Acciones
-                    </th>
-                </tr>
+            <table class="tabla-responsive">
+                <thead>
+                    <tr class="encabezado">
+                        <th>
+                            Club
+                        </th>
+                        <th>
+                            N° Jugadores
+                        </th>
+                        <th>
+                            Redes Sociales
+                        </th>
+                        <th>
+                            Acciones
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
                 {% for equipo in equipos %}
                     <tr>
                         <td>
-                            {{equipo.nombre}}
+                            <div class="equipo-info">
+
+                                {% if equipo.logo %}
+                                    <img class="equipo-logo"
+                                        src="{{ equipo.logo.url }}"
+                                        alt="{{ equipo.nombre }}">
+                                {% else %}
+                                    <div class="equipo-logo logo-vacio">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                    </div>
+                                {% endif %}
+
+                                <div class="equipo-texto">
+                                    <span class="equipo-nombre">{{ equipo.nombre }}</span>
+                                    <span class="equipo-liga">
+                                        {{ equipo.liga.nombre }}
+                                    </span>
+                                </div>
+
+                            </div>
                         </td>
-                        <td>
-                            {{equipo.liga}}
-                        </td>
-                        <td>
-                            {{equipo.fecha_creacion}}
-                        </td>
-                        <td>
-                            {{equipo.nombre_dueno}}
-                        </td>
-                        <td>
-                            {{equipo.nombre_entrenador}}
-                        </td>
-                        <td>
-                            {{equipo.cantidad_jugadores}}
+                        <td data-label="N° Jugadores">
+                            {{equipo.cantidad_jugadores}} 
                         </td>
                         <td>
                             {% for red in equipo.redes.all %}
@@ -87,6 +85,7 @@
                         </td>
                     </tr>
                 {% endfor %}
+                </tbody>
             </table>
         {% endif %}
         </div>
@@ -109,5 +108,66 @@ function confirmarEliminar(equipo) {
     });
 }
 </script>
+<style>
+    .equipo-info{
 
+        display:flex;
+        align-items:center;
+        gap:14px;
+    }
+
+    .equipo-logo{
+
+        width:58px;
+        height:58px;
+
+        object-fit:cover;
+
+        border-radius:50%;
+
+        border:2px solid rgba(255,215,0,.4);
+
+        background:#2a2a2a;
+
+        padding:4px;
+
+        transition:.25s;
+    }
+
+    tr:hover .equipo-logo{
+
+        border-color:gold;
+        transform:scale(1.08);
+    }
+
+    .logo-vacio{
+
+        display:flex;
+        justify-content:center;
+        align-items:center;
+
+        color:gold;
+        font-size:1.5rem;
+    }
+
+    .equipo-texto{
+
+        display:flex;
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .equipo-nombre{
+
+        color:gold;
+        font-size:1.1rem;
+        font-weight:bold;
+    }
+
+    .equipo-liga{
+
+        color:#bfbfbf;
+        font-size:.85rem;
+    }
+</style>
 {% endblock %}

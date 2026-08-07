@@ -39,124 +39,126 @@
 
             <br>
 
-            <table>
+            <table class="tabla-responsive">
+                <thead>
+                    <tr class="encabezado">
 
-                <tr class="encabezado">
+                        <th>Nombre</th>
 
-                    <th>Nombre</th>
+                        <th>RUT</th>
 
-                    <th>RUT</th>
+                        <th>Teléfono</th>
 
-                    <th>Teléfono</th>
+                        <th>Correo</th>
 
-                    <th>Correo</th>
+                        <th>Categoría</th>
 
-                    <th>Categoría</th>
+                        <th>Estado</th>
 
-                    <th>Estado</th>
+                        {% if user.is_staff %}
+                            <th>Acciones</th>
+                        {% endif %}
 
-                    {% if user.is_staff %}
-                        <th>Acciones</th>
-                    {% endif %}
-
-                </tr>
+                    </tr>
+                </thead>
 
                 {% for arbitro in arbitros %}
+                <tbody>
+                    <tr>
 
-                <tr>
+                        <td>
+                            {{ arbitro.nombre }}
+                        </td>
 
-                    <td>
-                        {{ arbitro.nombre }}
-                    </td>
+                        <td>
+                            {{ arbitro.rut_formateado }}
+                        </td>
 
-                    <td>
-                        {{ arbitro.rut_formateado }}
-                    </td>
+                        <td>
 
-                    <td>
+                            {% if arbitro.telefono %}
+                                {{ arbitro.telefono }}
+                            {% else %}
+                                -
+                            {% endif %}
 
-                        {% if arbitro.telefono %}
-                            {{ arbitro.telefono }}
-                        {% else %}
-                            -
+                        </td>
+
+                        <td>
+
+                            {% if arbitro.correo %}
+                                {{ arbitro.correo }}
+                            {% else %}
+                                -
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if arbitro.categoria %}
+                                {{ arbitro.categoria }}
+                            {% else %}
+                                -
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if arbitro.estado %}
+                                <span style="color:green;font-weight:bold;">
+                                    Activo
+                                </span>
+                            {% else %}
+                                <span style="color:red;font-weight:bold;">
+                                    Inactivo
+                                </span>
+                            {% endif %}
+
+                        </td>
+
+                        {% if user.is_staff %}
+
+                        <td>
+
+                            <!-- EDITAR -->
+                            <button
+                                class="btn editar"
+                                title="Editar"
+
+                                onclick="
+                                    window.location='/arbitros/editar/{{ arbitro.id }}'
+                                "
+                            >
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <!-- ELIMINAR -->
+                            <button
+
+                                class="btn eliminar"
+
+                                title="Eliminar"
+
+                                onclick="
+                                    confirmarEliminar(
+                                        '{{ arbitro.nombre }}',
+                                        '{{ arbitro.id }}'
+                                    )
+                                "
+                            >
+
+                                <i class="fa-solid fa-trash"></i>
+
+                            </button>
+
+                        </td>
+
                         {% endif %}
 
-                    </td>
-
-                    <td>
-
-                        {% if arbitro.correo %}
-                            {{ arbitro.correo }}
-                        {% else %}
-                            -
-                        {% endif %}
-
-                    </td>
-
-                    <td>
-
-                        {% if arbitro.categoria %}
-                            {{ arbitro.categoria }}
-                        {% else %}
-                            -
-                        {% endif %}
-
-                    </td>
-
-                    <td>
-
-                        {% if arbitro.estado %}
-                            <span style="color:green;font-weight:bold;">
-                                Activo
-                            </span>
-                        {% else %}
-                            <span style="color:red;font-weight:bold;">
-                                Inactivo
-                            </span>
-                        {% endif %}
-
-                    </td>
-
-                    {% if user.is_staff %}
-
-                    <td>
-
-                        <!-- EDITAR -->
-                        <button
-                            class="btn editar"
-                            title="Editar"
-
-                            onclick="
-                                window.location='/arbitros/editar/{{ arbitro.id }}'
-                            "
-                        >
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-
-                        <!-- ELIMINAR -->
-                        <button
-
-                            class="btn eliminar"
-
-                            title="Eliminar"
-
-                            onclick="
-                                confirmarEliminar(
-                                    '{{ arbitro.nombre }}',
-                                    '{{ arbitro.id }}'
-                                )
-                            "
-                        >
-
-                            <i class="fa-solid fa-trash"></i>
-
-                        </button>
-
-                    </td>
-
-                    {% endif %}
-
-                </tr>
+                    </tr>
+                </tbody>
 
                 {% endfor %}
 
