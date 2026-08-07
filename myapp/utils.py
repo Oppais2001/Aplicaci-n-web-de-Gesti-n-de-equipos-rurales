@@ -434,7 +434,7 @@ def validate_decimal_range(
 ANCHO = 900
 ALTO = 700
 
-def crear_img_tabla(torneo):
+def crear_img_tabla(torneo, tabla_posiciones):
     imagen = Image.new(
         "RGB",
         (ANCHO, ALTO),
@@ -531,7 +531,8 @@ def crear_img_tabla(torneo):
         )
 
         y += 45
-        buffer = BytesIO()
+    
+    buffer = BytesIO()
 
     imagen.save(
         buffer,

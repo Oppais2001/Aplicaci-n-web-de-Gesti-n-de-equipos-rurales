@@ -23,6 +23,7 @@ from .forms import (
     TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
+from .utils import crear_img_tabla
 
 # HOME Y ABOUT
 @usuario_autorizado_required
@@ -962,8 +963,13 @@ def eliminar_torneo(request, id_torneo):
 
     return redirect("torneos")
 
-def descargar_tabla_imagen():
-    pass
+def descargar_tabla_imagen(request, torneo_id):
+    torneo = get_object_or_404(
+        Torneo.objects.prefetch_related("equipos").prefetch_related("partidos"),
+        id=torneo_id)
+    tabla_posiciones = calcular_tabla_posiciones(torneo)
+    return crear_img_tabla(torneo, tabla_posiciones)
+    
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
