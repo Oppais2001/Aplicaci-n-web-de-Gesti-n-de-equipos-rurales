@@ -444,12 +444,12 @@ def crear_img_tabla(torneo, tabla_posiciones):
     draw = ImageDraw.Draw(imagen)
 
     fuente_titulo = ImageFont.truetype(
-        "C:/Windows/Fonts/arialbd.ttf",
+        "myapp/static/fonts/arialbd.ttf",
         38
     )
 
     fuente_normal = ImageFont.truetype(
-        "C:/Windows/Fonts/arial.ttf",
+        "myapp/fonts/arial.ttf",
         24
     )
 
