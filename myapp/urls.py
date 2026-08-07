@@ -49,7 +49,19 @@ urlpatterns = [
     path('partidos/ingresar_partido', views.ingresar_partido, name='ingresar_partido'),
     path('partidos/editar/<int:id>/', views.editar_partido, name='editar_partido'),
     path('partidos/eliminar/<int:id>/', views.eliminar_partido, name='eliminar_partido'),
+    path('partidos/fechas', views.lista_fechas, name='partidos_fechas'),
+    path('partidos/fechas/crear', views.crear_fecha, name='partidos_crear_fecha'),
+    path('partidos/fechas/editar/<int:id>/', views.editar_fecha, name='partidos_editar_fecha'),
+    path('partidos/fechas/eliminar/<int:id>/', views.eliminar_fecha, name='partidos_eliminar_fecha'),
+    path('fechas', views.lista_fechas, name='fechas'),
+    path('fechas/crear', views.crear_fecha, name='crear_fecha'),
+    path('fechas/editar/<int:id>/', views.editar_fecha, name='editar_fecha'),
+    path('fechas/eliminar/<int:id>/', views.eliminar_fecha, name='eliminar_fecha'),
     path("torneos/<int:torneo_id>/tabla/imagen/",views.descargar_tabla_imagen, name="descargar_tabla_imagen"),
+    path("torneos/<int:torneo_id>/fechas/imagen/", views.descargar_fechas_imagen, name="descargar_fechas_imagen"),
+    path("torneos/<int:torneo_id>/partidos/imagen/", views.descargar_partidos_imagen, name="descargar_partidos_imagen"),
+    path("equipos/<int:equipo_id>/imagen/", views.descargar_detalle_equipo, name="crear_imagen_detalle_equipo"),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

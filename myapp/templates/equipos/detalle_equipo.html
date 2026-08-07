@@ -153,14 +153,53 @@
 
                 </table>
             </div>
-
+        <br>
+        <div class="acciones-tabla">
+            <a href="{% url 'crear_imagen_detalle_equipo' equipo.id %}" class="btn descargar">
+                <i class="fa-solid fa-download"></i>
+                Descargar Planilla Jugadores
+            </a>
+        </div>
         {% endif %}
 
     </div>
-
 </div>
 
 <style>
+    .acciones-tabla{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:20px;
+    }
+
+    .btn.descargar{
+
+        display:flex;
+        align-items:center;
+        gap:.5rem;
+
+        padding:10px 18px;
+
+        background:gold;
+        color:#202020;
+
+        border-radius:8px;
+
+        text-decoration:none;
+
+        font-weight:bold;
+
+        transition:.25s;
+    }
+
+    .btn.descargar:hover{
+
+        background:brown;
+        color:white;
+
+        transform:translateY(-2px);
+    }
     .equipo-header-card {
         display: flex;
         align-items: center;

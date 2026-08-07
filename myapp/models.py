@@ -76,8 +76,13 @@ class Equipo(models.Model):
         null=True,
         blank=True
     )
-    nombre_entrenador = models.CharField(max_length=100)
-    nombre_dueno = models.CharField(max_length=100)
+    nombre_entrenador = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True)
+    nombre_dueno = models.CharField(max_length=100, 
+        blank=True,
+        null=True)
     liga = models.ForeignKey(Liga, on_delete=models.CASCADE)
     redes_sociales = models.CharField(
         max_length=100,
@@ -86,7 +91,7 @@ class Equipo(models.Model):
     )
 
     def __str__(self):
-        palabras_repetidas = ['Club', 'Deportivo']
+        palabras_repetidas = ['El','Las','Club', 'Deportivo', 'Serie']
         texto = self.nombre
         for palabra in palabras_repetidas: 
             texto = texto.replace(palabra, "")
@@ -573,15 +578,29 @@ class Partido(models.Model):
     descripcion = models.TextField(
         blank=True
     )
+    
     @property
     def resumen_partido(self):
-        return f"{self.equipo_local} {self.goles_local} V/S {self.equipo_visitante} {self.goles_visitante}"
+        if self.esta_jugado:
+            return f"{self.equipo_local} {self.goles_local} - {self.goles_visitante} {self.equipo_visitante}"
+        return f"{self.equipo_local} vs {self.equipo_visitante}"
+
+    def __str__(self):
+        return f"{self.equipo_local} vs {self.equipo_visitante} - {self.fecha.strftime('%d/%m/%Y')} {self.hora.strftime('%H:%M')}"
 
     @property
     def fecha_hora(self):
         dia = DIAS[self.fecha.weekday()]
         mes = MESES[self.fecha.month]
         return f"{dia} {self.fecha.day:02d} {mes}, {self.hora.strftime('%H:%M')}"
+
+    @property
+    def esta_jugado(self):
+        return self.goles_local is not None and self.goles_visitante is not None
+
+    @property
+    def estado(self):
+        return "Jugado" if self.esta_jugado else "Programado"
     
 class TarjetaPartido(models.Model):
 

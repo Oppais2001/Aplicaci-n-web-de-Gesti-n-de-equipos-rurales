@@ -3,99 +3,51 @@
 {% block content %}
 
 <div class="ingresar">
-
     <div>
-        <h1>
-            Ingresar Partido
-        </h1>
+        <h1>Registrar Resultado</h1>
     </div>
 
-
     <div class="container-forms-card">
-
-
         <div class="card form-container">
-
-
             <form method="POST" class="form-registro">
-
                 {% csrf_token %}
-
-
-                {{ form }}
-
-
+                {{ form.as_p }}
                 {% include 'includes/tarjetas_formset.html' %}
-
-
-                <button>
-                    Guardar
-                </button>
-
-
+                <button type="submit">Guardar</button>
             </form>
-
-
         </div>
 
-
-
         <div>
-
             <div class="card">
-
-                <h2>
-                    Registro del partido
-                </h2>
-
+                <h2>Resultado del partido</h2>
                 <p>
-                    Ingresa los datos generales del encuentro
-                    y agrega las tarjetas registradas.
+                    Selecciona una fecha programada y completa el marcador final.
                 </p>
-
-            </div>
-
-
-            <br>
-
-
-            <div class="card">
-
-                <h2>
-                    Tarjetas
-                </h2>
-
-                <p>
-                    Puedes agregar amarillas y rojas para jugadores
-                    en cancha, banca o cuerpo técnico.
-                </p>
-
             </div>
 
             <br>
+
             <div class="card">
+                <h2>Tarjetas</h2>
+                <p>
+                    Puedes agregar amarillas y rojas para jugadores en cancha,
+                    banca o cuerpo tecnico.
+                </p>
+            </div>
 
-                <h2>
-                    Límite de tarjetas rojas
-                </h2>
+            <br>
 
+            <div class="card">
+                <h2>Limite de tarjetas rojas</h2>
                 <p>
                     Un equipo no puede superar
                     <strong>4 rojas</strong> en jugadores de cancha,
                     <strong>7 rojas</strong> en banca, ni
-                    <strong>5 rojas</strong> en cuerpo técnico.
+                    <strong>5 rojas</strong> en cuerpo tecnico.
                 </p>
-
             </div>
-
-
         </div>
-
-
     </div>
-
-
 </div>
-
 
 {% endblock %}

@@ -18,12 +18,14 @@ from .forms import (
     Realizar_Traspasos,
     Ingresar_Arbitros,
     Ingresar_Canchas,
-    Ingresar_Partido,
+    Editar_Resultado_Partido,
+    Programar_Partido,
+    Registrar_Resultado_Partido,
     Ingresar_Torneo,
     TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
-from .utils import crear_img_tabla
+from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_imagen_detalle_equipo
 
 # HOME Y ABOUT
 @usuario_autorizado_required
@@ -921,16 +923,25 @@ def detalle_torneo(request, id_torneo):
             return HttpResponseForbidden("Solo puedes ver torneos de tu equipo.")
 
     tabla_posiciones = calcular_tabla_posiciones(torneo)
-    partidos = torneo.partidos.select_related(
+    partidos_programados = torneo.partidos.filter(goles_local__isnull=True, goles_visitante__isnull=True).select_related(
         "equipo_local",
         "equipo_visitante",
         "cancha"
     ).order_by("fecha", "hora")
+    partidos_jugados = torneo.partidos.filter(goles_local__isnull=False, goles_visitante__isnull=False).select_related(
+        "equipo_local",
+        "equipo_visitante",
+        "cancha"
+    ).order_by("fecha", "hora")
+    
+    print(partidos_programados)
+    print(partidos_jugados)
 
     return render(request, "torneos/detalle_torneo.html", {
         "torneo": torneo,
         "tabla_posiciones": tabla_posiciones,
-        "partidos": partidos
+        "partidos_programados": partidos_programados,
+        "partidos_jugados":partidos_jugados
     })
 
 
@@ -969,44 +980,68 @@ def descargar_tabla_imagen(request, torneo_id):
         id=torneo_id)
     tabla_posiciones = calcular_tabla_posiciones(torneo)
     return crear_img_tabla(torneo, tabla_posiciones)
-    
+
+def descargar_partidos_imagen(request, torneo_id):
+    torneo = get_object_or_404(
+        Torneo.objects.prefetch_related("partidos"),
+        id=torneo_id
+    )
+    partidos = torneo.partidos.select_related(
+        "equipo_local",
+        "equipo_visitante",
+        "cancha"
+    ).order_by("fecha", "hora")
+
+    return crear_img_partidos(torneo, partidos)
+
+def descargar_fechas_imagen(request, torneo_id):
+    torneo = get_object_or_404(
+        Torneo.objects.prefetch_related("partidos"),
+        id=torneo_id
+    )
+    partidos = torneo.partidos.select_related(
+        "equipo_local",
+        "equipo_visitante",
+        "cancha"
+    ).order_by("fecha", "hora")
+
+    return crear_img_fechas(torneo, partidos)
+
+def descargar_detalle_equipo(request, equipo_id):
+    equipo = get_object_or_404(
+        Equipo.objects.prefetch_related("jugadores"),
+        id=equipo_id
+    )
+    jugadores = equipo.jugadores.all().order_by(
+        "nombre"
+    )
+    return crear_imagen_detalle_equipo(equipo, jugadores)
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
-
     if request.method == "POST":
+        form = Registrar_Resultado_Partido(request.POST)
+        partido = None
 
-        form = Ingresar_Partido(request.POST)
+        if form.is_valid():
+            partido = form.cleaned_data["partido"]
 
         tarjetas_formset = TarjetaPartidoFormSet(
             request.POST,
+            instance=partido,
             prefix="tarjetas"
         )
 
-
         if form.is_valid() and tarjetas_formset.is_valid():
-
             partido = form.save()
-
-
             tarjetas_formset.instance = partido
-
             tarjetas_formset.save()
-
-
             return redirect('partidos')
-
-
     else:
-
-        form = Ingresar_Partido()
-
-
+        form = Registrar_Resultado_Partido()
         tarjetas_formset = TarjetaPartidoFormSet(
             prefix="tarjetas"
         )
-
-
 
     return render(
         request,
@@ -1026,6 +1061,9 @@ def lista_partidos(request):
         'equipo_local',
         'equipo_visitante',
         'cancha'
+    ).filter(
+        goles_local__isnull=False,
+        goles_visitante__isnull=False
     )
 
     if not es_administrador(request.user):
@@ -1055,6 +1093,8 @@ def lista_partidos(request):
 
         partidos = partidos.filter(filtros)
 
+    partidos = partidos.order_by("-fecha", "-hora")
+
     return render(request, "partidos/partidos.html", {
         "partidos": partidos,
         "hay_partidos": partidos_totales.exists()
@@ -1066,7 +1106,7 @@ def editar_partido(request, id):
     partido = get_object_or_404(Partido, id=id)
 
     if request.method == 'POST':
-        form = Ingresar_Partido(request.POST, instance=partido)
+        form = Editar_Resultado_Partido(request.POST, instance=partido)
         tarjetas_formset = TarjetaPartidoFormSet(
             request.POST,
             instance=partido,
@@ -1079,7 +1119,7 @@ def editar_partido(request, id):
             return redirect('partidos')
 
     else:
-        form = Ingresar_Partido(instance=partido)
+        form = Editar_Resultado_Partido(instance=partido)
         tarjetas_formset = TarjetaPartidoFormSet(
             instance=partido,
             prefix="tarjetas"
@@ -1093,6 +1133,92 @@ def editar_partido(request, id):
 @admin_required
 @require_POST
 def eliminar_partido(request, id):
+    partido = get_object_or_404(Partido, id=id)
+    partido.tarjetas.all().delete()
+    partido.goles_local = None
+    partido.goles_visitante = None
+    partido.save()
+
+    return JsonResponse({
+        'success': True
+    })
+
+
+@usuario_autorizado_required
+def lista_fechas(request):
+    buscar = request.GET.get('buscar')
+    fechas = Partido.objects.filter(goles_local__isnull=True, goles_visitante__isnull=True).select_related(
+        'torneo',
+        'equipo_local',
+        'equipo_visitante',
+        'cancha'
+    )
+
+    if not es_administrador(request.user):
+        dirigente = obtener_dirigente(request.user)
+        fechas = fechas.filter(
+            Q(equipo_local=dirigente.equipo)
+            | Q(equipo_visitante=dirigente.equipo)
+        )
+
+    fechas_totales = fechas
+
+    if buscar:
+        filtros = (
+            Q(equipo_local__nombre__icontains=buscar)
+            | Q(equipo_visitante__nombre__icontains=buscar)
+            | Q(torneo__nombre__icontains=buscar)
+            | Q(cancha__nombre__icontains=buscar)
+            | Q(descripcion__icontains=buscar)
+        )
+        fechas = fechas.filter(filtros)
+
+    fechas = fechas.order_by("-fecha", "-hora")
+
+    return render(request, "partidos/fechas.html", {
+        "fechas": fechas,
+        "hay_fechas": fechas_totales.exists()
+    })
+
+
+@admin_required
+def crear_fecha(request):
+    if request.method == "POST":
+        form = Programar_Partido(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect("partidos_fechas")
+    else:
+        form = Programar_Partido()
+
+    return render(request, "partidos/crear_fecha.html", {
+        "form": form
+    })
+
+
+@admin_required
+def editar_fecha(request, id):
+    partido = get_object_or_404(Partido, id=id)
+
+    if request.method == "POST":
+        form = Programar_Partido(request.POST, instance=partido)
+
+        if form.is_valid():
+            form.save()
+            return redirect("partidos_fechas")
+    else:
+        form = Programar_Partido(instance=partido)
+
+    return render(request, "partidos/editar_fecha.html", {
+        "form": form,
+        "partido": partido
+    })
+
+
+@admin_required
+@require_POST
+def eliminar_fecha(request, id):
     partido = get_object_or_404(Partido, id=id)
     partido.delete()
 

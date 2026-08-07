@@ -1,0 +1,130 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="contenedor-tablas">
+    <div class="card-title">
+        <h1>Fechas Programadas</h1>
+    </div>
+
+    <div class="card">
+        {% if hay_fechas %}
+            <form method="GET">
+                <input type="text" name="buscar" placeholder="Buscar fecha...">
+                <button type="submit">Buscar</button>
+            </form>
+        {% endif %}
+
+        {% if not fechas %}
+            <p class="empty-message">No hay fechas para mostrar.</p>
+        {% else %}
+            <table class="tabla-responsive">
+                <thead>
+                    <tr class="encabezado">
+                        <th>Torneo</th>
+                        <th>Local</th>
+                        <th>Visitante</th>
+                        <th>Cancha</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                        <th>Resultado</th>
+                        {% if user.is_staff %}
+                            <th>Acciones</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for partido in fechas %}
+                        <tr id="fila-fecha-{{ partido.id }}">
+                            <td>{{ partido.torneo|default:"-" }}</td>
+                            <td>{{ partido.equipo_local }}</td>
+                            <td>{{ partido.equipo_visitante }}</td>
+                            <td>{{ partido.cancha|default:"-" }}</td>
+                            <td>{{ partido.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ partido.hora|time:"H:i" }}</td>
+                            <td>{{ partido.estado }}</td>
+                            <td>
+                                {% if partido.esta_jugado %}
+                                    {{ partido.goles_local }} - {{ partido.goles_visitante }}
+                                {% else %}
+                                    Pendiente
+                                {% endif %}
+                            </td>
+                            {% if user.is_staff %}
+                                <td>
+                                    <button class="btn editar" title="Editar"
+                                    onclick="window.location='/partidos/fechas/editar/{{ partido.id }}/'">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button type="button"
+                                    onclick='confirmarEliminarFecha("{{ partido.id }}")'
+                                    class="btn eliminar" title="Eliminar">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function confirmarEliminarFecha(id) {
+    Swal.fire({
+        title: 'Estas seguro?',
+        text: 'Eliminaras esta fecha programada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if(result.isConfirmed){
+            fetch('/partidos/fechas/eliminar/' + id + '/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': obtenerCSRFTokenFecha()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Fecha eliminada',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    document.getElementById('fila-fecha-' + id).remove();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'No se pudo eliminar la fecha.'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function obtenerCSRFTokenFecha(){
+    let cookieValue = null;
+    const cookies = document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+        const cookie = cookies[i].trim();
+
+        if(cookie.startsWith('csrftoken=')){
+            cookieValue = cookie.substring('csrftoken='.length);
+            break;
+        }
+    }
+
+    return cookieValue;
+}
+</script>
+{% endblock %}

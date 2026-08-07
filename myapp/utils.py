@@ -435,9 +435,16 @@ def validate_decimal_range(
 
 # Creador de imagenes de la tabla de posiciones
 ANCHO = 900
-ALTO = 700
+ruta_titulo = finders.find("fonts/ARIALBD.TTF")
+ruta_normal = finders.find("fonts/ARIAL.TTF")
+
 
 def crear_img_tabla(torneo, tabla_posiciones):
+    alto_fila = 45
+    alto_inicio = 220
+
+    ALTO = alto_inicio + (len(tabla_posiciones) * alto_fila) + 50
+    
     imagen = Image.new(
         "RGB",
         (ANCHO, ALTO),
@@ -445,9 +452,6 @@ def crear_img_tabla(torneo, tabla_posiciones):
     )
 
     draw = ImageDraw.Draw(imagen)
-
-    ruta_titulo = finders.find("fonts/ARIALBD.TTF")
-    ruta_normal = finders.find("fonts/ARIAL.TTF")
 
     print("TITULO:", ruta_titulo)
     print("NORMAL:", ruta_normal)
@@ -457,10 +461,14 @@ def crear_img_tabla(torneo, tabla_posiciones):
         38
     )
 
-    fuente_normal = ImageFont.truetype(
-        ruta_normal,
-        24
-    )
+    cantidad_equipos = len(tabla_posiciones)
+
+    if cantidad_equipos <= 12:
+        fuente_normal = ImageFont.truetype(ruta_normal, 24)
+    elif cantidad_equipos <= 20:
+        fuente_normal = ImageFont.truetype(ruta_normal, 20)
+    else:
+        fuente_normal = ImageFont.truetype(ruta_normal, 16)
 
     draw.text(
 
@@ -560,4 +568,331 @@ def crear_img_tabla(torneo, tabla_posiciones):
     )
 
     return response
+
+
+def _texto_ajustado(draw, texto, fuente, ancho_maximo):
+    texto = str(texto or "-")
+
+    if draw.textlength(texto, font=fuente) <= ancho_maximo:
+        return texto
+
+    while texto and draw.textlength(f"{texto}...", font=fuente) > ancho_maximo:
+        texto = texto[:-1]
+
+    return f"{texto}..." if texto else "-"
+
+
+def crear_img_fechas(torneo, partidos):
+    alto = max(360, 230 + (partidos.count() * 45))
+    imagen = Image.new(
+        "RGB",
+        (ANCHO, alto),
+        "#202020"
+    )
+
+    draw = ImageDraw.Draw(imagen)
+
+    fuente_titulo = ImageFont.truetype(
+        ruta_titulo,
+        38
+    )
+
+    fuente_normal = ImageFont.truetype(
+        ruta_normal,
+        22
+    )
+
+    fuente_pequena = ImageFont.truetype(
+        ruta_normal,
+        18
+    )
+
+    draw.text(
+        (40, 40),
+        "Liga Rural",
+        fill="gold",
+        font=fuente_titulo
+    )
+
+    draw.text(
+        (40, 90),
+        f"Fechas - {torneo.nombre}",
+        fill="white",
+        font=fuente_normal
+    )
+
+    draw.line(
+        (40, 140, 860, 140),
+        fill="gold",
+        width=3
+    )
+
+    y = 170
+
+    columnas = [
+        ("Partidos", 40, 160),
+        ("Cancha", 400, 150),
+        ("Fecha y Hora", 650, 90),
+    ]
+
+    for titulo, x, _ancho in columnas:
+        draw.text((x, y), titulo, fill="gold", font=fuente_pequena)
+
+    y = 210
+
+    if not partidos:
+        draw.text(
+            (40, y),
+            "No hay fechas registradas para este torneo.",
+            fill="white",
+            font=fuente_normal
+        )
+    else:
+        for partido in partidos:
+            print(partido.estado)
+            if partido.estado == 'Programado':
+                valores = [
+                    (f"{partido.equipo_local} v/s {partido.equipo_visitante}", 40, 250),
+                    (partido.cancha or "-", 400, 200),
+                    (partido.fecha_hora, 650, 200),
+                ]
+
+                for valor, x, ancho in valores:
+                    draw.text(
+                        (x, y),
+                        _texto_ajustado(draw, valor, fuente_pequena, ancho),
+                        fill="white",
+                        font=fuente_pequena
+                    )
+
+                y += 45
+
+    buffer = BytesIO()
+
+    imagen.save(
+        buffer,
+        format="PNG"
+    )
+
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="image/png"
+    )
+
+    response["Content-Disposition"] = (
+        'attachment; filename="fechas.png"'
+    )
+
+    return response
+
+def crear_img_partidos(torneo, partidos):
+    alto = max(360, 230 + (partidos.count() * 45))
+    imagen = Image.new(
+        "RGB",
+        (ANCHO, alto),
+        "#202020"
+    )
+
+    draw = ImageDraw.Draw(imagen)
+
+    fuente_titulo = ImageFont.truetype(
+        ruta_titulo,
+        38
+    )
+
+    fuente_normal = ImageFont.truetype(
+        ruta_normal,
+        22
+    )
+
+    fuente_pequena = ImageFont.truetype(
+        ruta_normal,
+        18
+    )
+
+    draw.text(
+        (40, 40),
+        "Liga Rural",
+        fill="gold",
+        font=fuente_titulo
+    )
+
+    draw.text(
+        (40, 90),
+        f"Partidos - {torneo.nombre}",
+        fill="white",
+        font=fuente_normal
+    )
+
+    draw.line(
+        (40, 140, 860, 140),
+        fill="gold",
+        width=3
+    )
+
+    y = 170
+
+    columnas = [
+        ("Resultados", 40, 160),
+        ("Cancha", 400, 150),
+        ("Fecha y Hora", 650, 90),
+    ]
+
+    for titulo, x, _ancho in columnas:
+        draw.text((x, y), titulo, fill="gold", font=fuente_pequena)
+
+    y = 210
+
+    if not partidos:
+        draw.text(
+            (40, y),
+            "No hay partidos registrados para este torneo.",
+            fill="white",
+            font=fuente_normal
+        )
+    else:
+        for partido in partidos:
+            print(partido.estado)
+            if partido.estado == 'Jugado':
+                valores = [
+                    (f"{partido.equipo_local} {partido.goles_local} - {partido.goles_visitante} {partido.equipo_visitante}", 40, 260),
+                    (partido.cancha or "-", 400, 200),
+                    (partido.fecha_hora, 650, 200),
+                ]
+
+                for valor, x, ancho in valores:
+                    draw.text(
+                        (x, y),
+                        _texto_ajustado(draw, valor, fuente_pequena, ancho),
+                        fill="white",
+                        font=fuente_pequena
+                    )
+
+                y += 45
+
+    buffer = BytesIO()
+
+    imagen.save(
+        buffer,
+        format="PNG"
+    )
+
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="image/png"
+    )
+
+    response["Content-Disposition"] = (
+        'attachment; filename="partidos.png"'
+    )
+
+    return response
     
+def crear_imagen_detalle_equipo(equipo, lista_jugadores):
+    alto = max(360, 230 + (lista_jugadores.count() * 45))
+    imagen = Image.new(
+        "RGB",
+        (ANCHO, alto),
+        "#202020"
+    )
+
+    draw = ImageDraw.Draw(imagen)
+
+    fuente_titulo = ImageFont.truetype(
+        ruta_titulo,
+        38
+    )
+
+    fuente_normal = ImageFont.truetype(
+        ruta_normal,
+        22
+    )
+
+    fuente_pequena = ImageFont.truetype(
+        ruta_normal,
+        18
+    )
+
+    draw.text(
+        (40, 40),
+        "Liga Rural",
+        fill="gold",
+        font=fuente_titulo
+    )
+
+    draw.text(
+        (40, 90),
+        f"Listado - {equipo.nombre}",
+        fill="white",
+        font=fuente_normal
+    )
+
+    draw.line(
+        (40, 140, 860, 140),
+        fill="gold",
+        width=3
+    )
+
+    y = 170
+
+    columnas = [
+        ("Nombre", 40, 300),
+        ("Rut", 340, 200),
+        ("C. Emerg.", 480, 200),
+        ("F.Inscrip.", 650, 200),
+    ]
+
+    for titulo, x, _ancho in columnas:
+        draw.text((x, y), titulo, fill="gold", font=fuente_pequena)
+
+    y = 210
+
+    if not lista_jugadores:
+        draw.text(
+            (40, y),
+            "No hay jugadores registrados para este equipo.",
+            fill="white",
+            font=fuente_normal
+        )
+    else:
+        for jugador in lista_jugadores:
+                valores = [
+                    (jugador.nombre, 40, 300),
+                    (jugador.rut or "-", 340, 200),
+                    (jugador.contacto_emergencia, 480, 200),
+                    (jugador.fecha_inscripcion, 650, 200),
+                ]
+
+                for valor, x, ancho in valores:
+                    draw.text(
+                        (x, y),
+                        _texto_ajustado(draw, valor, fuente_pequena, ancho),
+                        fill="white",
+                        font=fuente_pequena
+                    )
+
+                y += 45
+
+    buffer = BytesIO()
+
+    imagen.save(
+        buffer,
+        format="PNG"
+    )
+
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type="image/png"
+    )
+
+    response["Content-Disposition"] = (
+        f'attachment; filename="planilla_{equipo.nombre}.png"'
+    )
+
+    return response

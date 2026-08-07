@@ -176,11 +176,19 @@
                         </button>
                         <ul class="dropdown-content" aria-label="Menu de partidos">
                             <li>
-                                <a href="{% url 'partidos' %}"><i class="fa fa-eye"></i> Ver partidos</a>
+                                <a href="{% url 'partidos' %}"><i class="fa fa-eye"></i> Ver Partido</a>
                             </li>
                             {% if user.is_staff %}
                             <li>
-                                <a href="{% url 'ingresar_partido' %}"><i class="fa fa-plus"></i> Crear partido</a>
+                                <a href="{% url 'ingresar_partido' %}"><i class="fa fa-plus"></i> Crear Partido</a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a href="{% url 'partidos_fechas' %}"><i class="fa fa-calendar-days"></i> Ver Fechas</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'partidos_crear_fecha' %}"><i class="fa fa-calendar-plus"></i> Crear Fechas</a>
                             </li>
                             {% endif %}
                         </ul>

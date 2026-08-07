@@ -3,23 +3,24 @@
 {% block content %}
     <div class="contenedor-tablas">
         <div class="card-title">
-            <h1>Visualizador de Partidos</h1>
+            <h1>Partidos Jugados</h1>
         </div>
         <div class="card">
             {% if hay_partidos %}
                 <form method="GET">
-                    <input type="text" name="buscar" placeholder="Buscar partido...">
+                    <input type="text" name="buscar" placeholder="Buscar partido jugado...">
                     <button type="submit">Buscar</button>
                 </form>
             {% endif %}
 
             {% if not partidos %}
-                <p class="empty-message">No hay datos para mostrar.</p>
+                <p class="empty-message">No hay partidos jugados para mostrar.</p>
             {% else %}
                 <table class="tabla-responsive">
                     <thead>
                         <tr class="encabezado">
                             <th>Torneo</th>
+                            <th>Partido</th>
                             <th>Cancha</th>
                             <th>Fecha</th>
                             {% if user.is_staff %}
@@ -27,11 +28,12 @@
                             {% endif %}
                         </tr>
                     </thead>
-                    {% for partido in partidos %}
                     <tbody>
+                    {% for partido in partidos %}
                         <tr id="fila-{{ partido.id }}">
                             <td>{{ partido.torneo|default:"-" }}</td>
                             <td>{{ partido.resumen_partido }}</td>
+                            <td>{{ partido.cancha|default:"-" }}</td>
                             <td>{{ partido.fecha_hora }}</td>
                             {% if user.is_staff %}
                                 <td>
@@ -47,8 +49,8 @@
                                 </td>
                             {% endif %}
                         </tr>
-                    </tbody>
                     {% endfor %}
+                    </tbody>
                 </table>
             {% endif %}
         </div>
@@ -58,7 +60,7 @@
 function confirmarEliminar(id) {
     Swal.fire({
         title: 'Estas seguro?',
-        text: 'Eliminaras este partido.',
+        text: 'Se quitara el resultado y las tarjetas, pero la fecha seguira programada.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Si, eliminar',
@@ -76,7 +78,7 @@ function confirmarEliminar(id) {
                 if(data.success){
                     Swal.fire({
                         icon: 'success',
-                        title: 'Partido eliminado',
+                        title: 'Resultado eliminado',
                         timer: 1500,
                         showConfirmButton: false
                     });
@@ -86,7 +88,7 @@ function confirmarEliminar(id) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.error || 'No se pudo eliminar el partido.'
+                        text: data.error || 'No se pudo eliminar el resultado.'
                     });
                 }
             });

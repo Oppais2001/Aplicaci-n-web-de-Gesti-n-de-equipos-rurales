@@ -156,12 +156,13 @@ class Ingresar_Jugadores(forms.ModelForm):
         )
 
     def clean_telefono(self):
-        return validate_phone(self.cleaned_data.get("telefono"), field_name="telefono")
+        return validate_phone(self.cleaned_data.get("telefono"), field_name="telefono", required=False)
 
     def clean_contacto_emergencia(self):
         return validate_phone(
             self.cleaned_data.get("contacto_emergencia"),
             field_name="telefono de emergencia",
+            required=False
         )
 
     def clean_adulto_responsable(self):
@@ -362,12 +363,14 @@ class Ingresar_Equipos(forms.ModelForm):
         return validate_person_name(
             self.cleaned_data.get("nombre_entrenador"),
             "el nombre del entrenador",
+            required=False
         )
 
     def clean_nombre_dueno(self):
         return validate_person_name(
             self.cleaned_data.get("nombre_dueno"),
             "el nombre del dueno",
+            required=False
         )
 
 class Ingresar_Dirigentes(forms.ModelForm):
@@ -894,7 +897,7 @@ class Ingresar_Torneo(forms.ModelForm):
 
 
 # PARTIDO
-class Ingresar_Partido(forms.ModelForm):
+class Programar_Partido(forms.ModelForm):
 
     class Meta:
 
@@ -907,8 +910,6 @@ class Ingresar_Partido(forms.ModelForm):
             'cancha',
             'fecha',
             'hora',
-            'goles_local',
-            'goles_visitante',
             'descripcion',
         ]
 
@@ -919,8 +920,6 @@ class Ingresar_Partido(forms.ModelForm):
             'cancha': 'CANCHA',
             'fecha': 'FECHA',
             'hora': 'HORA',
-            'goles_local': 'GOLES LOCAL',
-            'goles_visitante': 'GOLES VISITANTE',
             'descripcion': 'DESCRIPCIÓN DEL PARTIDO',
         }
 
@@ -938,20 +937,6 @@ class Ingresar_Partido(forms.ModelForm):
                     'type':'time'
                 },
                 format='%H:%M'
-            ),
-
-            'goles_local': forms.NumberInput(
-                attrs={
-                    'min':0,
-                    'max':Partido.MAX_GOLES_POR_EQUIPO
-                }
-            ),
-
-            'goles_visitante': forms.NumberInput(
-                attrs={
-                    'min':0,
-                    'max':Partido.MAX_GOLES_POR_EQUIPO
-                }
             ),
 
             'descripcion': forms.Textarea(
@@ -1023,6 +1008,96 @@ class Ingresar_Partido(forms.ModelForm):
 
         return cleaned_data
 
+
+class Ingresar_Partido(Programar_Partido):
+    pass
+
+
+class Registrar_Resultado_Partido(forms.Form):
+    partido = forms.ModelChoiceField(
+        queryset=Partido.objects.none(),
+        label="FECHA PROGRAMADA",
+        empty_label="Selecciona una fecha"
+    )
+    goles_local = forms.IntegerField(
+        label="GOLES LOCAL",
+        min_value=0,
+        max_value=Partido.MAX_GOLES_POR_EQUIPO,
+    )
+    goles_visitante = forms.IntegerField(
+        label="GOLES VISITANTE",
+        min_value=0,
+        max_value=Partido.MAX_GOLES_POR_EQUIPO,
+    )
+    descripcion = forms.CharField(
+        label="DESCRIPCION DEL PARTIDO",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["partido"].queryset = Partido.objects.select_related(
+            "torneo",
+            "equipo_local",
+            "equipo_visitante",
+            "cancha"
+        ).filter(
+            goles_local__isnull=True,
+            goles_visitante__isnull=True
+        ).order_by("fecha", "hora")
+
+    def save(self):
+        partido = self.cleaned_data["partido"]
+        partido.goles_local = self.cleaned_data["goles_local"]
+        partido.goles_visitante = self.cleaned_data["goles_visitante"]
+        partido.descripcion = self.cleaned_data["descripcion"]
+        partido.save()
+        return partido
+
+
+class Editar_Resultado_Partido(forms.ModelForm):
+    class Meta:
+        model = Partido
+        fields = [
+            "goles_local",
+            "goles_visitante",
+            "descripcion",
+        ]
+        labels = {
+            "goles_local": "GOLES LOCAL",
+            "goles_visitante": "GOLES VISITANTE",
+            "descripcion": "DESCRIPCION DEL PARTIDO",
+        }
+        widgets = {
+            "goles_local": forms.NumberInput(
+                attrs={
+                    "min": 0,
+                    "max": Partido.MAX_GOLES_POR_EQUIPO
+                }
+            ),
+            "goles_visitante": forms.NumberInput(
+                attrs={
+                    "min": 0,
+                    "max": Partido.MAX_GOLES_POR_EQUIPO
+                }
+            ),
+            "descripcion": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        goles_local = cleaned_data.get("goles_local")
+        goles_visitante = cleaned_data.get("goles_visitante")
+
+        if goles_local is None:
+            self.add_error("goles_local", "Debes ingresar los goles del equipo local.")
+
+        if goles_visitante is None:
+            self.add_error("goles_visitante", "Debes ingresar los goles del equipo visitante.")
+
+        return cleaned_data
+
 class TarjetaPartidoForm(forms.ModelForm):
 
     class Meta:
@@ -1045,6 +1120,24 @@ class TarjetaPartidoForm(forms.ModelForm):
         }
         
 class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        partido = self.instance
+
+        if not partido or not partido.pk:
+            return
+
+        equipos_partido = Equipo.objects.filter(
+            pk__in=[
+                partido.equipo_local_id,
+                partido.equipo_visitante_id,
+            ]
+        )
+
+        for form in self.forms:
+            form.fields["equipo"].queryset = equipos_partido
+
     def clean(self):
         super().clean()
 
@@ -1060,6 +1153,12 @@ class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
             equipo = form.cleaned_data.get("equipo")
             tipo_tarjeta = form.cleaned_data.get("tipo_tarjeta")
             afectado = form.cleaned_data.get("afectado")
+
+            if equipo and self.instance.pk and equipo.pk not in {
+                self.instance.equipo_local_id,
+                self.instance.equipo_visitante_id,
+            }:
+                raise ValidationError("Las tarjetas deben pertenecer al local o visitante del partido.")
 
             if not equipo or tipo_tarjeta != "roja" or not afectado:
                 continue

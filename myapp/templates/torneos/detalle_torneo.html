@@ -39,15 +39,15 @@
                     <tbody>
                     {% for fila in tabla_posiciones %}
                         <tr>
-                            <td>{{ forloop.counter }} {{ fila.equipo.nombre }}</td>
-                            <td>{{ fila.pts }}</td>
-                            <td>{{ fila.pj }}</td>
-                            <td>{{ fila.pg }}</td>
-                            <td>{{ fila.pe }}</td>
-                            <td>{{ fila.pp }}</td>
-                            <td>{{ fila.gf }}</td>
-                            <td>{{ fila.gc }}</td>
-                            <td>{{ fila.dg }}</td>
+                            <th>{{ forloop.counter }} {{ fila.equipo }}</th>
+                            <td data-label="pts">{{ fila.pts }}</td>
+                            <td data-label="pj">{{ fila.pj }}</td>
+                            <td data-label="pg">{{ fila.pg }}</td>
+                            <td data-label="pe">{{ fila.pe }}</td>
+                            <td data-label="pp">{{ fila.pp }}</td>
+                            <td data-label="gf">{{ fila.gf }}</td>
+                            <td data-label="gc">{{ fila.gc }}</td>
+                            <td data-label="dg">{{ fila.dg }}</td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -65,12 +65,11 @@
     </div>
     <div>
         <div class="card">
-            <h2>Partidos del torneo</h2>
+            <h2>Fechas pendientes del torneo</h2>
             <br>
-
-            {% if not partidos %}
+                {% if not partidos_programados %}
                 <p class="empty-message">No hay partidos registrados para este torneo.</p>
-            {% else %}
+                {% else %}
                 <table>
                     <tr class="encabezado">
                         <th>Local</th>
@@ -78,26 +77,63 @@
                         <th>Cancha</th>
                         <th>Fecha</th>
                         <th>Hora</th>
-                        <th>Resultado</th>
                     </tr>
 
-                    {% for partido in partidos %}
+                    {% for partido in partidos_programados %}
                         <tr>
                             <td>{{ partido.equipo_local }}</td>
                             <td>{{ partido.equipo_visitante }}</td>
                             <td>{{ partido.cancha|default:"-" }}</td>
                             <td>{{ partido.fecha|date:"d/m/Y" }}</td>
                             <td>{{ partido.hora|time:"H:i" }}</td>
-                            <td>
-                                {% if partido.goles_local is not None and partido.goles_visitante is not None %}
-                                    {{ partido.goles_local }} - {{ partido.goles_visitante }}
-                                {% else %}
-                                    Pendiente
-                                {% endif %}
-                            </td>
                         </tr>
                     {% endfor %}
                 </table>
+                <div class="acciones-tabla">
+                    <a href="{% url 'descargar_fechas_imagen' torneo.id %}" class="btn descargar">
+                        <i class="fa-solid fa-download"></i>
+                        Descargar PNG
+                    </a>
+                </div>
+                {% endif %}
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h2>Partidos del torneo</h2>
+            <br>
+            {% if not partidos_jugados %}
+            <p class="empty-message">No hay partidos registrados para este torneo.</p>
+            {% else %}
+            <table>
+                <tr class="encabezado">
+                    <th>Local</th>
+                    <th>Visitante</th>
+                    <th>Cancha</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Resultado</th>
+                </tr>
+
+                {% for partido in partidos_jugados %}
+                    <tr>
+                        <td>{{ partido.equipo_local }}</td>
+                        <td>{{ partido.equipo_visitante }}</td>
+                        <td>{{ partido.cancha|default:"-" }}</td>
+                        <td>{{ partido.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ partido.hora|time:"H:i" }}</td>
+                        <td>
+                        {{ partido.goles_local }} - {{ partido.goles_visitante }}
+                    </tr>
+                {% endfor %}
+            </table>
+            <div class="acciones-tabla">
+                <a href="{% url 'descargar_partidos_imagen' torneo.id %}" class="btn descargar">
+                    <i class="fa-solid fa-download"></i>
+                    Descargar PNG
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -136,6 +172,11 @@
         color:white;
 
         transform:translateY(-2px);
+    }
+    .tabla-responsive th:first-child,
+    .tabla-responsive td:first-child {
+        width: 30%;
+        text-align: left;
     }
 </style>
 {% endblock %}
