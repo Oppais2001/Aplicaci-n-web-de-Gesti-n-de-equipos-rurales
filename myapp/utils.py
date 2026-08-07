@@ -12,6 +12,8 @@ from io import BytesIO
 from django.http import HttpResponse
 from PIL import Image, ImageDraw, ImageFont
 
+from django.conf import settings
+
 LETTERS = "A-Za-zÁÉÍÓÚáéíóúÑñÜü"
 
 DIAS = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -444,12 +446,12 @@ def crear_img_tabla(torneo, tabla_posiciones):
     draw = ImageDraw.Draw(imagen)
 
     fuente_titulo = ImageFont.truetype(
-        "myapp/static/fonts/arialbd.ttf",
+        os.path.join(settings.BASE_DIR, "myapp/static/fonts/arialbd.ttf"),
         38
     )
 
     fuente_normal = ImageFont.truetype(
-        "myapp/static/fonts/arial.ttf",
+        os.path.join(settings.BASE_DIR, "myapp/static/fonts/arial.ttf"),
         24
     )
 
