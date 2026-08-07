@@ -446,8 +446,8 @@ def crear_img_tabla(torneo, tabla_posiciones):
 
     draw = ImageDraw.Draw(imagen)
 
-    ruta_titulo = finders.find("fonts/arialbd.ttf")
-    ruta_normal = finders.find("fonts/arial.ttf")
+    ruta_titulo = finders.find("fonts/ARIALBD.TTF")
+    ruta_normal = finders.find("fonts/ARIAL.TTF")
 
     print("TITULO:", ruta_titulo)
     print("NORMAL:", ruta_normal)
