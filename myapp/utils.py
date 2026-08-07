@@ -449,7 +449,7 @@ def crear_img_tabla(torneo, tabla_posiciones):
     )
 
     fuente_normal = ImageFont.truetype(
-        "myapp/fonts/arial.ttf",
+        "myapp/static/fonts/arial.ttf",
         24
     )
 
