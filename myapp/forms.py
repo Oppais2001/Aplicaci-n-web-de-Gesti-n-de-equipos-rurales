@@ -173,7 +173,7 @@ class Ingresar_Jugadores(forms.ModelForm):
         return validate_person_name(
             responsable,
             "un adulto responsable",
-            required=edad is not None and edad < 18,
+            required=False, #required=edad is not None and edad < 18,
             min_length=5,
             max_length=200,
         )
