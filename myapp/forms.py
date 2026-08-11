@@ -752,6 +752,11 @@ class Ingresar_Canchas(forms.ModelForm):
             'latitud',
             'longitud'
         ]
+        
+        widgets = {
+            "latitud": forms.HiddenInput(),
+            "longitud": forms.HiddenInput(),
+        }
 
         labels = {
             'nombre': 'NOMBRE DE LA CANCHA',
@@ -766,8 +771,6 @@ class Ingresar_Canchas(forms.ModelForm):
             'ancho_metros': 'ANCHO (m)',
             'iluminacion': 'ILUMINACIÓN',
             'activa': 'ACTIVA',
-            'latitud': 'LATITUD',
-            'longitud': 'LONGITUD',
         }
 
     def clean_nombre(self):
