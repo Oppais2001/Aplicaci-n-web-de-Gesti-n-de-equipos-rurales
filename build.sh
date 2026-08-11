@@ -6,4 +6,4 @@ python manage.py migrate
 
 python manage.py collectstatic --noinput
 
-python manage.py crear_superusuarios
+python manage.py crear_super_usuarios
