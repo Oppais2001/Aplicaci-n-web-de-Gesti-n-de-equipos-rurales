@@ -64,6 +64,12 @@ class Liga(models.Model):
     
     def __str__(self):
         return self.nombre
+    
+    def nombre_corto(self, nombre, max_length=40):
+        if len(nombre) <= max_length:
+            return nombre
+
+        return nombre[:max_length].rstrip() + "..."
 
 class Equipo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
