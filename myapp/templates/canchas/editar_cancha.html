@@ -68,9 +68,11 @@
 
                 {% endif %}
 
+                {% if field.name == "latitud" or field.name == "longitud" %}
 
+                    {{ field }}
 
-                {% if field.name != "foto" %}
+                {% elif field.name != "foto" %}
 
                     <div class="form-group">
 
