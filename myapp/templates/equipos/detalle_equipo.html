@@ -56,12 +56,6 @@
 
                         <th>RUT</th>
 
-                        <th>Edad</th>
-
-                        <th>Tel.</th>
-
-                        <th>Tel. Emerg.</th>
-
                         <th>F. Inscrip.</th>
 
                         {% if user.is_staff %}
@@ -76,31 +70,11 @@
                             <td>
                                 {{ jugador.nombre }}
                             </td>
-                            <td>
+                            <td data-label='RUT'>
                                 {{ jugador.rut_formateado }}
                             </td>
-                            <td>
-                                {% if jugador.fecha_nacimiento %}
-                                    {{ jugador.fecha_nacimiento|timesince }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if jugador.telefono %}
-                                    {{ jugador.telefono }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if jugador.contacto_emergencia %}
-                                    {{ jugador.contacto_emergencia }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
+
+                            <td data-label="F. Inscrip.">
                                 {{ jugador.fecha_inscripcion }}
                             </td>
 
