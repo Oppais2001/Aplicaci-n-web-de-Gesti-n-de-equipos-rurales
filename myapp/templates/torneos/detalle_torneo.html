@@ -21,40 +21,66 @@
             {% if not tabla_posiciones %}
                 <p class="empty-message">No hay equipos inscritos en este torneo.</p>
             {% else %}
-                <div class="tabla-wrapper">
                 <table class="tabla-responsive">
                     <thead>
                         <tr class="encabezado">
-                            <th>Club</th>
-                            <th>Pts</th>
-                            <th>PJ</th>
-                            <th>PG</th>
-                            <th>PE</th>
-                            <th>PP</th>
-                            <th>GF</th>
-                            <th>GC</th>
+                            <th id="tabla-equipos">Club</th>
+                            <th class="movil-oculto">PJ</th>
+                            <th class="movil-oculto">PG</th>
+                            <th class="movil-oculto">PE</th>
+                            <th class="movil-oculto">PP</th>
+                            <th class="movil-oculto">GF</th>
+                            <th class="movil-oculto">GC</th>
                             <th>DG</th>
+                            <th>Pts</th>
+
                         </tr>
                     </thead>
                     <tbody>
                     {% for fila in tabla_posiciones %}
                         <tr>
-                            <th>{{ forloop.counter }} {{ fila.equipo }}</th>
-                            <td data-label="pts">{{ fila.pts }}</td>
-                            <td data-label="pj">{{ fila.pj }}</td>
-                            <td data-label="pg">{{ fila.pg }}</td>
-                            <td data-label="pe">{{ fila.pe }}</td>
-                            <td data-label="pp">{{ fila.pp }}</td>
-                            <td data-label="gf">{{ fila.gf }}</td>
-                            <td data-label="gc">{{ fila.gc }}</td>
-                            <td data-label="dg">{{ fila.dg }}</td>
+                            <th id="tabla-equipos">
+                                {{ forloop.counter }} {{ fila.equipo }}
+                            </th>
+
+                            <td class="movil-oculto"  data-label="PJ">
+                                {{ fila.pj }}
+                            </td>
+
+                            <td class="movil-oculto" data-label="PG">
+                                {{ fila.pg }}
+                            </td>
+
+                            <td class="movil-oculto" data-label="PE">
+                                {{ fila.pe }}
+                            </td>
+
+                            <td class="movil-oculto" data-label="PP">
+                                {{ fila.pp }}
+                            </td>
+
+                            <td class="movil-oculto" data-label="GF">
+                                {{ fila.gf }}
+                            </td>
+
+                            <td class="movil-oculto" data-label="GC">
+                                {{ fila.gc }}
+                            </td>
+
+                            <td data-label="DG">
+                                {{ fila.dg }}
+                            </td>
+
+                            <td data-label="Pts">
+                                {{ fila.pts }}
+                            </td>
+
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                </div>
+                <br>
                 <div class="acciones-tabla">
-
                     <a href="{% url 'descargar_tabla_imagen' torneo.id %}" class="btn descargar">
                         <i class="fa-solid fa-download"></i>
                         Descargar PNG
@@ -70,25 +96,28 @@
                 {% if not partidos_programados %}
                 <p class="empty-message">No hay partidos registrados para este torneo.</p>
                 {% else %}
-                <table>
-                    <tr class="encabezado">
-                        <th>Local</th>
-                        <th>Visitante</th>
-                        <th>Cancha</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                    </tr>
+                <table class="tabla-responsive tabla-versus">
+                    <thead>
+                        <tr class="encabezado">
+                            <th>Local</th>
+                            <th>Visitante</th>
+                            <th>Cancha</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
 
+                    <tbody>
                     {% for partido in partidos_programados %}
                         <tr>
                             <td>{{ partido.equipo_local }}</td>
                             <td>{{ partido.equipo_visitante }}</td>
                             <td>{{ partido.cancha|default:"-" }}</td>
-                            <td>{{ partido.fecha|date:"d/m/Y" }}</td>
-                            <td>{{ partido.hora|time:"H:i" }}</td>
+                            <td>{{ partido.fecha_hora }}</td>
                         </tr>
                     {% endfor %}
+                    </tbody>
                 </table>
+                <br>
                 <div class="acciones-tabla">
                     <a href="{% url 'descargar_fechas_imagen' torneo.id %}" class="btn descargar">
                         <i class="fa-solid fa-download"></i>
@@ -110,24 +139,21 @@
                 <tr class="encabezado">
                     <th>Local</th>
                     <th>Visitante</th>
-                    <th>Cancha</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
                     <th>Resultado</th>
+                    <th>Fecha</th>
                 </tr>
 
                 {% for partido in partidos_jugados %}
                     <tr>
                         <td>{{ partido.equipo_local }}</td>
                         <td>{{ partido.equipo_visitante }}</td>
-                        <td>{{ partido.cancha|default:"-" }}</td>
-                        <td>{{ partido.fecha|date:"d/m/Y" }}</td>
-                        <td>{{ partido.hora|time:"H:i" }}</td>
                         <td>
                         {{ partido.goles_local }} - {{ partido.goles_visitante }}
+                        <td>{{ partido.fecha_hora }}</td>
                     </tr>
                 {% endfor %}
             </table>
+            <br>
             <div class="acciones-tabla">
                 <a href="{% url 'descargar_partidos_imagen' torneo.id %}" class="btn descargar">
                     <i class="fa-solid fa-download"></i>
@@ -173,10 +199,45 @@
 
         transform:translateY(-2px);
     }
-    .tabla-responsive th:first-child,
-    .tabla-responsive td:first-child {
+    #tabla-equipos {
         width: 30%;
         text-align: left;
+    }
+    @media (max-width: 600px) {
+        #tabla-equipos {
+            width: 100%;
+            text-align: left;
+        }
+        .movil-oculto {
+            display: none !important;
+        }
+
+        .tabla-responsive tr {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .tabla-responsive tr th {
+            grid-column: 1 / -1;
+            width: 100%;
+            text-align: left;
+        }
+
+        .tabla-responsive tr td[data-label="Pts"] {
+            text-align: left;
+        }
+
+        .tabla-responsive tr td[data-label="DG"] {
+            text-align: right;
+        }
+        .tabla-versus td:nth-child(1) {
+            background: rgba(255, 215, 0, 0.1); /* Dorado */
+            font-weight: bold;
+        }
+        .tabla-versus td:nth-child(2) {
+            background: rgba(30, 144, 255, 0.1); /* Azul */
+            font-weight: bold;        
+        }
     }
 </style>
 {% endblock %}

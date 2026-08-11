@@ -99,7 +99,7 @@ class Equipo(models.Model):
     )
 
     def __str__(self):
-        palabras_repetidas = ['El','Las','Club', 'Deportivo', 'Serie']
+        palabras_repetidas = ['El ','Las ','Club ', 'Deportivo ', ' Serie']
         texto = self.nombre
         for palabra in palabras_repetidas: 
             texto = texto.replace(palabra, "")
