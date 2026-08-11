@@ -5,7 +5,7 @@ from django.conf import settings
 from .utils import DIAS, MESES
 
 class Liga(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=200, unique=True)
     fecha_fundacion = models.DateField(
         null=True,
         blank=True

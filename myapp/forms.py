@@ -188,10 +188,14 @@ class Ingresar_Jugadores(forms.ModelForm):
             required=False,
             max_length=500,
         )
-
     def clean_certificado_medico(self):
+        certificado_nuevo = self.files.get("certificado_medico")
+
+        if not certificado_nuevo:
+            return self.instance.certificado_medico
+
         return validate_file_upload(
-            self.cleaned_data.get("certificado_medico"),
+            certificado_nuevo,
             allowed_extensions=["pdf", "jpg", "jpeg", "png"],
             max_size_mb=5,
             field_name="El certificado medico",
@@ -297,8 +301,13 @@ class Ingresar_Arbitros(forms.ModelForm):
         )
 
     def clean_certificado_medico(self):
+        certificado_nuevo = self.files.get("certificado_medico")   
+             
+        if not certificado_nuevo:
+            return self.instance.certificado_medico
+
         return validate_file_upload(
-            self.cleaned_data.get("certificado_medico"),
+            certificado_nuevo,
             allowed_extensions=["pdf", "jpg", "jpeg", "png"],
             max_size_mb=5,
             field_name="El certificado medico",
@@ -347,13 +356,19 @@ class Ingresar_Equipos(forms.ModelForm):
         return validate_date_not_future(
             self.cleaned_data.get("fecha_creacion"),
             "La fecha de creacion",
-            required=True,
+            required=False,
             max_age_years=150,
         )
 
     def clean_logo(self):
+        logo_nuevo = self.files.get("logo")
+
+        # Si no se subió un logo nuevo, conservar el actual
+        if not logo_nuevo:
+            return self.instance.logo
+
         return validate_file_upload(
-            self.cleaned_data.get("logo"),
+            logo_nuevo,
             allowed_extensions=["jpg", "jpeg", "png", "webp"],
             max_size_mb=5,
             field_name="El logo",
@@ -589,7 +604,7 @@ class Ingresar_Liga(forms.ModelForm):
         nombre = validate_entity_name(
             self.cleaned_data.get("nombre"),
             "nombre de la liga",
-            max_length=50,
+            max_length=200,
         )
         return validate_unique_value(
             Liga,
@@ -604,7 +619,7 @@ class Ingresar_Liga(forms.ModelForm):
         return validate_date_not_future(
             self.cleaned_data.get("fecha_fundacion"),
             "La fecha de fundacion",
-            required=True,
+            required=False,
             max_age_years=150,
         )
 
