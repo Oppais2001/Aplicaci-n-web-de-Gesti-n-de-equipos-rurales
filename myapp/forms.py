@@ -11,6 +11,7 @@ from .utils import (
     validate_date_not_future,
     validate_email,
     validate_entity_name,
+    validate_league_name,
     validate_file_upload,
     validate_person_name,
     validate_phone,
@@ -601,11 +602,11 @@ class Ingresar_Liga(forms.ModelForm):
         }
 
     def clean_nombre(self):
-        nombre = validate_entity_name(
+        nombre = validate_league_name(
             self.cleaned_data.get("nombre"),
-            "nombre de la liga",
             max_length=200,
         )
+
         return validate_unique_value(
             Liga,
             "nombre",
@@ -614,7 +615,7 @@ class Ingresar_Liga(forms.ModelForm):
             message="Ya existe una liga con ese nombre.",
             iexact=True,
         )
-
+        
     def clean_fecha_fundacion(self):
         return validate_date_not_future(
             self.cleaned_data.get("fecha_fundacion"),

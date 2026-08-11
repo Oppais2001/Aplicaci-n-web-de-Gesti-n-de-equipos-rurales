@@ -83,6 +83,51 @@ def validate_person_name(value, field_name="un nombre", required=True, min_lengt
         allowed_symbols=r"\-",
     )
 
+def validate_league_name(
+    value,
+    field_name="el nombre de la liga",
+    required=True,
+    min_length=3,
+    max_length=200,
+):
+    value = normalize_spaces(value)
+
+    if not value:
+        if required:
+            raise ValidationError(f"Debes ingresar {field_name}.")
+        return ""
+
+    if len(value) < min_length:
+        raise ValidationError(
+            f"{field_name.capitalize()} demasiado corto."
+        )
+
+    if len(value) > max_length:
+        raise ValidationError(
+            f"{field_name.capitalize()} demasiado largo."
+        )
+
+    # Letras, números, espacios, guiones y comas
+    pattern = rf"^[{LETTERS}0-9\s\-,]+$"
+
+    if not re.fullmatch(pattern, value):
+        raise ValidationError(
+            f"{field_name.capitalize()} contiene caracteres invalidos."
+        )
+
+    if not _has_letters(value):
+        raise ValidationError(
+            f"{field_name.capitalize()} debe contener letras."
+        )
+
+    cleaned = _meaningful_text(value)
+
+    if cleaned and len(set(cleaned)) == 1:
+        raise ValidationError(
+            f"Ingresa {field_name} valido."
+        )
+
+    return value.title()
 
 def validate_entity_name(value, field_name, required=True, min_length=3, max_length=100):
     return validate_text(
