@@ -609,8 +609,13 @@ class Ingresar_Liga(forms.ModelForm):
         )
 
     def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+        
+        if not logo:
+            return self.instance.logo
+
         return validate_file_upload(
-            self.cleaned_data.get("logo"),
+            logo,
             allowed_extensions=["jpg", "jpeg", "png", "webp"],
             max_size_mb=5,
             field_name="El logo",
