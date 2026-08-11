@@ -63,8 +63,9 @@ class Liga(models.Model):
     )
     
     def __str__(self):
-        return self.nombre
-    
+        return self.nombre_corto
+
+    @property    
     def nombre_corto(self):
         max_length = 40
         if len(self.nombre) <= max_length:
