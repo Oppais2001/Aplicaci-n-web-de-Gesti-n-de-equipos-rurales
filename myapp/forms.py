@@ -609,19 +609,13 @@ class Ingresar_Liga(forms.ModelForm):
         )
 
     def clean_logo(self):
-        logo = self.cleaned_data.get("logo")
+        logo_nuevo = self.files.get("logo")
 
-        # Edición sin cambiar el logo
-        if not logo:
+        if not logo_nuevo:
             return self.instance.logo
 
-        # Se seleccionó un nuevo logo
-        return validate_file_upload(
-            logo,
-            allowed_extensions=["jpg", "jpeg", "png", "webp"],
-            max_size_mb=5,
-            field_name="El logo",
-        )
+        return logo_nuevo
+
     def clean_comuna(self):
         return validate_text(self.cleaned_data.get("comuna"), "la comuna")
 
