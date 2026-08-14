@@ -609,6 +609,9 @@ class Partido(models.Model):
     @property
     def estado(self):
         return "Jugado" if self.esta_jugado else "Programado"
+    @property
+    def resultado(self):
+        return f"{self.goles_local} - {self.goles_visitante}"
     
 class TarjetaPartido(models.Model):
 

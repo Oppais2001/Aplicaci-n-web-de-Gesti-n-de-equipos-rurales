@@ -17,17 +17,14 @@
         {% if not fechas %}
             <p class="empty-message">No hay fechas para mostrar.</p>
         {% else %}
-            <table class="tabla-responsive">
+            <table class="tabla-responsive tabla-datos">
                 <thead>
                     <tr class="encabezado">
-                        <th>Torneo</th>
                         <th>Local</th>
                         <th>Visitante</th>
+                        <th>Torneo</th>
                         <th>Cancha</th>
                         <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Estado</th>
-                        <th>Resultado</th>
                         {% if user.is_staff %}
                             <th>Acciones</th>
                         {% endif %}
@@ -35,23 +32,50 @@
                 </thead>
                 <tbody>
                     {% for partido in fechas %}
-                        <tr id="fila-fecha-{{ partido.id }}">
-                            <td>{{ partido.torneo|default:"-" }}</td>
-                            <td>{{ partido.equipo_local }}</td>
-                            <td>{{ partido.equipo_visitante }}</td>
-                            <td>{{ partido.cancha|default:"-" }}</td>
-                            <td>{{ partido.fecha|date:"d/m/Y" }}</td>
-                            <td>{{ partido.hora|time:"H:i" }}</td>
-                            <td>{{ partido.estado }}</td>
-                            <td>
-                                {% if partido.esta_jugado %}
-                                    {{ partido.goles_local }} - {{ partido.goles_visitante }}
-                                {% else %}
-                                    Pendiente
-                                {% endif %}
+                        <tr id="fila-{{ partido.id }}">
+                            <td class="col-local">
+                                <div class="equipo-info">
+
+                                    {% if partido.equipo_local.logo %}
+                                        <img class="equipo-logo movil-oculto"
+                                            src="{{ partido.equipo_local.logo.url }}"
+                                            >
+                                    {% else %}
+                                        <div class="equipo-logo logo-vacio movil-oculto">
+                                            <i class="fa-solid fa-shield-halved"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="equipo-texto">
+                                        <span class="equipo-nombre">{{ partido.equipo_local }}</span>
+                                    </div>
+
+                                </div>
+                            </td>                         
+                            <td class="col-visitante">
+                                <div class="equipo-info">
+                                    {% if partido.equipo_visitante.logo %}
+                                        <img class="equipo-logo movil-oculto"
+                                            src="{{ partido.equipo_visitante.logo.url }}"
+                                            >
+                                    {% else %}
+                                        <div class="equipo-logo logo-vacio movil-oculto">
+                                            <i class="fa-solid fa-shield-halved"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="equipo-texto">
+                                        <span class="equipo-nombre">{{ partido.equipo_visitante }}</span>
+                                    </div>
+                                </div>
+                            </td>                            
+                            <td data-label="Campeonato" class="col-torneo">{{ partido.torneo|default:"-" }}</td>
+                            <td data-label="Cancha" class="col-cancha">
+                                <a href="https://www.google.com/maps?q={{ partido.cancha.coordenadas_google_maps }}">{{ partido.cancha|default:"-" }}</a>
                             </td>
+                            <td data-label="Fecha" class="col-fecha">{{ partido.fecha_hora }}</td>
                             {% if user.is_staff %}
-                                <td>
+                                <td class="col-acciones">
                                     <button class="btn editar" title="Editar"
                                     onclick="window.location='/partidos/fechas/editar/{{ partido.id }}/'">
                                         <i class="fa-solid fa-pen"></i>
@@ -127,4 +151,251 @@ function obtenerCSRFTokenFecha(){
     return cookieValue;
 }
 </script>
+<style>
+    .equipo-info{
+
+        display:flex;
+        align-items:center;
+        gap:14px;
+    }
+
+    .equipo-logo{
+
+        width:58px;
+        height:58px;
+
+        object-fit:cover;
+
+        border-radius:50%;
+
+        border:2px solid rgba(255,215,0,.4);
+
+        background:#2a2a2a;
+
+        padding:4px;
+
+        transition:.25s;
+    }
+
+    tr:hover .equipo-logo{
+
+        border-color:gold;
+        transform:scale(1.08);
+    }
+
+    .logo-vacio{
+
+        display:flex;
+        justify-content:center;
+        align-items:center;
+
+        color:gold;
+        font-size:1.5rem;
+    }
+
+    .equipo-texto{
+
+        display:flex;
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .equipo-nombre {
+        color: gold;
+        font-size: 1rem;
+        text-align: center;
+
+        display: block;
+        width: 100%;
+
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: normal;
+        hyphens: none;
+    }
+
+    .equipo-liga{
+
+        color:#bfbfbf;
+        font-size:.85rem;
+    }
+    @media (max-width: 600px) {
+        /* =========================
+        OCULTAR LOGOS EN MÓVIL
+        ========================= */
+
+        .movil-oculto {
+            display: none !important;
+        }
+
+        .tabla-responsive td{
+            gap: 0;
+        }
+
+        /* =========================
+        TARJETA DEL PARTIDO
+        ========================= */
+
+        .tabla-datos tbody tr {
+            display: grid !important;
+
+            /*
+            Local | Visitante
+            */
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr);
+
+            width: 100%;
+        }
+
+
+        /* =========================
+        LOCAL
+        ========================= */
+
+        .tabla-datos .col-local {
+            grid-column: 1;
+            grid-row: 1;
+
+            min-width: 0;
+            width: 100%;
+
+            background: rgba(255, 215, 0, 0.10);
+
+            text-align: left;
+            font-weight: bold;
+        }
+
+
+        /* =========================
+        VISITANTE
+        ========================= */
+
+        .tabla-datos .col-visitante {
+            grid-column: 2;
+            grid-row: 1;
+
+            min-width: 0;
+            width: 100%;
+
+            background: rgba(30, 144, 255, 0.10);
+
+            text-align: right;
+            font-weight: bold;
+        }
+
+
+        /* =========================
+        TORNEO
+        ========================= */
+
+        .tabla-datos .col-torneo {
+            grid-column: 1 / -1;
+            grid-row: 2;
+
+            width: 100%;
+            min-width: 0;
+
+            text-align: right;
+        }
+
+
+        /* =========================
+        FECHA
+        ========================= */
+
+        .tabla-datos .col-fecha {
+            grid-column: 1 / -1;
+            grid-row: 3;
+
+            width: 100%;
+            min-width: 0;
+
+            text-align: left;
+        }
+
+        .tabla-datos .col-cancha{
+            grid-column: 1 / -1;
+            grid-row: 4;
+
+            width: 100%;
+        }
+
+
+        /* =========================
+        ACCIONES
+        ========================= */
+
+        .tabla-datos .col-acciones {
+            grid-column: 1 / -1;
+            grid-row: 5;
+
+            width: 100%;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            gap: 10px;
+        }
+
+
+        /* =========================
+        EQUIPOS
+        ========================= */
+
+        .tabla-datos .equipo-info {
+            width: 100%;
+            min-width: 0;
+
+            gap: 0;
+        }
+
+        .tabla-datos .equipo-texto {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .tabla-datos .equipo-nombre {
+            display: block;
+
+            width: 100%;
+
+            /*
+            Permite que nombres largos
+            se corten correctamente.
+            */
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+
+        /* Local alineado izquierda */
+        .tabla-datos .col-local .equipo-texto {
+            text-align: left;
+        }
+
+
+        /* Visitante alineado derecha */
+        .tabla-datos .col-visitante .equipo-texto {
+            text-align: right;
+        }
+
+
+        /* =========================
+        CELDAS
+        ========================= */
+
+        .tabla-datos td {
+            box-sizing: border-box;
+
+            padding: 10px 8px;
+
+            min-width: 0;
+
+            overflow: hidden;
+        }
+    }
+</style>
 {% endblock %}

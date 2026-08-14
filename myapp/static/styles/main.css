@@ -931,9 +931,6 @@ hr {
 a {
     color: var(--color-secundario);
 }
-.enlace-ayuda {
-    font-size: 2rem;
-}
 
 .detalles {
     font-size: 1.25rem;
