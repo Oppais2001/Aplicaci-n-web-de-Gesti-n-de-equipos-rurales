@@ -551,7 +551,7 @@ class Partido(models.Model):
 
     torneo = models.ForeignKey(
         Torneo,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="partidos",
         null=True
     )
