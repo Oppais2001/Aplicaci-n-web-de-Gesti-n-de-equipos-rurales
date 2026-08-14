@@ -15,6 +15,24 @@ from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
 from django.contrib.staticfiles import finders
 
+
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Paragraph,
+    Spacer,
+    Image as ReportLabImage,
+)
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+
 LETTERS = "A-Za-zÁÉÍÓÚáéíóúÑñÜü"
 
 DIAS = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -836,108 +854,734 @@ def crear_img_partidos(torneo, partidos):
     )
 
     return response
-    
-def crear_imagen_detalle_equipo(equipo, lista_jugadores):
-    alto = max(360, 230 + (lista_jugadores.count() * 45))
-    imagen = Image.new(
-        "RGB",
-        (ANCHO, alto),
-        "#202020"
-    )
 
-    draw = ImageDraw.Draw(imagen)
+def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
-    fuente_titulo = ImageFont.truetype(
-        ruta_titulo,
-        38
-    )
+    # =========================================================
+    # CONFIGURACIÓN
+    # =========================================================
 
-    fuente_normal = ImageFont.truetype(
-        ruta_normal,
-        22
-    )
+    PAGE_WIDTH, PAGE_HEIGHT = landscape(A4)
 
-    fuente_pequena = ImageFont.truetype(
-        ruta_normal,
-        18
-    )
+    margen_izquierdo = 12 * mm
+    margen_derecho = 12 * mm
+    margen_superior = 18 * mm
+    margen_inferior = 15 * mm
 
-    draw.text(
-        (40, 40),
-        "Liga Rural",
-        fill="gold",
-        font=fuente_titulo
-    )
+    # Colores
+    NEGRO = colors.HexColor("#222222")
+    GRIS = colors.HexColor("#666666")
+    GRIS_CLARO = colors.HexColor("#E8E8E8")
+    GRIS_MUY_CLARO = colors.HexColor("#F7F7F7")
+    DORADO = colors.HexColor("#B8962E")
 
-    draw.text(
-        (40, 90),
-        f"Listado - {equipo.nombre}",
-        fill="white",
-        font=fuente_normal
-    )
+    # =========================================================
+    # FUENTES
+    # =========================================================
 
-    draw.line(
-        (40, 140, 860, 140),
-        fill="gold",
-        width=3
-    )
+    try:
 
-    y = 170
-
-    columnas = [
-        ("Nombre", 40, 300),
-        ("Rut", 340, 200),
-        ("C. Emerg.", 480, 200),
-        ("F.Inscrip.", 650, 200),
-    ]
-
-    for titulo, x, _ancho in columnas:
-        draw.text((x, y), titulo, fill="gold", font=fuente_pequena)
-
-    y = 210
-
-    if not lista_jugadores:
-        draw.text(
-            (40, y),
-            "No hay jugadores registrados para este equipo.",
-            fill="white",
-            font=fuente_normal
+        pdfmetrics.registerFont(
+            TTFont(
+                "LigaNormal",
+                ruta_normal
+            )
         )
-    else:
-        for jugador in lista_jugadores:
-                valores = [
-                    (jugador.nombre, 40, 300),
-                    (jugador.rut or "-", 340, 200),
-                    (jugador.contacto_emergencia, 480, 200),
-                    (jugador.fecha_inscripcion, 650, 200),
-                ]
 
-                for valor, x, ancho in valores:
-                    draw.text(
-                        (x, y),
-                        _texto_ajustado(draw, valor, fuente_pequena, ancho),
-                        fill="white",
-                        font=fuente_pequena
-                    )
+        pdfmetrics.registerFont(
+            TTFont(
+                "LigaTitulo",
+                ruta_titulo
+            )
+        )
 
-                y += 45
+        fuente_normal = "LigaNormal"
+        fuente_titulo = "LigaTitulo"
+
+    except Exception:
+
+        fuente_normal = "Helvetica"
+        fuente_titulo = "Helvetica-Bold"
+
+    # =========================================================
+    # DOCUMENTO
+    # =========================================================
 
     buffer = BytesIO()
 
-    imagen.save(
+    doc = SimpleDocTemplate(
         buffer,
-        format="PNG"
+
+        pagesize=landscape(A4),
+
+        rightMargin=margen_derecho,
+        leftMargin=margen_izquierdo,
+        topMargin=margen_superior,
+        bottomMargin=margen_inferior,
+
+        title=f"Planilla de jugadores - {equipo.nombre}",
+        author="Liga Rural",
     )
+
+    # =========================================================
+    # ESTILOS
+    # =========================================================
+
+    estilo_titulo = ParagraphStyle(
+        "TituloLiga",
+
+        fontName=fuente_titulo,
+        fontSize=20,
+        leading=23,
+
+        textColor=NEGRO,
+
+        alignment=TA_LEFT,
+
+        spaceAfter=2,
+    )
+
+    estilo_subtitulo = ParagraphStyle(
+        "SubtituloLiga",
+
+        fontName=fuente_normal,
+        fontSize=10,
+        leading=13,
+
+        textColor=GRIS,
+
+        alignment=TA_LEFT,
+
+        spaceAfter=3,
+    )
+
+    estilo_celda = ParagraphStyle(
+        "CeldaLiga",
+
+        fontName=fuente_normal,
+
+        fontSize=8.5,
+        leading=10,
+
+        textColor=NEGRO,
+
+        alignment=TA_LEFT,
+    )
+
+    estilo_celda_centrada = ParagraphStyle(
+        "CeldaCentradaLiga",
+
+        fontName=fuente_normal,
+
+        fontSize=8.5,
+        leading=10,
+
+        textColor=NEGRO,
+
+        alignment=TA_CENTER,
+    )
+
+    estilo_encabezado = ParagraphStyle(
+        "EncabezadoLiga",
+
+        fontName=fuente_titulo,
+
+        fontSize=8.5,
+        leading=10,
+
+        textColor=NEGRO,
+
+        alignment=TA_LEFT,
+    )
+
+    estilo_total = ParagraphStyle(
+        "TotalLiga",
+
+        fontName=fuente_titulo,
+
+        fontSize=9,
+
+        textColor=NEGRO,
+    )
+
+    # =========================================================
+    # OBTENER JUGADORES
+    # =========================================================
+
+    if hasattr(lista_jugadores, "all"):
+        jugadores = lista_jugadores.all()
+    else:
+        jugadores = lista_jugadores
+
+    if hasattr(lista_jugadores, "count"):
+
+        try:
+            cantidad_jugadores = lista_jugadores.count()
+
+        except TypeError:
+            cantidad_jugadores = len(lista_jugadores)
+
+    else:
+
+        cantidad_jugadores = len(lista_jugadores)
+
+    # =========================================================
+    # ELEMENTOS
+    # =========================================================
+
+    elementos = []
+
+    # =========================================================
+    # ENCABEZADO
+    # =========================================================
+
+    elementos.append(
+        Paragraph(
+            "LIGA RURAL",
+            estilo_titulo
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            f"Listado de jugadores",
+            estilo_subtitulo
+        )
+    )
+
+    elementos.append(
+        Paragraph(
+            f"Equipo: <b>{equipo.nombre}</b>",
+            estilo_subtitulo
+        )
+    )
+
+    elementos.append(
+        Spacer(
+            1,
+            4 * mm
+        )
+    )
+
+    # =========================================================
+    # TABLA
+    # =========================================================
+
+    datos = [
+
+        [
+            Paragraph(
+                "Nombre",
+                estilo_encabezado
+            ),
+
+            Paragraph(
+                "RUT",
+                estilo_encabezado
+            ),
+
+            Paragraph(
+                "C. Emergencia",
+                estilo_encabezado
+            ),
+
+            Paragraph(
+                "F. Inscripción",
+                estilo_encabezado
+            ),
+        ]
+
+    ]
+
+    if cantidad_jugadores == 0:
+
+        datos.append(
+            [
+                Paragraph(
+                    "No hay jugadores registrados para este equipo.",
+                    estilo_celda
+                ),
+                "",
+                "",
+                "",
+            ]
+        )
+
+    else:
+
+        for jugador in jugadores:
+
+            nombre = str(
+                getattr(
+                    jugador,
+                    "nombre",
+                    None
+                ) or "-"
+            )
+
+            rut = str(
+                getattr(
+                    jugador,
+                    "rut",
+                    None
+                ) or "-"
+            )
+
+            contacto = str(
+                getattr(
+                    jugador,
+                    "contacto_emergencia",
+                    None
+                ) or "-"
+            )
+
+            fecha = getattr(
+                jugador,
+                "fecha_inscripcion",
+                None
+            )
+
+            if fecha:
+
+                try:
+
+                    fecha = fecha.strftime(
+                        "%d/%m/%Y"
+                    )
+
+                except AttributeError:
+
+                    fecha = str(fecha)
+
+            else:
+
+                fecha = "-"
+
+            datos.append(
+                [
+
+                    Paragraph(
+                        nombre,
+                        estilo_celda
+                    ),
+
+                    Paragraph(
+                        rut,
+                        estilo_celda
+                    ),
+
+                    Paragraph(
+                        contacto,
+                        estilo_celda
+                    ),
+
+                    Paragraph(
+                        fecha,
+                        estilo_celda_centrada
+                    ),
+
+                ]
+            )
+
+    # =========================================================
+    # DIMENSIONES
+    # =========================================================
+
+    ancho_util = (
+        PAGE_WIDTH
+        - margen_izquierdo
+        - margen_derecho
+    )
+
+    # =========================================================
+    # TABLA
+    # =========================================================
+
+    tabla = Table(
+        datos,
+
+        colWidths=[
+            ancho_util * 0.40,
+            ancho_util * 0.20,
+            ancho_util * 0.22,
+            ancho_util * 0.18,
+        ],
+
+        repeatRows=1,
+
+        hAlign="LEFT",
+    )
+
+    # =========================================================
+    # ESTILOS TABLA
+    # =========================================================
+
+    comandos_tabla = [
+
+        # Fondo blanco
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, -1),
+            colors.white
+        ),
+
+        # Encabezado gris muy claro
+        (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            GRIS_CLARO
+        ),
+
+        # Borde exterior
+        (
+            "BOX",
+            (0, 0),
+            (-1, -1),
+            0.7,
+            GRIS
+        ),
+
+        # Líneas internas
+        (
+            "INNERGRID",
+            (0, 0),
+            (-1, -1),
+            0.35,
+            colors.HexColor("#BBBBBB")
+        ),
+
+        # Línea dorada debajo del encabezado
+        (
+            "LINEBELOW",
+            (0, 0),
+            (-1, 0),
+            1.3,
+            DORADO
+        ),
+
+        # Alineación vertical
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "MIDDLE"
+        ),
+
+        # Padding
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            6
+        ),
+
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            6
+        ),
+
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            5
+        ),
+
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            5
+        ),
+    ]
+
+    # =========================================================
+    # FILAS ALTERNADAS
+    # =========================================================
+
+    for fila in range(1, len(datos)):
+
+        if fila % 2 == 0:
+
+            comandos_tabla.append(
+                (
+                    "BACKGROUND",
+                    (0, fila),
+                    (-1, fila),
+                    GRIS_MUY_CLARO
+                )
+            )
+
+    tabla.setStyle(
+        TableStyle(
+            comandos_tabla
+        )
+    )
+
+    elementos.append(tabla)
+
+    elementos.append(
+        Spacer(
+            1,
+            5 * mm
+        )
+    )
+
+    # =========================================================
+    # TOTAL
+    # =========================================================
+
+    elementos.append(
+        Paragraph(
+            f"Total de jugadores: {cantidad_jugadores}",
+            estilo_total
+        )
+    )
+
+    # =========================================================
+    # LOGO DE LA LIGA
+    # =========================================================
+
+    logo_marca_agua = None
+
+    try:
+
+        liga = equipo.liga
+
+        if liga.logo:
+
+            # Abrimos el archivo mediante Django Storage
+            with liga.logo.open("rb") as archivo:
+
+                logo_original = Image.open(
+                    archivo
+                ).convert("RGBA")
+
+            # -------------------------------------------------
+            # Redimensionar conservando proporción
+            # -------------------------------------------------
+
+            ancho_max = 850
+            alto_max = 500
+
+            logo_original.thumbnail(
+                (
+                    ancho_max,
+                    alto_max
+                ),
+                Image.Resampling.LANCZOS
+            )
+
+            # -------------------------------------------------
+            # Crear transparencia
+            # -------------------------------------------------
+
+            alpha = logo_original.getchannel(
+                "A"
+            )
+
+            # Reducimos muchísimo la opacidad
+            alpha = alpha.point(
+                lambda pixel: int(
+                    pixel * 0.08
+                )
+            )
+
+            logo_original.putalpha(alpha)
+
+            # -------------------------------------------------
+            # Guardar en memoria
+            # -------------------------------------------------
+
+            logo_buffer = BytesIO()
+
+            logo_original.save(
+                logo_buffer,
+                format="PNG"
+            )
+
+            logo_buffer.seek(0)
+
+            logo_marca_agua = logo_buffer
+
+    except Exception:
+        logo_marca_agua = None
+
+    # =========================================================
+    # DIBUJAR CADA PÁGINA
+    # =========================================================
+
+    def dibujar_pagina(canvas, documento):
+
+        canvas.saveState()
+
+        # -----------------------------------------------------
+        # FONDO BLANCO
+        # -----------------------------------------------------
+
+        canvas.setFillColor(
+            colors.white
+        )
+
+        canvas.rect(
+            0,
+            0,
+            PAGE_WIDTH,
+            PAGE_HEIGHT,
+
+            fill=1,
+            stroke=0
+        )
+
+        # -----------------------------------------------------
+        # LOGO COMO MARCA DE AGUA
+        # -----------------------------------------------------
+
+        if logo_marca_agua:
+
+            try:
+
+                logo_marca_agua.seek(0)
+
+                imagen = Image.open(
+                    logo_marca_agua
+                )
+
+                ancho_logo = imagen.width
+                alto_logo = imagen.height
+
+                # Escala para que ocupe una buena parte
+                # de la zona central
+
+                ancho_destino = 145 * mm
+
+                escala = (
+                    ancho_destino
+                    / ancho_logo
+                )
+
+                alto_destino = (
+                    alto_logo
+                    * escala
+                )
+
+                x = (
+                    PAGE_WIDTH
+                    - ancho_destino
+                ) / 2
+
+                y = (
+                    PAGE_HEIGHT
+                    - alto_destino
+                ) / 2
+
+                logo_marca_agua.seek(0)
+
+                from reportlab.lib.utils import ImageReader
+
+                logo_reader = ImageReader(
+                    logo_marca_agua
+                )
+
+                canvas.drawImage(
+                    logo_reader,
+
+                    x,
+                    y,
+
+                    width=ancho_destino,
+                    height=alto_destino,
+
+                    preserveAspectRatio=True,
+
+                    mask="auto"
+                )
+
+            except Exception:
+                pass
+
+        # -----------------------------------------------------
+        # LÍNEA SUPERIOR
+        # -----------------------------------------------------
+
+        canvas.setStrokeColor(
+            DORADO
+        )
+
+        canvas.setLineWidth(
+            1
+        )
+
+        canvas.line(
+            margen_izquierdo,
+            PAGE_HEIGHT - 10 * mm,
+            PAGE_WIDTH - margen_derecho,
+            PAGE_HEIGHT - 10 * mm
+        )
+
+        # -----------------------------------------------------
+        # PIE DE PÁGINA
+        # -----------------------------------------------------
+
+        canvas.setFont(
+            fuente_normal,
+            7
+        )
+
+        canvas.setFillColor(
+            GRIS
+        )
+
+        canvas.drawString(
+            margen_izquierdo,
+            7 * mm,
+            "Liga Rural"
+        )
+
+        canvas.drawRightString(
+            PAGE_WIDTH - margen_derecho,
+            7 * mm,
+            f"Página {documento.page}"
+        )
+
+        canvas.restoreState()
+
+    # =========================================================
+    # GENERAR PDF
+    # =========================================================
+
+    doc.build(
+        elementos,
+
+        onFirstPage=dibujar_pagina,
+
+        onLaterPages=dibujar_pagina
+    )
+
+    # =========================================================
+    # RESPUESTA DJANGO
+    # =========================================================
 
     buffer.seek(0)
 
     response = HttpResponse(
-        buffer,
-        content_type="image/png"
+        buffer.getvalue(),
+        content_type="application/pdf"
+    )
+
+    nombre_archivo = (
+        equipo.nombre
+        .replace(" ", "_")
+        .replace("/", "_")
+        .replace("\\", "_")
     )
 
     response["Content-Disposition"] = (
-        f'attachment; filename="planilla_{equipo.nombre}.png"'
+        f'attachment; filename="planilla_{nombre_archivo}.pdf"'
     )
 
     return response

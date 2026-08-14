@@ -25,7 +25,7 @@ from .forms import (
     TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
-from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_imagen_detalle_equipo
+from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_pdf_detalle_equipo
 
 # HOME Y ABOUT
 @usuario_autorizado_required
@@ -1015,7 +1015,7 @@ def descargar_detalle_equipo(request, equipo_id):
     jugadores = equipo.jugadores.all().order_by(
         "nombre"
     )
-    return crear_imagen_detalle_equipo(equipo, jugadores)
+    return crear_pdf_detalle_equipo(equipo, jugadores)
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
