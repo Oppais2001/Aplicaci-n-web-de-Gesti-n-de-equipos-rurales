@@ -1292,13 +1292,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         (
             "BACKGROUND",
             (0, 0),
-            (-1, -1),
-            colors.white
-        ),
-
-        (
-            "BACKGROUND",
-            (0, 0),
             (-1, 0),
             GRIS_CLARO
         ),
@@ -1476,7 +1469,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
 
             alpha = logo_original.getchannel("A")
-            alpha = alpha.point(lambda pixel: int(pixel * 0.5))
+            alpha = alpha.point(lambda pixel: int(pixel * 0.08))
             logo_original.putalpha(alpha)
 
             logo_buffer = BytesIO()

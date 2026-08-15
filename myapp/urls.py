@@ -61,8 +61,6 @@ urlpatterns = [
     path("torneos/<int:torneo_id>/fechas/imagen/", views.descargar_fechas_imagen, name="descargar_fechas_imagen"),
     path("torneos/<int:torneo_id>/partidos/imagen/", views.descargar_partidos_imagen, name="descargar_partidos_imagen"),
     path("equipos/<int:equipo_id>/imagen/", views.descargar_detalle_equipo, name="crear_imagen_detalle_equipo"),
-    path("debug/logo/<int:equipo_id>/", views.debug_logo_liga, name="debug_logo_liga"),
-
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
