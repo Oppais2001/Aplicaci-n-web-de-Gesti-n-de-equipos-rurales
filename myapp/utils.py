@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import date
+import requests
 
 from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
@@ -858,22 +859,28 @@ def crear_img_partidos(torneo, partidos):
 def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     # =========================================================
-    # CONFIGURACIÓN
+    # CONFIGURACIÓN A4 VERTICAL
     # =========================================================
 
-    PAGE_WIDTH, PAGE_HEIGHT = landscape(A4)
+    PAGE_WIDTH, PAGE_HEIGHT = A4
 
-    margen_izquierdo = 12 * mm
-    margen_derecho = 12 * mm
-    margen_superior = 18 * mm
-    margen_inferior = 15 * mm
+    margen_izquierdo = 14 * mm
+    margen_derecho = 14 * mm
+    margen_superior = 20 * mm
+    margen_inferior = 16 * mm
 
-    # Colores
+
+    # =========================================================
+    # COLORES
+    # =========================================================
+
     NEGRO = colors.HexColor("#222222")
     GRIS = colors.HexColor("#666666")
-    GRIS_CLARO = colors.HexColor("#E8E8E8")
+    GRIS_CLARO = colors.HexColor("#E9E9E9")
     GRIS_MUY_CLARO = colors.HexColor("#F7F7F7")
+
     DORADO = colors.HexColor("#B8962E")
+
 
     # =========================================================
     # FUENTES
@@ -903,6 +910,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         fuente_normal = "Helvetica"
         fuente_titulo = "Helvetica-Bold"
 
+
     # =========================================================
     # DOCUMENTO
     # =========================================================
@@ -910,9 +918,10 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     buffer = BytesIO()
 
     doc = SimpleDocTemplate(
+
         buffer,
 
-        pagesize=landscape(A4),
+        pagesize=A4,
 
         rightMargin=margen_derecho,
         leftMargin=margen_izquierdo,
@@ -920,19 +929,23 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         bottomMargin=margen_inferior,
 
         title=f"Planilla de jugadores - {equipo.nombre}",
+
         author="Liga Rural",
     )
+
 
     # =========================================================
     # ESTILOS
     # =========================================================
 
     estilo_titulo = ParagraphStyle(
+
         "TituloLiga",
 
         fontName=fuente_titulo,
-        fontSize=20,
-        leading=23,
+
+        fontSize=18,
+        leading=21,
 
         textColor=NEGRO,
 
@@ -941,60 +954,74 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         spaceAfter=2,
     )
 
+
     estilo_subtitulo = ParagraphStyle(
+
         "SubtituloLiga",
 
         fontName=fuente_normal,
-        fontSize=10,
-        leading=13,
+
+        fontSize=9.5,
+        leading=12,
 
         textColor=GRIS,
 
         alignment=TA_LEFT,
 
-        spaceAfter=3,
+        spaceAfter=2,
     )
 
+
     estilo_celda = ParagraphStyle(
+
         "CeldaLiga",
 
         fontName=fuente_normal,
 
-        fontSize=8.5,
-        leading=10,
+        fontSize=8,
+
+        leading=9.5,
 
         textColor=NEGRO,
 
         alignment=TA_LEFT,
     )
 
+
     estilo_celda_centrada = ParagraphStyle(
+
         "CeldaCentradaLiga",
 
         fontName=fuente_normal,
 
-        fontSize=8.5,
-        leading=10,
+        fontSize=8,
+
+        leading=9.5,
 
         textColor=NEGRO,
 
         alignment=TA_CENTER,
     )
 
+
     estilo_encabezado = ParagraphStyle(
+
         "EncabezadoLiga",
 
         fontName=fuente_titulo,
 
-        fontSize=8.5,
-        leading=10,
+        fontSize=8,
+
+        leading=9.5,
 
         textColor=NEGRO,
 
         alignment=TA_LEFT,
     )
 
+
     estilo_total = ParagraphStyle(
+
         "TotalLiga",
 
         fontName=fuente_titulo,
@@ -1004,32 +1031,41 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         textColor=NEGRO,
     )
 
+
     # =========================================================
-    # OBTENER JUGADORES
+    # JUGADORES
     # =========================================================
 
     if hasattr(lista_jugadores, "all"):
+
         jugadores = lista_jugadores.all()
+
     else:
+
         jugadores = lista_jugadores
+
 
     if hasattr(lista_jugadores, "count"):
 
         try:
+
             cantidad_jugadores = lista_jugadores.count()
 
         except TypeError:
+
             cantidad_jugadores = len(lista_jugadores)
 
     else:
 
         cantidad_jugadores = len(lista_jugadores)
 
+
     # =========================================================
-    # ELEMENTOS
+    # ELEMENTOS DEL PDF
     # =========================================================
 
     elementos = []
+
 
     # =========================================================
     # ENCABEZADO
@@ -1042,12 +1078,14 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         )
     )
 
+
     elementos.append(
         Paragraph(
-            f"Listado de jugadores",
+            "Listado oficial de jugadores",
             estilo_subtitulo
         )
     )
+
 
     elementos.append(
         Paragraph(
@@ -1056,12 +1094,14 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         )
     )
 
+
     elementos.append(
         Spacer(
             1,
-            4 * mm
+            5 * mm
         )
     )
+
 
     # =========================================================
     # TABLA
@@ -1070,6 +1110,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     datos = [
 
         [
+
             Paragraph(
                 "Nombre",
                 estilo_encabezado
@@ -1089,22 +1130,31 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 "F. Inscripción",
                 estilo_encabezado
             ),
+
         ]
 
     ]
 
+
     if cantidad_jugadores == 0:
 
         datos.append(
+
             [
+
                 Paragraph(
                     "No hay jugadores registrados para este equipo.",
                     estilo_celda
                 ),
+
                 "",
+
                 "",
+
                 "",
+
             ]
+
         )
 
     else:
@@ -1119,6 +1169,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 ) or "-"
             )
 
+
             rut = str(
                 getattr(
                     jugador,
@@ -1126,6 +1177,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                     None
                 ) or "-"
             )
+
 
             contacto = str(
                 getattr(
@@ -1135,11 +1187,13 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 ) or "-"
             )
 
+
             fecha = getattr(
                 jugador,
                 "fecha_inscripcion",
                 None
             )
+
 
             if fecha:
 
@@ -1157,7 +1211,9 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
                 fecha = "-"
 
+
             datos.append(
+
                 [
 
                     Paragraph(
@@ -1181,30 +1237,41 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                     ),
 
                 ]
+
             )
 
+
     # =========================================================
-    # DIMENSIONES
+    # ANCHO DE TABLA
     # =========================================================
 
     ancho_util = (
+
         PAGE_WIDTH
         - margen_izquierdo
         - margen_derecho
+
     )
+
 
     # =========================================================
     # TABLA
     # =========================================================
 
     tabla = Table(
+
         datos,
 
         colWidths=[
-            ancho_util * 0.40,
-            ancho_util * 0.20,
-            ancho_util * 0.22,
+
+            ancho_util * 0.37,
+
             ancho_util * 0.18,
+
+            ancho_util * 0.27,
+
+            ancho_util * 0.18,
+
         ],
 
         repeatRows=1,
@@ -1212,13 +1279,13 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         hAlign="LEFT",
     )
 
+
     # =========================================================
     # ESTILOS TABLA
     # =========================================================
 
     comandos_tabla = [
 
-        # Fondo blanco
         (
             "BACKGROUND",
             (0, 0),
@@ -1226,7 +1293,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             colors.white
         ),
 
-        # Encabezado gris muy claro
         (
             "BACKGROUND",
             (0, 0),
@@ -1234,7 +1300,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             GRIS_CLARO
         ),
 
-        # Borde exterior
         (
             "BOX",
             (0, 0),
@@ -1243,7 +1308,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             GRIS
         ),
 
-        # Líneas internas
         (
             "INNERGRID",
             (0, 0),
@@ -1252,16 +1316,14 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             colors.HexColor("#BBBBBB")
         ),
 
-        # Línea dorada debajo del encabezado
         (
             "LINEBELOW",
             (0, 0),
             (-1, 0),
-            1.3,
+            1.2,
             DORADO
         ),
 
-        # Alineación vertical
         (
             "VALIGN",
             (0, 0),
@@ -1269,177 +1331,256 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             "MIDDLE"
         ),
 
-        # Padding
         (
             "LEFTPADDING",
             (0, 0),
             (-1, -1),
-            6
+            5
         ),
 
         (
             "RIGHTPADDING",
             (0, 0),
             (-1, -1),
-            6
+            5
         ),
 
         (
             "TOPPADDING",
             (0, 0),
             (-1, -1),
-            5
+            4
         ),
 
         (
             "BOTTOMPADDING",
             (0, 0),
             (-1, -1),
-            5
+            4
         ),
+
     ]
+
 
     # =========================================================
     # FILAS ALTERNADAS
     # =========================================================
 
-    for fila in range(1, len(datos)):
+    for fila in range(
+        1,
+        len(datos)
+    ):
 
         if fila % 2 == 0:
 
             comandos_tabla.append(
+
                 (
                     "BACKGROUND",
                     (0, fila),
                     (-1, fila),
                     GRIS_MUY_CLARO
                 )
+
             )
 
+
     tabla.setStyle(
+
         TableStyle(
             comandos_tabla
         )
+
     )
 
-    elementos.append(tabla)
+
+    elementos.append(
+        tabla
+    )
+
 
     elementos.append(
         Spacer(
             1,
-            5 * mm
+            4 * mm
         )
     )
+
 
     # =========================================================
     # TOTAL
     # =========================================================
 
     elementos.append(
+
         Paragraph(
+
             f"Total de jugadores: {cantidad_jugadores}",
+
             estilo_total
+
         )
+
     )
 
+
     # =========================================================
-    # LOGO DE LA LIGA
+    # DESCARGAR LOGO DESDE CLOUDINARY
     # =========================================================
 
     logo_marca_agua = None
+
 
     try:
 
         liga = equipo.liga
 
+
         if liga.logo:
 
-            # Abrimos el archivo mediante Django Storage
-            with liga.logo.open("rb") as archivo:
+            # ---------------------------------------------
+            # IMPORTANTE:
+            # Cloudinary proporciona una URL pública.
+            # No usamos liga.logo.open()
+            # ---------------------------------------------
 
-                logo_original = Image.open(
-                    archivo
-                ).convert("RGBA")
+            url_logo = liga.logo.url
 
-            # -------------------------------------------------
-            # Redimensionar conservando proporción
-            # -------------------------------------------------
 
-            ancho_max = 850
-            alto_max = 500
+            respuesta_logo = requests.get(
+
+                url_logo,
+
+                timeout=15
+
+            )
+
+
+            respuesta_logo.raise_for_status()
+
+
+            logo_original = Image.open(
+
+                BytesIO(
+                    respuesta_logo.content
+                )
+
+            ).convert("RGBA")
+
+
+            # ---------------------------------------------
+            # REDIMENSIONAR
+            # ---------------------------------------------
+
+            ancho_max = 1000
+            alto_max = 1000
+
 
             logo_original.thumbnail(
+
                 (
                     ancho_max,
                     alto_max
                 ),
+
                 Image.Resampling.LANCZOS
+
             )
 
-            # -------------------------------------------------
-            # Crear transparencia
-            # -------------------------------------------------
+
+            # ---------------------------------------------
+            # OPACIDAD
+            # ---------------------------------------------
 
             alpha = logo_original.getchannel(
                 "A"
             )
 
-            # Reducimos muchísimo la opacidad
+
             alpha = alpha.point(
+
                 lambda pixel: int(
-                    pixel * 0.08
+                    pixel * 0.07
                 )
+
             )
 
-            logo_original.putalpha(alpha)
 
-            # -------------------------------------------------
-            # Guardar en memoria
-            # -------------------------------------------------
+            logo_original.putalpha(
+                alpha
+            )
+
+
+            # ---------------------------------------------
+            # GUARDAR EN MEMORIA
+            # ---------------------------------------------
 
             logo_buffer = BytesIO()
 
+
             logo_original.save(
+
                 logo_buffer,
+
                 format="PNG"
+
             )
+
 
             logo_buffer.seek(0)
 
+
             logo_marca_agua = logo_buffer
 
-    except Exception:
+
+    except Exception as e:
+
+        print(
+            f"Error cargando logo de Cloudinary: {e}"
+        )
+
         logo_marca_agua = None
+
 
     # =========================================================
     # DIBUJAR CADA PÁGINA
     # =========================================================
 
-    def dibujar_pagina(canvas, documento):
+    def dibujar_pagina(
+        canvas,
+        documento
+    ):
 
         canvas.saveState()
 
-        # -----------------------------------------------------
+
+        # =====================================================
         # FONDO BLANCO
-        # -----------------------------------------------------
+        # =====================================================
 
         canvas.setFillColor(
             colors.white
         )
 
+
         canvas.rect(
+
             0,
             0,
+
             PAGE_WIDTH,
             PAGE_HEIGHT,
 
             fill=1,
+
             stroke=0
+
         )
 
-        # -----------------------------------------------------
-        # LOGO COMO MARCA DE AGUA
-        # -----------------------------------------------------
+
+        # =====================================================
+        # MARCA DE AGUA
+        # =====================================================
 
         if logo_marca_agua:
 
@@ -1447,47 +1588,73 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
                 logo_marca_agua.seek(0)
 
+
                 imagen = Image.open(
                     logo_marca_agua
                 )
 
+
                 ancho_logo = imagen.width
                 alto_logo = imagen.height
 
-                # Escala para que ocupe una buena parte
-                # de la zona central
 
-                ancho_destino = 145 * mm
+                # ---------------------------------------------
+                # Tamaño de la marca de agua
+                # ---------------------------------------------
+
+                ancho_destino = 135 * mm
+
 
                 escala = (
+
                     ancho_destino
                     / ancho_logo
+
                 )
+
 
                 alto_destino = (
+
                     alto_logo
                     * escala
+
                 )
 
+
+                # ---------------------------------------------
+                # CENTRAR
+                # ---------------------------------------------
+
                 x = (
+
                     PAGE_WIDTH
                     - ancho_destino
+
                 ) / 2
 
+
                 y = (
+
                     PAGE_HEIGHT
                     - alto_destino
+
                 ) / 2
+
+
+                # ---------------------------------------------
+                # DIBUJAR
+                # ---------------------------------------------
 
                 logo_marca_agua.seek(0)
 
-                from reportlab.lib.utils import ImageReader
 
                 logo_reader = ImageReader(
                     logo_marca_agua
                 )
 
+
                 canvas.drawImage(
+
                     logo_reader,
 
                     x,
@@ -1499,89 +1666,146 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                     preserveAspectRatio=True,
 
                     mask="auto"
+
                 )
 
-            except Exception:
-                pass
 
-        # -----------------------------------------------------
+            except Exception as e:
+
+                print(
+                    f"Error dibujando marca de agua: {e}"
+                )
+
+
+        # =====================================================
         # LÍNEA SUPERIOR
-        # -----------------------------------------------------
+        # =====================================================
 
         canvas.setStrokeColor(
             DORADO
         )
 
+
         canvas.setLineWidth(
             1
         )
 
+
         canvas.line(
+
             margen_izquierdo,
-            PAGE_HEIGHT - 10 * mm,
+
+            PAGE_HEIGHT - 11 * mm,
+
             PAGE_WIDTH - margen_derecho,
-            PAGE_HEIGHT - 10 * mm
+
+            PAGE_HEIGHT - 11 * mm
+
         )
 
-        # -----------------------------------------------------
+
+        # =====================================================
         # PIE DE PÁGINA
-        # -----------------------------------------------------
+        # =====================================================
 
         canvas.setFont(
+
             fuente_normal,
+
             7
+
         )
+
 
         canvas.setFillColor(
             GRIS
         )
 
+
         canvas.drawString(
+
             margen_izquierdo,
-            7 * mm,
+
+            8 * mm,
+
             "Liga Rural"
+
         )
+
 
         canvas.drawRightString(
+
             PAGE_WIDTH - margen_derecho,
-            7 * mm,
+
+            8 * mm,
+
             f"Página {documento.page}"
+
         )
 
+
         canvas.restoreState()
+
 
     # =========================================================
     # GENERAR PDF
     # =========================================================
 
     doc.build(
+
         elementos,
 
         onFirstPage=dibujar_pagina,
 
         onLaterPages=dibujar_pagina
+
     )
 
+
     # =========================================================
-    # RESPUESTA DJANGO
+    # RESPUESTA
     # =========================================================
 
     buffer.seek(0)
 
+
     response = HttpResponse(
+
         buffer.getvalue(),
+
         content_type="application/pdf"
+
     )
+
 
     nombre_archivo = (
+
         equipo.nombre
-        .replace(" ", "_")
-        .replace("/", "_")
-        .replace("\\", "_")
+
+        .replace(
+            " ",
+            "_"
+        )
+
+        .replace(
+            "/",
+            "_"
+        )
+
+        .replace(
+            "\\",
+            "_"
+        )
+
     )
 
+
     response["Content-Disposition"] = (
-        f'attachment; filename="planilla_{nombre_archivo}.pdf"'
+
+        f'attachment; '
+        f'filename="planilla_{nombre_archivo}.pdf"'
+
     )
+
 
     return response
