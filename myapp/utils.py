@@ -933,7 +933,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         title=f"Planilla de jugadores - {equipo.nombre}",
 
-        author="Liga Rural",
+        author=equipo.liga,
     )
 
 
@@ -1076,7 +1076,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     elementos.append(
         Paragraph(
-            "LIGA RURAL",
+            "f{equipo.liga}".upper(),
             estilo_titulo
         )
     )
@@ -1655,7 +1655,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
             8 * mm,
 
-            "Liga Rural"
+            equipo.liga
 
         )
 
