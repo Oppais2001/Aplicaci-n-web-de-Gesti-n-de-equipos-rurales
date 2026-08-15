@@ -3,6 +3,10 @@ import re
 from datetime import date
 import requests
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
@@ -1429,117 +1433,60 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     logo_marca_agua = None
 
-
     try:
-
         liga = equipo.liga
+    except Exception as e:
+        logger.warning(f"[PDF] equipo.liga falló: {e}")
+        liga = None
 
+    if liga is None:
+        logger.info("[PDF] No hay liga asociada al equipo, se omite marca de agua.")
 
-        if liga.logo:
+    elif not liga.logo:
+        logger.info(f"[PDF] liga.logo está vacío para la liga '{liga}' (id={liga.id}).")
 
-            # ---------------------------------------------
-            # IMPORTANTE:
-            # Cloudinary proporciona una URL pública.
-            # No usamos liga.logo.open()
-            # ---------------------------------------------
+    else:
 
-            url_logo = liga.logo.url
+        url_logo = liga.logo.url
 
+        if url_logo.startswith("//"):
+            url_logo = "https:" + url_logo
 
-            respuesta_logo = requests.get(
+        logger.info(f"[PDF] URL del logo resuelta: {url_logo}")
 
-                url_logo,
-
-                timeout=15
-
-            )
-
-
+        try:
+            respuesta_logo = requests.get(url_logo, timeout=15)
             respuesta_logo.raise_for_status()
 
+            logger.info(
+                f"[PDF] Logo descargado OK. status={respuesta_logo.status_code} "
+                f"bytes={len(respuesta_logo.content)}"
+            )
 
-            logo_original = Image.open(
-
-                BytesIO(
-                    respuesta_logo.content
-                )
-
-            ).convert("RGBA")
-
-
-            # ---------------------------------------------
-            # REDIMENSIONAR
-            # ---------------------------------------------
+            logo_original = Image.open(BytesIO(respuesta_logo.content)).convert("RGBA")
 
             ancho_max = 1000
             alto_max = 1000
 
+            logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
 
-            logo_original.thumbnail(
-
-                (
-                    ancho_max,
-                    alto_max
-                ),
-
-                Image.Resampling.LANCZOS
-
-            )
-
-
-            # ---------------------------------------------
-            # OPACIDAD
-            # ---------------------------------------------
-
-            alpha = logo_original.getchannel(
-                "A"
-            )
-
-
-            alpha = alpha.point(
-
-                lambda pixel: int(
-                    pixel * 0.07
-                )
-
-            )
-
-
-            logo_original.putalpha(
-                alpha
-            )
-
-
-            # ---------------------------------------------
-            # GUARDAR EN MEMORIA
-            # ---------------------------------------------
+            alpha = logo_original.getchannel("A")
+            alpha = alpha.point(lambda pixel: int(pixel * 0.07))
+            logo_original.putalpha(alpha)
 
             logo_buffer = BytesIO()
-
-
-            logo_original.save(
-
-                logo_buffer,
-
-                format="PNG"
-
-            )
-
-
+            logo_original.save(logo_buffer, format="PNG")
             logo_buffer.seek(0)
-
 
             logo_marca_agua = logo_buffer
 
+            logger.info("[PDF] Marca de agua generada correctamente en memoria.")
 
-    except Exception as e:
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[PDF] Error de red descargando logo desde {url_logo}: {e}")
 
-        print(
-            f"Error cargando logo de Cloudinary: {e}"
-        )
-
-        logo_marca_agua = None
-
+        except Exception as e:
+            logger.error(f"[PDF] Error procesando imagen del logo: {e}")
 
     # =========================================================
     # DIBUJAR CADA PÁGINA
