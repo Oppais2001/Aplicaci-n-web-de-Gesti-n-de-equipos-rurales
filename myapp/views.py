@@ -1016,6 +1016,35 @@ def descargar_detalle_equipo(request, equipo_id):
         "nombre"
     )
     return crear_pdf_detalle_equipo(equipo, jugadores)
+def debug_logo_liga(request, equipo_id):
+    from django.shortcuts import get_object_or_404
+    from myapp.models import Equipo  # ajusta el import real
+    from io import BytesIO
+    import requests
+    from PIL import Image
+    from django.http import HttpResponse
+
+    equipo = get_object_or_404(Equipo, id=equipo_id)
+    liga = equipo.liga
+
+    url_logo = liga.logo.url
+    if url_logo.startswith("//"):
+        url_logo = "https:" + url_logo
+
+    respuesta = requests.get(url_logo, timeout=15)
+    logo = Image.open(BytesIO(respuesta.content)).convert("RGBA")
+
+    print(f"[DEBUG] modo={logo.mode} tamaño={logo.size}", flush=True)
+
+    alpha = logo.getchannel("A")
+    valores = alpha.getdata()
+    print(f"[DEBUG] alpha min={min(valores)} max={max(valores)}", flush=True)
+
+    buffer = BytesIO()
+    logo.save(buffer, format="PNG")  # SIN reducir opacidad, para verla al 100%
+    buffer.seek(0)
+
+    return HttpResponse(buffer.getvalue(), content_type="image/png")
 # PARTIDOS
 @admin_required
 def ingresar_partido(request):
