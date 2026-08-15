@@ -1290,13 +1290,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     comandos_tabla = [
 
         (
-            "BACKGROUND",
-            (0, 0),
-            (-1, 0),
-            GRIS_CLARO
-        ),
-
-        (
             "BOX",
             (0, 0),
             (-1, -1),
