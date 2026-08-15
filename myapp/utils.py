@@ -1431,19 +1431,23 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     # DESCARGAR LOGO DESDE CLOUDINARY
     # =========================================================
 
+    # =========================================================
+    # DESCARGAR LOGO DESDE CLOUDINARY
+    # =========================================================
+
     logo_marca_agua = None
 
     try:
         liga = equipo.liga
     except Exception as e:
-        logger.warning(f"[PDF] equipo.liga falló: {e}")
+        print(f"[PDF] equipo.liga falló: {e}", flush=True)
         liga = None
 
     if liga is None:
-        logger.info("[PDF] No hay liga asociada al equipo, se omite marca de agua.")
+        print("[PDF] No hay liga asociada al equipo, se omite marca de agua.", flush=True)
 
     elif not liga.logo:
-        logger.info(f"[PDF] liga.logo está vacío para la liga '{liga}' (id={liga.id}).")
+        print(f"[PDF] liga.logo está vacío para la liga '{liga}' (id={liga.id}).", flush=True)
 
     else:
 
@@ -1452,15 +1456,16 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         if url_logo.startswith("//"):
             url_logo = "https:" + url_logo
 
-        logger.info(f"[PDF] URL del logo resuelta: {url_logo}")
+        print(f"[PDF] URL del logo resuelta: {url_logo}", flush=True)
 
         try:
             respuesta_logo = requests.get(url_logo, timeout=15)
             respuesta_logo.raise_for_status()
 
-            logger.info(
+            print(
                 f"[PDF] Logo descargado OK. status={respuesta_logo.status_code} "
-                f"bytes={len(respuesta_logo.content)}"
+                f"bytes={len(respuesta_logo.content)}",
+                flush=True
             )
 
             logo_original = Image.open(BytesIO(respuesta_logo.content)).convert("RGBA")
@@ -1480,13 +1485,13 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
             logo_marca_agua = logo_buffer
 
-            logger.info("[PDF] Marca de agua generada correctamente en memoria.")
+            print("[PDF] Marca de agua generada correctamente en memoria.", flush=True)
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"[PDF] Error de red descargando logo desde {url_logo}: {e}")
+            print(f"[PDF] Error de red descargando logo desde {url_logo}: {e}", flush=True)
 
         except Exception as e:
-            logger.error(f"[PDF] Error procesando imagen del logo: {e}")
+            print(f"[PDF] Error procesando imagen del logo: {e}", flush=True)
 
     # =========================================================
     # DIBUJAR CADA PÁGINA
@@ -1598,6 +1603,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                     logo_marca_agua
                 )
 
+                print(f"[PDF] Dibujando marca de agua en x={x:.1f} y={y:.1f}", flush=True)
 
                 canvas.drawImage(
 
