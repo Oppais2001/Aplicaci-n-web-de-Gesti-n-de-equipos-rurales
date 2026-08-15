@@ -16,8 +16,7 @@ from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
 from django.contrib.staticfiles import finders
 
-
-
+from reportlab.lib.utils import ImageReader
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
