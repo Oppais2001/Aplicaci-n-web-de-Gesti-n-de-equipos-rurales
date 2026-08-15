@@ -1290,6 +1290,13 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     comandos_tabla = [
 
         (
+            "BACKGROUND",
+            (0, 0),
+            (-1, 0),
+            GRIS_CLARO
+        ),
+
+        (
             "BOX",
             (0, 0),
             (-1, -1),
@@ -1354,24 +1361,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     # =========================================================
     # FILAS ALTERNADAS
     # =========================================================
-
-    for fila in range(
-        1,
-        len(datos)
-    ):
-
-        if fila % 2 == 0:
-
-            comandos_tabla.append(
-
-                (
-                    "BACKGROUND",
-                    (0, fila),
-                    (-1, fila),
-                    GRIS_MUY_CLARO
-                )
-
-            )
 
 
     tabla.setStyle(
