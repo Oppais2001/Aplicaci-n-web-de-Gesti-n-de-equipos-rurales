@@ -920,6 +920,8 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     buffer = BytesIO()
 
+    nombre_liga = str(equipo.liga)
+
     doc = SimpleDocTemplate(
 
         buffer,
@@ -933,7 +935,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         title=f"Planilla de jugadores - {equipo.nombre}",
 
-        author=equipo.liga,
+        author=nombre_liga,
     )
 
 
@@ -1076,7 +1078,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     elementos.append(
         Paragraph(
-            "f{equipo.liga}".upper(),
+            nombre_liga,
             estilo_titulo
         )
     )
@@ -1655,7 +1657,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
             8 * mm,
 
-            equipo.liga
+            nombre_liga
 
         )
 
