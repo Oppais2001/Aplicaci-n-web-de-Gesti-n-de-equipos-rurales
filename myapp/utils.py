@@ -1471,7 +1471,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
 
             alpha = logo_original.getchannel("A")
-            alpha = alpha.point(lambda pixel: int(pixel * 0.07))
+            alpha = alpha.point(lambda pixel: int(pixel * 0.5))
             logo_original.putalpha(alpha)
 
             logo_buffer = BytesIO()
