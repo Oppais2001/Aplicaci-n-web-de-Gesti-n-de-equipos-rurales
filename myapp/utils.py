@@ -954,7 +954,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         textColor=NEGRO,
 
-        alignment=TA_LEFT,
+        alignment=TA_CENTER,
 
         spaceAfter=2,
     )
@@ -971,7 +971,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         textColor=GRIS,
 
-        alignment=TA_LEFT,
+        alignment=TA_CENTER,
 
         spaceAfter=2,
     )
@@ -1086,15 +1086,15 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     elementos.append(
         Paragraph(
-            "Listado oficial de jugadores",
-            estilo_subtitulo
+            str("Listado oficial de jugadores".upper()),
+            estilo_titulo
         )
     )
 
 
     elementos.append(
         Paragraph(
-            f"Equipo: <b>{equipo.nombre}</b>",
+            f"Club Deportivo: <b>{equipo.nombre}</b>",
             estilo_subtitulo
         )
     )
@@ -1127,7 +1127,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             ),
 
             Paragraph(
-                "C. Emergencia",
+                "F. Nacimiento",
                 estilo_encabezado
             ),
 
@@ -1187,7 +1187,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             contacto = str(
                 getattr(
                     jugador,
-                    "contacto_emergencia",
+                    "fecha_nacimiento",
                     None
                 ) or "-"
             )
