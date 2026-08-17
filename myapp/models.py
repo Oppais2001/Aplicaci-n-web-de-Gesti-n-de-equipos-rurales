@@ -240,6 +240,7 @@ class Jugador(models.Model):
     def __str__(self):
         return self.nombre + " / " + self.rut
     
+    @property
     def rut_formateado(self):
         rut = self.rut
 

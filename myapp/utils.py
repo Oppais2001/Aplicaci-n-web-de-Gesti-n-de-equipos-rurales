@@ -502,8 +502,13 @@ def validate_decimal_range(
 
 # Creador de imagenes de la tabla de posiciones
 ANCHO = 900
-ruta_titulo = finders.find("fonts/ARIALBD.TTF")
-ruta_normal = finders.find("fonts/ARIAL.TTF")
+ruta_titulo = finders.find("fonts/Cinzel-Regular.TTF")
+ruta_titulo_negrita = finders.find("fonts/Cinzel-Bold.TTF")
+ruta_subtitulo = finders.find("fonts/Lato-Bold.TTF")
+ruta_normal = finders.find("fonts/Lato-Regular.TTF")
+ruta_normal_negrita = finders.find("fonts/Lato-Bold.TTF")
+
+
 
 
 def crear_img_tabla(torneo, tabla_posiciones):
@@ -527,6 +532,7 @@ def crear_img_tabla(torneo, tabla_posiciones):
         ruta_titulo,
         38
     )
+    
 
     cantidad_equipos = len(tabla_posiciones)
 
@@ -867,8 +873,8 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     PAGE_WIDTH, PAGE_HEIGHT = A4
 
-    margen_izquierdo = 14 * mm
-    margen_derecho = 14 * mm
+    margen_izquierdo = 10 * mm
+    margen_derecho = 10 * mm
     margen_superior = 20 * mm
     margen_inferior = 16 * mm
 
@@ -880,7 +886,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     NEGRO = colors.HexColor("#222222")
     GRIS = colors.HexColor("#666666")
     GRIS_CLARO = colors.HexColor("#E9E9E9")
-    GRIS_MUY_CLARO = colors.HexColor("#F7F7F7")
 
     DORADO = colors.HexColor("#B8962E")
 
@@ -900,18 +905,50 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         pdfmetrics.registerFont(
             TTFont(
-                "LigaTitulo",
-                ruta_titulo
+                "LigaNormalNegrita",
+                ruta_normal_negrita
             )
         )
 
+        pdfmetrics.registerFont(
+            TTFont(
+                "LigaTituloRegular",
+                ruta_titulo
+            )
+        )
+        pdfmetrics.registerFont(
+            TTFont(
+                "LigaTituloNegrita",
+                ruta_titulo_negrita
+            )
+        )
+        pdfmetrics.registerFont(
+            TTFont(
+                "LigaSubtitulo",
+                ruta_subtitulo
+            )
+        )
+        pdfmetrics.registerFontFamily(
+            "LigaTitulo",
+            normal="LigaTituloRegular",
+            bold="LigaTituloNegrita"
+        )
+        
+        pdfmetrics.registerFontFamily(
+            "LigaNorma",
+            normal="LigaNormal",
+            bold="LigaNormalNegrita"
+        )
+
         fuente_normal = "LigaNormal"
-        fuente_titulo = "LigaTitulo"
+        fuente_titulo = "LigaTituloRegular"
+        fuente_subtitulo = "LigaSubtitulo"
 
     except Exception:
 
         fuente_normal = "Helvetica"
         fuente_titulo = "Helvetica-Bold"
+        fuente_subtitulo = "Helvetica"
 
 
     # =========================================================
@@ -920,7 +957,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     buffer = BytesIO()
 
-    nombre_liga = str(equipo.liga)
+    nombre_liga = str(equipo.liga.nombre)
 
     doc = SimpleDocTemplate(
 
@@ -964,12 +1001,12 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         "SubtituloLiga",
 
-        fontName=fuente_normal,
+        fontName=fuente_titulo,
 
-        fontSize=9.5,
+        fontSize=10,
         leading=12,
 
-        textColor=GRIS,
+        textColor=NEGRO,
 
         alignment=TA_CENTER,
 
@@ -983,7 +1020,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         fontName=fuente_normal,
 
-        fontSize=8,
+        fontSize=10,
 
         leading=9.5,
 
@@ -999,7 +1036,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         fontName=fuente_normal,
 
-        fontSize=8,
+        fontSize=10,
 
         leading=9.5,
 
@@ -1013,15 +1050,15 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         "EncabezadoLiga",
 
-        fontName=fuente_titulo,
+        fontName=fuente_normal,
 
-        fontSize=8,
+        fontSize=10,
 
         leading=9.5,
 
         textColor=NEGRO,
 
-        alignment=TA_LEFT,
+        alignment=TA_CENTER,
     )
 
 
@@ -1078,24 +1115,26 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     elementos.append(
         Paragraph(
-            nombre_liga,
+            "<b>" + str("Listado oficial de jugadores".upper()) + "</b>",
+            estilo_titulo,
+        )
+    )
+    
+    elementos.append(
+        Paragraph(
+            f'<b>{nombre_liga}</b>',
             estilo_titulo
         )
     )
-
-
+    
     elementos.append(
-        Paragraph(
-            str("Listado oficial de jugadores".upper()),
-            estilo_titulo
-        )
+    Spacer(1, 2 * mm)
     )
-
-
+    
     elementos.append(
         Paragraph(
-            f"Club Deportivo: <b>{equipo.nombre}</b>",
-            estilo_subtitulo
+            f'Club Deportivo: <b>"<u>{equipo}</u>"</b>',
+            estilo_titulo
         )
     )
 
@@ -1115,24 +1154,39 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     datos = [
 
         [
-
             Paragraph(
-                "Nombre",
+                "<b>N°</b>",
+                estilo_encabezado
+                ),
+            
+            Paragraph(
+                "<b>Apellido Paterno</b>",
+                estilo_encabezado
+            ),
+
+            
+            Paragraph(
+                "<b>Apellido Materno</b>",
                 estilo_encabezado
             ),
 
             Paragraph(
-                "RUT",
+                "<b>Nombres</b>",
                 estilo_encabezado
             ),
 
             Paragraph(
-                "F. Nacimiento",
+                "<b>RUT</b>",
                 estilo_encabezado
             ),
 
             Paragraph(
-                "F. Inscripción",
+                "<b>F. Nacimiento</b>",
+                estilo_encabezado
+            ),
+
+            Paragraph(
+                "<b>F. Inscripción</b>",
                 estilo_encabezado
             ),
 
@@ -1164,66 +1218,82 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     else:
 
+        contador = 0
+        
         for jugador in jugadores:
 
-            nombre = str(
+            nombre_completo = str(
                 getattr(
                     jugador,
                     "nombre",
                     None
                 ) or "-"
             )
-
+            
+            nombre_divido = nombre_completo.strip()
+            nombre_divido = nombre_divido.split()
+            
+            if len(nombre_divido) == 4:
+                nombres = nombre_divido[0] + " " + nombre_divido[1]
+                apellido_paterno = nombre_divido[2]
+                apellido_materno = nombre_divido[3]
+                
+            elif len(nombre_divido) == 3:
+                nombres = nombre_divido[0]
+                apellido_paterno = nombre_divido[1]
+                apellido_materno = nombre_divido[2]                
 
             rut = str(
                 getattr(
                     jugador,
-                    "rut",
+                    "rut_formateado",
                     None
                 ) or "-"
             )
 
-
-            contacto = str(
-                getattr(
+            fechaNac = getattr(
                     jugador,
                     "fecha_nacimiento",
                     None
-                ) or "-"
             )
 
 
-            fecha = getattr(
+            fechaInsc = getattr(
                 jugador,
                 "fecha_inscripcion",
                 None
             )
+            
+            fechaNac = (
+                fechaNac.strftime("%d/%m/%Y")
+                if fechaNac else "-"
+            )
 
+            fechaInsc = (
+                fechaInsc.strftime("%d/%m/%Y")
+                if fechaInsc else "-"
+            )
 
-            if fecha:
-
-                try:
-
-                    fecha = fecha.strftime(
-                        "%d/%m/%Y"
-                    )
-
-                except AttributeError:
-
-                    fecha = str(fecha)
-
-            else:
-
-                fecha = "-"
-
+            contador +=1
 
             datos.append(
 
                 [
-
                     Paragraph(
-                        nombre,
+                        str(contador),
+                        estilo_celda  
+                    ),
+                    Paragraph(
+                        apellido_paterno,
                         estilo_celda
+                    ),
+                    Paragraph(
+                        apellido_materno,
+                        estilo_celda    
+                    ),
+                    Paragraph(
+                        nombres,
+                        estilo_celda    
                     ),
 
                     Paragraph(
@@ -1232,20 +1302,18 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                     ),
 
                     Paragraph(
-                        contacto,
+                        fechaNac,
                         estilo_celda
                     ),
 
                     Paragraph(
-                        fecha,
-                        estilo_celda_centrada
+                        fechaInsc,
+                        estilo_celda
                     ),
 
                 ]
 
             )
-
-
     # =========================================================
     # ANCHO DE TABLA
     # =========================================================
@@ -1268,20 +1336,26 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         datos,
 
         colWidths=[
+            
+            ancho_util * 0.05,
 
-            ancho_util * 0.37,
+            ancho_util * 0.15,
+            
+            ancho_util * 0.15,
+            
+            ancho_util * 0.2,
 
-            ancho_util * 0.18,
+            ancho_util * 0.15,
 
-            ancho_util * 0.27,
+            ancho_util * 0.15,
 
-            ancho_util * 0.18,
+            ancho_util * 0.15,
 
         ],
 
         repeatRows=1,
 
-        hAlign="LEFT",
+        hAlign="CENTER",
     )
 
 
