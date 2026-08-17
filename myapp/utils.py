@@ -1085,6 +1085,25 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         textColor=NEGRO,
     )
+    
+    estilo_liga = ParagraphStyle(
+        "NombreLigaHeader",
+        fontName=fuente_normal,
+        fontSize=10.5,
+        leading=13,
+        textColor=GRIS,
+        alignment=TA_LEFT,
+        spaceAfter=4,
+    )
+    estilo_club = ParagraphStyle(
+        "NombreClub",
+        fontName=fuente_titulo,
+        fontSize=14,
+        leading=17,
+        textColor=DORADO,
+        alignment=TA_LEFT,
+        spaceBefore=3,
+    )
 
 
     # =========================================================
@@ -1171,14 +1190,14 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         Paragraph(
             f"<b>{nombre_liga}</b>",
-            estilo_titulo
+            estilo_liga
         ),
 
         Spacer(1, 2 * mm),
 
         Paragraph(
-            f'Club Deportivo: <b>"<u>{equipo.nombre}</u>"</b>',
-            estilo_titulo
+            {equipo.nombre},
+            estilo_club
         ),
     ]
 
@@ -1200,14 +1219,10 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         contenedor_logo.setStyle(
             TableStyle([
-                ("BOX", (0, 0), (-1, -1), 1.2, DORADO),
+                ("BOX", (0, 0), (-1, -1), 1, DORADO),
                 ("BACKGROUND", (0, 0), (-1, -1), colors.white),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
             ])
         )
 
