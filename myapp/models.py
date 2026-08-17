@@ -250,6 +250,25 @@ class Jugador(models.Model):
         cuerpo_con_puntos = f"{int(cuerpo):,}".replace(",", ".")
 
         return f"{cuerpo_con_puntos}-{dv}"
+    
+    @property
+    def nombre_completo_formato_lista(self):
+        nombre_completo = self.nombre.strip()
+        nombre_completo = nombre_completo.split()
+        return nombre_completo
+        
+    @property
+    def apellido_paterno(self):
+        return str(self.nombre_completo_formato_lista[-2])
+    
+    @property
+    def apellido_materno(self):
+        return str(self.nombre_completo_formato_lista[-1])
+    
+    @property 
+    def apellidos(self):
+        return self.apellido_paterno + " " + self.apellido_materno
+        
 class Dirigente(models.Model):
 
     usuario = models.OneToOneField(

@@ -1501,17 +1501,17 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             
             ancho_util * 0.05,
 
-            ancho_util * 0.14,
+            ancho_util * 0.15,
             
-            ancho_util * 0.14,
+            ancho_util * 0.15,
             
             ancho_util * 0.19,
 
             ancho_util * 0.16,
 
-            ancho_util * 0.16,
+            ancho_util * 0.15,
 
-            ancho_util * 0.16,
+            ancho_util * 0.15,
 
         ],
 

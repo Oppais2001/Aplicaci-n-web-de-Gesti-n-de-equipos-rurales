@@ -1012,9 +1012,7 @@ def descargar_detalle_equipo(request, equipo_id):
         Equipo.objects.prefetch_related("jugadores"),
         id=equipo_id
     )
-    jugadores = equipo.jugadores.all().order_by(
-        "nombre"
-    )
+    jugadores = sorted(equipo.jugadores.all(),key= lambda jugador: jugador.apellidos)
     return crear_pdf_detalle_equipo(equipo, jugadores)
 
 # PARTIDOS
