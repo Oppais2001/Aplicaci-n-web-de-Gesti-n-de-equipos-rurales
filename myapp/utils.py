@@ -1121,42 +1121,146 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     elementos = []
 
+    #
+    # CARGA DE LOGOTIPO DE EQUIPO
+    #
+    logo_equipo = None
+
+    try:
+        if equipo.logo:
+            url_logo_equipo = equipo.logo.url
+
+            if url_logo_equipo.startswith("//"):
+                url_logo_equipo = "https:" + url_logo_equipo
+
+            respuesta_logo_equipo = requests.get(
+                url_logo_equipo,
+                timeout=15
+            )
+            respuesta_logo_equipo.raise_for_status()
+
+            logo_equipo = BytesIO(respuesta_logo_equipo.content)
+            logo_equipo.seek(0)
+
+    except Exception as e:
+        print(
+            f"[PDF] Error descargando logo del equipo: {e}",
+            flush=True
+        )
 
     # =========================================================
-    # ENCABEZADO
+    # ENCABEZADO CON LOGO DEL EQUIPO
     # =========================================================
 
-    elementos.append(
+    texto_encabezado = [
         Paragraph(
-            "<b>" + str("Listado oficial de jugadores".upper()) + "</b>",
-            estilo_titulo,
-        )
-    )
-    
-    elementos.append(
-        Paragraph(
-            f'<b>{nombre_liga}</b>',
+            "<b>LISTADO OFICIAL DE JUGADORES</b>",
             estilo_titulo
-        )
-    )
-    
-    elementos.append(
-    Spacer(1, 2 * mm)
-    )
-    
-    elementos.append(
+        ),
+
         Paragraph(
-            f'Club Deportivo: <b>"<u>{equipo}</u>"</b>',
+            f"<b>{nombre_liga}</b>",
             estilo_titulo
+        ),
+
+        Spacer(1, 2 * mm),
+
+        Paragraph(
+            f'Club Deportivo: <b>"<u>{equipo.nombre}</u>"</b>',
+            estilo_titulo
+        ),
+    ]
+
+
+    if logo_equipo:
+
+        logo_encabezado = RLImage(
+            logo_equipo,
+            width=22 * mm,
+            height=22 * mm,
+            kind="proportional"
+        )
+
+    else:
+
+        logo_encabezado = ""
+
+
+    encabezado = Table(
+        [
+            [
+                texto_encabezado,
+                logo_encabezado
+            ]
+        ],
+        colWidths=[
+            ancho_util - 28 * mm,
+            28 * mm
+        ],
+        hAlign="CENTER"
+    )
+
+
+    encabezado.setStyle(
+        TableStyle(
+            [
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE"
+                ),
+
+                (
+                    "ALIGN",
+                    (0, 0),
+                    (0, 0),
+                    "CENTER"
+                ),
+
+                (
+                    "ALIGN",
+                    (1, 0),
+                    (1, 0),
+                    "RIGHT"
+                ),
+
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0
+                ),
+
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0
+                ),
+
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0
+                ),
+
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0
+                ),
+            ]
         )
     )
 
 
+    elementos.append(encabezado)
+
     elementos.append(
-        Spacer(
-            1,
-            5 * mm
-        )
+        Spacer(1, 5 * mm)
     )
 
 
