@@ -1044,9 +1044,22 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         alignment=TA_CENTER,
     )
-
-
     estilo_encabezado = ParagraphStyle(
+
+        "EncabezadoLiga",
+
+        fontName=fuente_normal,
+
+        fontSize=10,
+
+        leading=9.5,
+
+        textColor=NEGRO,
+
+        alignment=TA_LEFT,
+    )
+
+    estilo_encabezado_centrado = ParagraphStyle(
 
         "EncabezadoLiga",
 
@@ -1161,23 +1174,23 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             
             Paragraph(
                 "<b>Apellido Paterno</b>",
-                estilo_encabezado
+                estilo_encabezado_centrado
             ),
 
             
             Paragraph(
                 "<b>Apellido Materno</b>",
-                estilo_encabezado
+                estilo_encabezado_centrado
             ),
 
             Paragraph(
                 "<b>Nombres</b>",
-                estilo_encabezado
+                estilo_encabezado_centrado
             ),
 
             Paragraph(
                 "<b>RUT</b>",
-                estilo_encabezado
+                estilo_encabezado_centrado
             ),
 
             Paragraph(
