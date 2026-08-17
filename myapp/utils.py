@@ -991,7 +991,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         textColor=NEGRO,
 
-        alignment=TA_CENTER,
+        alignment=TA_LEFT,
 
         spaceAfter=2,
     )
@@ -1184,16 +1184,35 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
 
     if logo_equipo:
-
-        logo_encabezado = ReportLabImage(
+        imagen_logo = ReportLabImage(
             logo_equipo,
-            width=22 * mm,
-            height=22 * mm,
+            width=20 * mm,
+            height=20 * mm,
             kind="proportional"
         )
 
-    else:
+        contenedor_logo = Table(
+            [[imagen_logo]],
+            colWidths=[26 * mm],
+            rowHeights=[26 * mm],
+            hAlign="CENTER"
+        )
 
+        contenedor_logo.setStyle(
+            TableStyle([
+                ("BOX", (0, 0), (-1, -1), 1.2, DORADO),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ])
+        )
+
+        logo_encabezado = contenedor_logo
+    else:
         logo_encabezado = ""
 
 
@@ -1637,8 +1656,8 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
             logo_original = Image.open(BytesIO(respuesta_logo.content)).convert("RGBA")
 
-            ancho_max = 1000
-            alto_max = 1000
+            ancho_max = 1200
+            alto_max = 1200
 
             logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
 
@@ -1720,7 +1739,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 # Tamaño de la marca de agua
                 # ---------------------------------------------
 
-                ancho_destino = 150 * mm
+                ancho_destino = 160 * mm
 
 
                 escala = (
