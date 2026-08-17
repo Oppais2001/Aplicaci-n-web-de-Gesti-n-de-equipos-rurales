@@ -161,7 +161,7 @@ def ingresar_equipo_ajax(request):
 @usuario_autorizado_required
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
-    equipos = Equipo.objects.all()
+    equipos = Equipo.objects.all().order_by('nombre')
 
     if not es_administrador(request.user):
         dirigente = obtener_dirigente(request.user)

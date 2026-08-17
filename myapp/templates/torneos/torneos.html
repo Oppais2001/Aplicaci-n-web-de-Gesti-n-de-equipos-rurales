@@ -30,10 +30,10 @@
                 <tbody>
                 {% for torneo in torneos %}
                     <tr>
-                        <td>{{ torneo.nombre }}</td>
-                        <td>{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
-                        <td>{{ torneo.fecha_fin|date:"d/m/Y" }}</td>
-                        <td>{{ torneo.total_equipos_anotado }}</td>
+                        <td data-label="Torneo">{{ torneo.nombre }}</td>
+                        <td data-label="Inicio">{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
+                        <td data-label="Termino">{{ torneo.fecha_fin|date:"d/m/Y" }}</td>
+                        <td data-label="N° Equipos">{{ torneo.total_equipos_anotado }}</td>
                         <td>
                             <button
                                 class="btn ver"

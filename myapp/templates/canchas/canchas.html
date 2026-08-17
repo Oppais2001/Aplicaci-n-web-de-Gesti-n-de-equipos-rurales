@@ -34,16 +34,16 @@
           <th>Acciones</th>
         </tr>
       </thead>
-      {% for cancha in canchas %}
       <tbody>
+      {% for cancha in canchas %}
         <tr>
           <td>{{ cancha.nombre }}</td>
 
-          <td>{{ cancha.liga }}</td>
+          <td data-label="Liga">{{ cancha.liga }}</td>
 
-          <td>{{ cancha.direccion }}</td>
+          <td data-label="Localización">{{ cancha.direccion }}</td>
 
-          <td>{{ cancha.capacidad_maxima }}</td>
+          <td data-label="Capacidad">{{ cancha.capacidad_maxima }}</td>
 
           <td>
             <button
@@ -78,8 +78,8 @@
             {% endif %}
           </td>
         </tr>
-      </tbody>
       {% endfor %}
+      </tbody>
     </table>
 
     {% endif %}
