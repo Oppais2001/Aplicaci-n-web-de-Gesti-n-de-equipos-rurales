@@ -1147,7 +1147,18 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             f"[PDF] Error descargando logo del equipo: {e}",
             flush=True
         )
+        
+    # =========================================================
+    # ANCHO DE TABLA
+    # =========================================================
 
+    ancho_util = (
+
+        PAGE_WIDTH
+        - margen_izquierdo
+        - margen_derecho
+
+    )
     # =========================================================
     # ENCABEZADO CON LOGO DEL EQUIPO
     # =========================================================
@@ -1431,18 +1442,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 ]
 
             )
-    # =========================================================
-    # ANCHO DE TABLA
-    # =========================================================
-
-    ancho_util = (
-
-        PAGE_WIDTH
-        - margen_izquierdo
-        - margen_derecho
-
-    )
-
 
     # =========================================================
     # TABLA
