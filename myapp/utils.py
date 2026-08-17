@@ -1196,7 +1196,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
         Spacer(1, 2 * mm),
 
         Paragraph(
-            {equipo.nombre},
+            equipo.nombre,
             estilo_club
         ),
     ]
