@@ -1403,7 +1403,16 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             elif len(nombre_divido) == 3:
                 nombres = nombre_divido[0]
                 apellido_paterno = nombre_divido[1]
-                apellido_materno = nombre_divido[2]                
+                apellido_materno = nombre_divido[2]
+                
+            elif len(nombre_divido) == 5:
+                nombre_divido = nombre_divido[0] + " " + nombre_divido[1] + " " + nombre_divido[2]
+                apellido_paterno = nombre_divido[3]
+                apellido_materno = nombre_divido[4]
+                
+            else:
+                print("ERROR NOMBRE INCAPAZ DE INGRESAR EN LA VISTA DEL LISTADO!!!")
+                print(nombre_completo)                
 
             rut = str(
                 getattr(
@@ -1489,17 +1498,17 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             
             ancho_util * 0.05,
 
-            ancho_util * 0.15,
+            ancho_util * 0.17,
             
-            ancho_util * 0.15,
+            ancho_util * 0.17,
             
-            ancho_util * 0.2,
+            ancho_util * 0.19,
 
-            ancho_util * 0.15,
+            ancho_util * 0.14,
 
-            ancho_util * 0.15,
+            ancho_util * 0.14,
 
-            ancho_util * 0.15,
+            ancho_util * 0.14,
 
         ],
 
