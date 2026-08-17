@@ -1540,7 +1540,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
 
             alpha = logo_original.getchannel("A")
-            alpha = alpha.point(lambda pixel: int(pixel * 0.08))
+            alpha = alpha.point(lambda pixel: int(pixel * 0.1))
             logo_original.putalpha(alpha)
 
             logo_buffer = BytesIO()
@@ -1617,7 +1617,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 # Tamaño de la marca de agua
                 # ---------------------------------------------
 
-                ancho_destino = 135 * mm
+                ancho_destino = 150 * mm
 
 
                 escala = (
