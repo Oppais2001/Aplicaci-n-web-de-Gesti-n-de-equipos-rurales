@@ -1322,13 +1322,13 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 ),
             
             Paragraph(
-                "<b>Apellido Paterno</b>",
+                "<b>Ap. Paterno</b>",
                 estilo_encabezado_centrado
             ),
 
             
             Paragraph(
-                "<b>Apellido Materno</b>",
+                "<b>Ap. Materno</b>",
                 estilo_encabezado_centrado
             ),
 
@@ -1498,17 +1498,17 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             
             ancho_util * 0.05,
 
-            ancho_util * 0.17,
+            ancho_util * 0.15,
             
-            ancho_util * 0.17,
+            ancho_util * 0.15,
             
-            ancho_util * 0.19,
+            ancho_util * 0.2,
 
-            ancho_util * 0.14,
+            ancho_util * 0.15,
 
-            ancho_util * 0.14,
+            ancho_util * 0.15,
 
-            ancho_util * 0.14,
+            ancho_util * 0.15,
 
         ],
 
