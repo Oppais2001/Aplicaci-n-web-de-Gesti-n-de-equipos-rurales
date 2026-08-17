@@ -1174,7 +1174,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
     if logo_equipo:
 
-        logo_encabezado = RLImage(
+        logo_encabezado = ReportLabImage(
             logo_equipo,
             width=22 * mm,
             height=22 * mm,
