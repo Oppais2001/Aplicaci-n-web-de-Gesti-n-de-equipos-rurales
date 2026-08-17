@@ -1052,7 +1052,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         fontSize=10,
 
-        leading=9.5,
+        leading=12,
 
         textColor=NEGRO,
 
@@ -1067,7 +1067,7 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         fontSize=10,
 
-        leading=9.5,
+        leading=12,
 
         textColor=NEGRO,
 
@@ -1322,14 +1322,14 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 ),
             
             Paragraph(
-                "<b>Ap. Paterno</b>",
-                estilo_encabezado_centrado
+                "<b>Apellido<br/>Paterno</b>",
+                estilo_encabezado
             ),
 
             
             Paragraph(
-                "<b>Ap. Materno</b>",
-                estilo_encabezado_centrado
+                "<b>Apellido<br/>Materno</b>",
+                estilo_encabezado
             ),
 
             Paragraph(
@@ -1343,12 +1343,12 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             ),
 
             Paragraph(
-                "<b>F. Nacimiento</b>",
+                "<b>Fecha de<br/>Nacimiento</b>",
                 estilo_encabezado
             ),
 
             Paragraph(
-                "<b>F. Inscripción</b>",
+                "<b>Fecha de<br/>Inscripción</b>",
                 estilo_encabezado
             ),
 
@@ -1395,6 +1395,10 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             nombre_divido = nombre_completo.strip()
             nombre_divido = nombre_divido.split()
             
+            print(nombre_completo)
+            print(nombre_divido)
+            print(len(nombre_divido))
+            
             if len(nombre_divido) == 4:
                 nombres = nombre_divido[0] + " " + nombre_divido[1]
                 apellido_paterno = nombre_divido[2]
@@ -1406,10 +1410,9 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 apellido_materno = nombre_divido[2]
                 
             elif len(nombre_divido) == 5:
-                nombre_divido = nombre_divido[0] + " " + nombre_divido[1] + " " + nombre_divido[2]
+                nombres = nombre_divido[0] + " " + nombre_divido[1] + " " + nombre_divido[2]
                 apellido_paterno = nombre_divido[3]
-                apellido_materno = nombre_divido[4]
-                
+                apellido_materno = nombre_divido[4]                
             else:
                 print("ERROR NOMBRE INCAPAZ DE INGRESAR EN LA VISTA DEL LISTADO!!!")
                 print(nombre_completo)                
@@ -1498,17 +1501,17 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             
             ancho_util * 0.05,
 
-            ancho_util * 0.15,
+            ancho_util * 0.14,
             
-            ancho_util * 0.15,
+            ancho_util * 0.14,
             
-            ancho_util * 0.2,
+            ancho_util * 0.19,
 
-            ancho_util * 0.15,
+            ancho_util * 0.16,
 
-            ancho_util * 0.15,
+            ancho_util * 0.16,
 
-            ancho_util * 0.15,
+            ancho_util * 0.16,
 
         ],
 
