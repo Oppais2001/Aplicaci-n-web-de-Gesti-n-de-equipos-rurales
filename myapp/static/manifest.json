@@ -1,20 +1,36 @@
 {
-    "name": "Liga Rural",
-    "short_name": "Liga Rural",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#202020",
-    "theme_color": "#202020",
-    "icons": [
-        {
-            "src": "/static/img/logo_liga.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "/static/img/logo_liga.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ]
+  "name": "Liga Cancura",
+  "short_name": "Liga Cancura",
+  "description": "Union Comunal de Clubes Deportivos Rurales, Sociales y Culturales Entre Rios - Ex Liga Cancura, Puerto Octay",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

@@ -8,8 +8,18 @@
     <title>Gestion de Jugadores</title>
 
     <!-- ICONO -->
-    <link rel="icon" type="image/png" href="{% static 'img/logo_app.png' %}">
     <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#0d1117">
+
+    <!-- Favicon estándar -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/favicon-16.png' %}">
+
+    <!-- iOS / Safari (no lee manifest.json, necesita esto aparte) -->
+    <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Liga Cancura">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'styles/main.css' %}">
