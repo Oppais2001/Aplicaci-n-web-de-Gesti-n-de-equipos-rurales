@@ -1,0 +1,20 @@
+{
+    "name": "Liga Rural",
+    "short_name": "Liga Rural",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#202020",
+    "theme_color": "#202020",
+    "icons": [
+        {
+            "src": "/static/img/logo_liga.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/logo_liga.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
