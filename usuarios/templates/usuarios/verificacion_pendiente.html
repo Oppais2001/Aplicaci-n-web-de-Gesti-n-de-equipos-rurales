@@ -5,26 +5,111 @@
     <div class="card-title">
         <h1>Verifica tu correo</h1>
     </div>
-    <div class="card form-container">
-        <p class="detalles">
-        Hola {{usuario.username}},
+    <div class="card form-container verificar-correo">
+        <div class="icono-verificacion">
+            <i class="bi bi-envelope-check"></i>
+        </div>
 
-        Gracias por registrarte en UNIÓN COMUNAL DE CLUBES DEPORTIVOS RURALES, SOCIALES Y CULTURALES.
-
-        Te hemos enviado un correo de verificación a {{usuario.email}}.
-
-        Haz clic en el enlace que aparece en el correo para activar tu cuenta.
-
+        <p class="detalles saludo">
+            Hola <strong>{{ usuario.username }}</strong>,
         </p>
+
         <p class="detalles">
-            Si no lo encuentras en tu bandeja de entrada, revisa las carpetas de:
-            - Spam
-            - Correo no deseado
-            - Promociones (en Gmail)
-            
-            Si no recibiste el correo, intenta contactarte con soporte de la liga.
+            Gracias por registrarte en <strong>Unión Comunal de Clubes Deportivos Rurales, Sociales y Culturales</strong>.
         </p>
-        <a href="{% url 'login' %}">Volver al login</a>
+
+        <p class="detalles">
+            Te hemos enviado un correo de verificación a
+            <span class="email-destacado">{{ usuario.email }}</span>.
+            Haz clic en el enlace que aparece en el correo para activar tu cuenta.
+        </p>
+
+        <div class="aviso-spam">
+            <p class="detalles-titulo">¿No encuentras el correo?</p>
+            <p class="detalles">Revisa estas carpetas:</p>
+            <ul class="lista-carpetas">
+                <li>Spam</li>
+                <li>Correo no deseado</li>
+                <li>Promociones <span class="nota">(en Gmail)</span></li>
+            </ul>
+            <p class="detalles nota-soporte">
+                Si aún no recibiste el correo, contáctate con soporte de la liga.
+            </p>
+        </div>
+
+        <a href="{% url 'login' %}" class="btn-volver">Volver al login</a>
     </div>
 </div>
+<style>
+    .verificar-correo {
+        text-align: center;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+
+    .icono-verificacion {
+        font-size: 3rem;
+        color: var(--color-primario, #d4af37); /* dorado */
+        margin-bottom: 1rem;
+    }
+
+    .verificar-correo .saludo {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .email-destacado {
+        color: var(--color-primario, #d4af37);
+        font-weight: 600;
+    }
+
+    .aviso-spam {
+        background-color: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--color-secundario, #6b4423);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+
+    .detalles-titulo {
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+    }
+
+    .lista-carpetas {
+        margin: 0.5rem 0 1rem 1.2rem;
+        padding: 0;
+    }
+
+    .lista-carpetas li {
+        margin-bottom: 0.3rem;
+    }
+
+    .nota {
+        opacity: 0.7;
+        font-size: 0.9em;
+    }
+
+    .nota-soporte {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-volver {
+        display: inline-block;
+        margin-top: 1.5rem;
+        padding: 0.6rem 1.5rem;
+        background-color: var(--color-primario, #d4af37);
+        color: #202020;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .btn-volver:hover {
+        opacity: 0.85;
+    }
+</style>
 {% endblock %}
