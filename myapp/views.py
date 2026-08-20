@@ -49,7 +49,7 @@ def home(request):
         total_traspasos = Traspaso.objects.count()
 
     lista_equipos_dict = {
-        equipo.nombre: equipo.total_jugadores
+        str(equipo): equipo.total_jugadores
         for equipo in equipos
     }
 
