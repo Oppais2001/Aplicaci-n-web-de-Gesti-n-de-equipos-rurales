@@ -60,7 +60,8 @@ def registro_view(request):
                 )
 
             messages.success(request, "Usuario registrado correctamente.")
-            return redirect('verificacion_pendiente')
+            return render(request, 'usuarios/verificacion_pendiente.html', {'usuario': usuario})
+
         else:
             print("FORMULARIO INVALIDO")
             print(form.errors)
