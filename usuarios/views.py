@@ -90,7 +90,8 @@ def login_view(request):
             ).exists()
 
             if usuario_inactivo:
-                return render(request, 'usuarios/verificacion_pendiente.html', {'usuario': usuario_inactivo})
+                usuario = Usuario.objects.filter(username=username)
+                return render(request, 'usuarios/verificacion_pendiente.html', {'usuario': usuario})
 
             messages.error(request, "Usuario o contraseña incorrectos.")
 
