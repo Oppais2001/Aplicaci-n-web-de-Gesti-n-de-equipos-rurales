@@ -24,18 +24,13 @@ from .forms import (
     Ingresar_Torneo,
     TarjetaPartidoFormSet
 )
-from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required
+from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required, es_dirigente
 from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_pdf_detalle_equipo
 
 # HOME Y ABOUT
-@usuario_autorizado_required
 def home(request):
-    if es_administrador(request.user):
-        equipos = Equipo.objects.annotate(
-            total_jugadores=Count('jugadores')
-        ).order_by('nombre')
-        total_traspasos = Traspaso.objects.count()
-    else:
+    
+    if es_dirigente(request.user):
         dirigente = obtener_dirigente(request.user)
         equipos = Equipo.objects.filter(
             id=dirigente.equipo_id
@@ -47,6 +42,11 @@ def home(request):
             | Q(equipo_destino=dirigente.equipo)
             | Q(jugador__equipo=dirigente.equipo)
         ).distinct().count()
+    else:
+        equipos = Equipo.objects.annotate(
+            total_jugadores=Count('jugadores')
+        ).order_by('nombre')
+        total_traspasos = Traspaso.objects.count()
 
     lista_equipos_dict = {
         equipo.nombre: equipo.total_jugadores
@@ -60,7 +60,7 @@ def home(request):
         'total_traspasos': total_traspasos
     })
 
-@usuario_autorizado_required
+# acesso libre a jugadores
 def about(request):
     return render(request, 'about.html')
 
@@ -284,6 +284,7 @@ def eliminar_dirigente(request, id_dirigente):
 
 
 # LIGA
+@admin_required
 def modal_ingresar_liga(request):
 
     form = Ingresar_Liga()
@@ -687,7 +688,6 @@ def ingresar_cancha(request):
         }
     )
 
-@usuario_autorizado_required
 def lista_canchas(request):
 
     buscar = request.GET.get('buscar')
@@ -714,10 +714,7 @@ def lista_canchas(request):
     )
 
 @admin_required
-def editar_cancha(
-    request,
-    id_cancha
-):
+def editar_cancha(request, id_cancha):
 
     cancha = get_object_or_404(
         Cancha,
@@ -756,10 +753,7 @@ def editar_cancha(
     )
 
 @admin_required
-def eliminar_cancha(
-    request,
-    id_cancha
-):
+def eliminar_cancha(request, id_cancha):
 
     cancha = get_object_or_404(
         Cancha,
@@ -772,7 +766,6 @@ def eliminar_cancha(
         'canchas'
     )
 
-@usuario_autorizado_required
 def detalle_cancha(request, id_cancha):
 
     cancha = get_object_or_404(
@@ -883,15 +876,9 @@ def ingresar_torneo(request):
 
     return render(request, "torneos/ingresar_torneo.html", context)
 
-
-@usuario_autorizado_required
 def lista_torneos(request):
     buscar = request.GET.get("buscar")
     torneos = Torneo.objects.prefetch_related("equipos")
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        torneos = torneos.filter(equipos=dirigente.equipo)
 
     torneos_totales = torneos
 
@@ -908,19 +895,11 @@ def lista_torneos(request):
         "hay_torneos": torneos_totales.exists()
     })
 
-
-@usuario_autorizado_required
 def detalle_torneo(request, id_torneo):
     torneo = get_object_or_404(
         Torneo.objects.prefetch_related("equipos").prefetch_related("partidos"),
         id=id_torneo
     )
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-
-        if not torneo.equipos.filter(id=dirigente.equipo_id).exists():
-            return HttpResponseForbidden("Solo puedes ver torneos de tu equipo.")
 
     tabla_posiciones = calcular_tabla_posiciones(torneo)
     partidos_programados = torneo.partidos.filter(goles_local__isnull=True, goles_visitante__isnull=True).select_related(
@@ -1051,8 +1030,6 @@ def ingresar_partido(request):
         }
     )
 
-
-@usuario_autorizado_required
 def lista_partidos(request):
     buscar = request.GET.get('buscar')
     partidos = Partido.objects.select_related(
@@ -1064,13 +1041,6 @@ def lista_partidos(request):
         goles_local__isnull=False,
         goles_visitante__isnull=False
     )
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        partidos = partidos.filter(
-            Q(equipo_local=dirigente.equipo)
-            | Q(equipo_visitante=dirigente.equipo)
-        )
 
     partidos_totales = partidos
 
@@ -1142,8 +1112,6 @@ def eliminar_partido(request, id):
         'success': True
     })
 
-
-@usuario_autorizado_required
 def lista_fechas(request):
     buscar = request.GET.get('buscar')
     fechas = Partido.objects.filter(goles_local__isnull=True, goles_visitante__isnull=True).select_related(
@@ -1152,13 +1120,6 @@ def lista_fechas(request):
         'equipo_visitante',
         'cancha'
     )
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        fechas = fechas.filter(
-            Q(equipo_local=dirigente.equipo)
-            | Q(equipo_visitante=dirigente.equipo)
-        )
 
     fechas_totales = fechas
 
@@ -1224,7 +1185,8 @@ def eliminar_fecha(request, id):
     return JsonResponse({
         'success': True
     })
-    
+
+'''    
 # arbitro
 
 @admin_required
@@ -1287,3 +1249,4 @@ def arbitros(request):
     return render(request, "arbitros/arbitros.html", {
         "arbitros": arbitros
     })
+'''

@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Jugadores</title>
+    <title>Unión Comunal de Clubes</title>
 
     <!-- ICONO -->
     <link rel="manifest" href="{% static 'manifest.json' %}">
@@ -128,7 +128,7 @@
                             </li>
                         </ul>
                     </li>
-
+                    {% endif %}
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
                             <i class="fa fa-medal"></i> Torneos
@@ -146,39 +146,23 @@
                         </ul>
                     </li>
 
-                    <li class="nav-item nav-dropdown">
-                        <button class="dropdown-btn" type="button" aria-expanded="false">
-                            <i class="fa fa-map-location-dot"></i> Canchas
-                            <i class="fa fa-chevron-down arrow"></i>
-                        </button>
-                        <ul class="dropdown-content" aria-label="Menu de canchas">
-                            <li>
-                                <a href="{% url 'canchas' %}"><i class="fa fa-eye"></i> Ver canchas</a>
-                            </li>
-                            {% if user.is_staff %}
-                            <li>
-                                <a href="{% url 'ingresar_cancha' %}"><i class="fa fa-plus"></i> Crear cancha</a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-
-                    <li class="nav-item nav-dropdown">
+                    <!--<li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
                             <i class="fa fa-person-running"></i> Arbitros
                             <i class="fa fa-chevron-down arrow"></i>
                         </button>
                         <ul class="dropdown-content" aria-label="Menu de arbitros">
                             <li>
-                                <a href="{% url 'arbitros' %}"><i class="fa fa-eye"></i> Ver arbitros</a>
+                                <a href=""><i class="fa fa-eye"></i> Ver arbitros</a>
                             </li>
                             {% if user.is_staff %}
                             <li>
-                                <a href="{% url 'ingresar_arbitro' %}"><i class="fa fa-plus"></i> Crear arbitro</a>
+                                <a href=""><i class="fa fa-plus"></i> Crear arbitro</a>
                             </li>
                             {% endif %}
                         </ul>
                     </li>
+                    -->
 
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
@@ -204,9 +188,26 @@
                             {% endif %}
                         </ul>
                     </li>
+                    <li class="nav-item nav-dropdown">
+                        <button class="dropdown-btn" type="button" aria-expanded="false">
+                            <i class="fa fa-map-location-dot"></i> Canchas
+                            <i class="fa fa-chevron-down arrow"></i>
+                        </button>
+                        <ul class="dropdown-content" aria-label="Menu de canchas">
+                            <li>
+                                <a href="{% url 'canchas' %}"><i class="fa fa-eye"></i> Ver canchas</a>
+                            </li>
+                            {% if user.is_staff %}
+                            <li>
+                                <a href="{% url 'ingresar_cancha' %}"><i class="fa fa-plus"></i> Crear cancha</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a>
                     </li>
+                    {% if user.is_authenticated %}
                     <li class="nav-item nav-dropdown user-dropdown">
                         <button class="dropdown-btn user-btn" type="button" aria-expanded="false">
                             <span class="user-avatar"><i class="fa fa-user"></i></span>
@@ -219,12 +220,14 @@
                             </li>
                         </ul>
                     </li>
-                    
                     {% else %}
+                    
                     <li class="nav-item nav-login">
                         <a class="nav-link" href="{% url 'login' %}"><i class="fa fa-key"></i> Login</a>
                     </li>
+
                     {% endif %}
+
                 </ul>
             </div>
         </nav>
