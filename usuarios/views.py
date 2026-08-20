@@ -3,9 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
-from django.core.mail import BadHeaderError
 from django.db import transaction
-from smtplib import SMTPException
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
@@ -92,7 +90,7 @@ def login_view(request):
             ).exists()
 
             if usuario_inactivo:
-                return render(request, 'usuarios/verificacion_pendiente.html', {'usuario': usuario})
+                return render(request, 'usuarios/verificacion_pendiente.html', {'usuario': usuario_inactivo})
 
             messages.error(request, "Usuario o contraseña incorrectos.")
 
