@@ -49,7 +49,16 @@ def generar_password_temporal(length=14):
 
 def generar_username_dirigente(dirigente):
     Usuario = get_user_model()
-    base = slugify(dirigente.nombre).replace("-", ".")
+    partes_nombre = dirigente.nombre.split()
+    primer_nombre = partes_nombre[0] if partes_nombre else ""
+    primer_apellido = ""
+
+    if len(partes_nombre) >= 3:
+        primer_apellido = partes_nombre[2]
+    elif len(partes_nombre) >= 2:
+        primer_apellido = partes_nombre[1]
+
+    base = slugify(f"{primer_nombre}.{primer_apellido}").replace("-", ".")
 
     if not base:
         base = dirigente.correo.split("@", 1)[0]
@@ -271,8 +280,6 @@ def eliminar_equipo(request, nombre):
 # DIRIGENTES
 @admin_required
 def ingresar_dirigente(request):
-    credenciales = request.session.pop("credenciales_dirigente", None)
-
     if request.method == "POST":
         form = Ingresar_Dirigentes(request.POST)
 
@@ -287,12 +294,23 @@ def ingresar_dirigente(request):
                 "email": usuario.email,
                 "password": password,
             }
-            return redirect("ingresar_dirigente")
+            return redirect("credenciales_dirigente")
     else:
         form = Ingresar_Dirigentes()
 
     return render(request, "dirigentes/ingresar_dirigente.html", {
         "form": form,
+    })
+
+
+@admin_required
+def credenciales_dirigente(request):
+    credenciales = request.session.pop("credenciales_dirigente", None)
+
+    if not credenciales:
+        return redirect("ingresar_dirigente")
+
+    return render(request, "dirigentes/credenciales_dirigente.html", {
         "credenciales": credenciales,
     })
 

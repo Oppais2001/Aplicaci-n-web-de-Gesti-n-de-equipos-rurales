@@ -1,0 +1,87 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+
+<div class="ingresar">
+    <div>
+        <h1>Usuario creado</h1>
+    </div>
+
+    <div class="card form-container credenciales-temporales">
+        <p>Entrega estos datos al dirigente. La contrasena se muestra solo ahora.</p>
+
+        <div class="credencial-linea">
+            <strong>Dirigente:</strong>
+            <span>{{ credenciales.nombre }}</span>
+        </div>
+        <div class="credencial-linea">
+            <strong>Usuario:</strong>
+            <code>{{ credenciales.username }}</code>
+        </div>
+        <div class="credencial-linea">
+            <strong>Correo:</strong>
+            <span>{{ credenciales.email }}</span>
+        </div>
+        <div class="credencial-linea">
+            <strong>Contrasena temporal:</strong>
+            <code>{{ credenciales.password }}</code>
+        </div>
+
+        <div class="acciones-credenciales">
+            <a href="{% url 'ingresar_dirigente' %}" class="btn-credencial">Crear otro dirigente</a>
+            <a href="{% url 'dirigentes' %}" class="btn-credencial btn-secundario">Ver dirigentes</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.credenciales-temporales {
+    max-width: 560px;
+}
+
+.credenciales-temporales p {
+    color: var(--texto-tenue-2);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.credencial-linea {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin: 0.75rem 0;
+}
+
+.credencial-linea code {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-sm);
+    color: var(--texto-principal);
+    font-size: 1rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.acciones-credenciales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.btn-credencial {
+    background: var(--color-secundario);
+    border-radius: var(--radio-md);
+    color: var(--texto-principal);
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+}
+
+.btn-secundario {
+    background: rgba(255, 255, 255, 0.08);
+}
+</style>
+
+{% endblock %}

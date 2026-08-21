@@ -14,6 +14,7 @@ urlpatterns = [
     path('ligas/modal_ingresar_liga', views.modal_ingresar_liga, name='modal_ingresar_liga'),
     path('dirigentes', views.lista_dirigentes, name='dirigentes'),
     path('dirigentes/ingresar_dirigente', views.ingresar_dirigente, name='ingresar_dirigente'),
+    path('dirigentes/credenciales', views.credenciales_dirigente, name='credenciales_dirigente'),
     path('dirigentes/editar/<int:id_dirigente>/', views.editar_dirigente, name='editar_dirigente'),
     path('dirigentes/eliminar/<int:id_dirigente>/', views.eliminar_dirigente, name='eliminar_dirigente'),
     path('equipos', views.lista_equipos, name='equipos'),
