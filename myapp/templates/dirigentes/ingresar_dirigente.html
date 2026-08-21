@@ -6,6 +6,28 @@
     <div>
         <h1>Ingresar Dirigente</h1>
     </div>
+    {% if credenciales %}
+    <div class="card form-container credenciales-temporales">
+        <h2>Usuario creado</h2>
+        <p>Entrega estos datos al dirigente. La contrasena se muestra solo ahora.</p>
+        <div class="credencial-linea">
+            <strong>Dirigente:</strong>
+            <span>{{ credenciales.nombre }}</span>
+        </div>
+        <div class="credencial-linea">
+            <strong>Usuario:</strong>
+            <span>{{ credenciales.username }}</span>
+        </div>
+        <div class="credencial-linea">
+            <strong>Correo:</strong>
+            <span>{{ credenciales.email }}</span>
+        </div>
+        <div class="credencial-linea">
+            <strong>Contrasena temporal:</strong>
+            <code>{{ credenciales.password }}</code>
+        </div>
+    </div>
+    {% endif %}
     <div class="card form-container">
         <form method="POST" class="form-registro">
             {% csrf_token %}
@@ -14,5 +36,39 @@
         </form>
     </div>
 </div>
+
+<style>
+.credenciales-temporales {
+    margin-bottom: 1rem;
+}
+
+.credenciales-temporales h2 {
+    margin-bottom: 0.5rem;
+}
+
+.credenciales-temporales p {
+    color: var(--texto-tenue-2);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.credencial-linea {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+}
+
+.credencial-linea code {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-sm);
+    color: var(--texto-principal);
+    font-size: 1rem;
+    padding: 0.35rem 0.5rem;
+}
+</style>
 
 {% endblock %}

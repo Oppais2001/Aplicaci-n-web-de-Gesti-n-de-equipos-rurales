@@ -1,8 +1,13 @@
 import json
+import secrets
+import string
+from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.http import HttpResponseForbidden
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from .models import Dirigente, Equipo, Jugador, Traspaso, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo
@@ -26,6 +31,55 @@ from .forms import (
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required, es_dirigente
 from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_pdf_detalle_equipo
+
+
+def generar_password_temporal(length=14):
+    grupos = [
+        string.ascii_uppercase,
+        string.ascii_lowercase,
+        string.digits,
+        "!#$%*-_",
+    ]
+    caracteres = "".join(grupos)
+    password = [secrets.choice(grupo) for grupo in grupos]
+    password.extend(secrets.choice(caracteres) for _ in range(length - len(password)))
+    secrets.SystemRandom().shuffle(password)
+    return "".join(password)
+
+
+def generar_username_dirigente(dirigente):
+    Usuario = get_user_model()
+    base = slugify(dirigente.nombre).replace("-", ".")
+
+    if not base:
+        base = dirigente.correo.split("@", 1)[0]
+
+    base = base[:130].strip(".-_") or f"dirigente{dirigente.pk}"
+    username = base
+    contador = 1
+
+    while Usuario.objects.filter(username__iexact=username).exists():
+        username = f"{base}.{contador}"
+        contador += 1
+
+    return username
+
+
+def crear_usuario_para_dirigente(dirigente):
+    Usuario = get_user_model()
+    password = generar_password_temporal()
+    usuario = Usuario.objects.create_user(
+        username=generar_username_dirigente(dirigente),
+        email=dirigente.correo,
+        password=password,
+        first_name=dirigente.nombre,
+        is_active=True,
+        is_staff=False,
+        is_superuser=False,
+    )
+    dirigente.usuario = usuario
+    dirigente.save(update_fields=["usuario"])
+    return usuario, password
 
 # HOME Y ABOUT
 def home(request):
@@ -217,17 +271,29 @@ def eliminar_equipo(request, nombre):
 # DIRIGENTES
 @admin_required
 def ingresar_dirigente(request):
+    credenciales = request.session.pop("credenciales_dirigente", None)
+
     if request.method == "POST":
         form = Ingresar_Dirigentes(request.POST)
 
         if form.is_valid():
-            form.save()
-            return redirect('dirigentes')
+            with transaction.atomic():
+                dirigente = form.save()
+                usuario, password = crear_usuario_para_dirigente(dirigente)
+
+            request.session["credenciales_dirigente"] = {
+                "nombre": dirigente.nombre,
+                "username": usuario.username,
+                "email": usuario.email,
+                "password": password,
+            }
+            return redirect("ingresar_dirigente")
     else:
         form = Ingresar_Dirigentes()
 
     return render(request, "dirigentes/ingresar_dirigente.html", {
-        "form": form
+        "form": form,
+        "credenciales": credenciales,
     })
 
 

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
@@ -445,6 +446,12 @@ class Ingresar_Dirigentes(forms.ModelForm):
             if correo != usuario.email.strip().lower():
                 raise ValidationError(
                     "No puedes cambiar el correo de un dirigente que ya tiene usuario asociado."
+                )
+        else:
+            Usuario = get_user_model()
+            if Usuario.objects.filter(email__iexact=correo).exists():
+                raise ValidationError(
+                    "Ya existe un usuario con este correo."
                 )
 
         return correo
