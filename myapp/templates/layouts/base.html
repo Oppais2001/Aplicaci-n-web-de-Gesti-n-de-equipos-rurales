@@ -85,20 +85,20 @@
                             {% endif %}
                         </ul>
                     </li>
-
+                    
+                    {% if user.is_staff %}
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
                             <i class="fa fa-futbol"></i> Jugadores
                             <i class="fa fa-chevron-down arrow"></i>
                         </button>
                         <ul class="dropdown-content" aria-label="Menu de jugadores">
-                            {% if user.is_staff %}
                             <li>
                                 <a href="{% url 'ingresar_jugador' %}"><i class="fa fa-plus"></i> Crear jugador</a>
                             </li>
-                            {% endif %}
                         </ul>
                     </li>
+                    {% endif %}
 
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
