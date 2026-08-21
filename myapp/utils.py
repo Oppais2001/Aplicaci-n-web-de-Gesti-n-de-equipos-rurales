@@ -765,7 +765,7 @@ def _logo_marca_agua(url, size, opacidad=0.15, cache=None):
 
     return logo
 
-def crear_img_fechas(torneo, partidos):
+def crear_img_fechas(torneo, partidos, liga):
     # ---------- Constantes de layout ----------
     PADDING_X = 40
     ALTO_HEADER = 200
@@ -806,16 +806,13 @@ def crear_img_fechas(torneo, partidos):
     fuente_footer = ImageFont.truetype(ruta_normal, 18)
 
     cache_logos = {}
-    
-    imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
-    draw = ImageDraw.Draw(imagen)
+
+    # ---------- URL del logo de la liga (una sola vez, se reusa abajo) ----------
+    logo_liga_url = liga.logo.url if liga.logo else None
 
     # ---------- Marca de agua: logo de la liga de fondo ----------
-    logo_liga_url_watermark = getattr(getattr(torneo, "liga", None), "logo", None)
-    logo_liga_url_watermark = logo_liga_url_watermark.url if logo_liga_url_watermark else None
-
     marca_agua = _logo_marca_agua(
-        logo_liga_url_watermark,
+        logo_liga_url,
         size=int(min(ANCHO, alto) * 0.75),  # ocupa 75% del lado más chico
         opacidad=0.12,
         cache=cache_logos
@@ -829,8 +826,6 @@ def crear_img_fechas(torneo, partidos):
     # ---------- Header con logos de la liga a ambos lados ----------
     draw.rectangle((0, 0, ANCHO, ALTO_HEADER), fill=COLOR_FONDO_HEADER)
 
-    logo_liga_url = getattr(getattr(torneo, "liga", None), "logo", None)
-    logo_liga_url = logo_liga_url.url if logo_liga_url else None
     logo_liga = _cargar_logo_circular(logo_liga_url, LOGO_LIGA_SIZE, cache_logos)
 
     margen_logo = 30
@@ -855,7 +850,7 @@ def crear_img_fechas(torneo, partidos):
     x_sub = (ANCHO - ancho_sub) // 2
     draw.text((x_sub, 115), texto_subtitulo, fill=COLOR_TEXTO, font=fuente_subtitulo)
 
-    # ---------- Banner de fecha (asumiendo que todos los partidos son de la misma fecha) ----------
+    # ---------- Banner de fecha ----------
     y_banner = ALTO_HEADER + 20
 
     if partidos_programados:
@@ -955,7 +950,7 @@ def crear_img_fechas(torneo, partidos):
             bbox_vs = draw.textbbox((0, 0), "VS", font=fuente_vs)
             ancho_vs = bbox_vs[2] - bbox_vs[0]
             alto_vs = bbox_vs[3] - bbox_vs[1]
-            
+
             x_texto_vs = x_vs + (vs_size - ancho_vs) // 2 - bbox_vs[0]
             y_texto_vs = (centro_y - vs_size // 2) + (vs_size - alto_vs) // 2 - bbox_vs[1]
 
@@ -966,7 +961,7 @@ def crear_img_fechas(torneo, partidos):
                 font=fuente_vs
             )
 
-            # --- Nombre equipo local (centrado bajo su columna) ---
+            # --- Nombre equipo local ---
             ancho_columna = x_vs - (x_logo_local + LOGO_EQUIPO_SIZE) - 20
             nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_equipo, ancho_columna)
             bbox_nl = draw.textbbox((0, 0), nombre_local, font=fuente_equipo)

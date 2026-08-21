@@ -974,6 +974,8 @@ def descargar_partidos_imagen(request, torneo_id):
     return crear_img_partidos(torneo, partidos)
 
 def descargar_fechas_imagen(request, torneo_id):
+    liga = get_object_or_404(Liga, nombre='Unión Comunal De Clubes Deportivos Rurales, Sociales Y Culturales Entre Ríos Ex Liga Cancura, Puerto Octay')
+    
     torneo = get_object_or_404(
         Torneo.objects.prefetch_related("partidos"),
         id=torneo_id
@@ -984,7 +986,7 @@ def descargar_fechas_imagen(request, torneo_id):
         "cancha"
     ).order_by("fecha", "hora")
 
-    return crear_img_fechas(torneo, partidos)
+    return crear_img_fechas(torneo, partidos, liga)
 
 def descargar_detalle_equipo(request, equipo_id):
     equipo = get_object_or_404(
