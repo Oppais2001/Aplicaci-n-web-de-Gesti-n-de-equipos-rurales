@@ -842,7 +842,7 @@ def crear_img_fechas(torneo, partidos):
             logo_liga
         )
 
-    texto_titulo = "LIGA CANCURA"
+    texto_titulo = "UNIÓN COMUNAL DE CLUBES DEPORTIVOS"
     bbox_titulo = draw.textbbox((0, 0), texto_titulo, font=fuente_titulo)
     ancho_titulo = bbox_titulo[2] - bbox_titulo[0]
     x_titulo = (ANCHO - ancho_titulo) // 2
