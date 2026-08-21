@@ -85,7 +85,7 @@
                             {% endif %}
                         </ul>
                     </li>
-                    
+
                     {% if user.is_staff %}
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
@@ -100,6 +100,7 @@
                     </li>
                     {% endif %}
 
+                    {% if user.is_staff %}
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
                             <i class="fa fa-user-tie"></i> Dirigentes
@@ -109,13 +110,12 @@
                             <li>
                                 <a href="{% url 'dirigentes' %}"><i class="fa fa-eye"></i> Ver dirigentes</a>
                             </li>
-                            {% if user.is_staff %}
                             <li>
                                 <a href="{% url 'ingresar_dirigente' %}"><i class="fa fa-plus"></i> Crear dirigente</a>
                             </li>
-                            {% endif %}
                         </ul>
                     </li>
+                    {% endif %}
 
                     <li class="nav-item nav-dropdown">
                         <button class="dropdown-btn" type="button" aria-expanded="false">
