@@ -621,6 +621,12 @@ class Partido(models.Model):
         dia = DIAS[self.fecha.weekday()]
         mes = MESES[self.fecha.month]
         return f"{dia} {self.fecha.day:02d} {mes}, {self.hora.strftime('%H:%M')}"
+    
+    @property
+    def fecha_exacta(self):
+        dia = DIAS[self.fecha.weekday()]
+        mes = MESES[self.fecha.month]
+        return f"{dia} {self.fecha.day:02d} {mes}"
 
     @property
     def esta_jugado(self):

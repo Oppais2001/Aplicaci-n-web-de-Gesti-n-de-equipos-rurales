@@ -730,6 +730,40 @@ def _placeholder_logo(size, letra, color_fondo="#3a3a3a", color_texto="whitesmok
     )
     return placeholder
 
+def _logo_marca_agua(url, size, opacidad=0.15, cache=None):
+    """
+    Descarga el logo y lo devuelve como imagen RGBA grande,
+    con el canal alpha reducido para usarlo como marca de agua de fondo.
+    """
+    clave_cache = f"{url}_{size}_{opacidad}"
+    if cache is not None and clave_cache in cache:
+        return cache[clave_cache]
+
+    if not url:
+        return None
+
+    try:
+        respuesta = requests.get(url, timeout=5)
+        respuesta.raise_for_status()
+
+        logo = Image.open(BytesIO(respuesta.content)).convert("RGBA")
+
+        # Escalar manteniendo proporción, ajustado dentro de un cuadrado 'size'
+        logo.thumbnail((size, size), Image.LANCZOS)
+
+        # Reducir opacidad multiplicando el canal alpha
+        r, g, b, a = logo.split()
+        a = a.point(lambda px: int(px * opacidad))
+        logo = Image.merge("RGBA", (r, g, b, a))
+
+    except Exception as error:
+        print(f"No se pudo cargar la marca de agua ({url}): {error}")
+        return None
+
+    if cache is not None:
+        cache[clave_cache] = logo
+
+    return logo
 
 def crear_img_fechas(torneo, partidos):
     # ---------- Constantes de layout ----------
@@ -772,6 +806,25 @@ def crear_img_fechas(torneo, partidos):
     fuente_footer = ImageFont.truetype(ruta_normal, 18)
 
     cache_logos = {}
+    
+    imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
+    draw = ImageDraw.Draw(imagen)
+
+    # ---------- Marca de agua: logo de la liga de fondo ----------
+    logo_liga_url_watermark = getattr(getattr(torneo, "liga", None), "logo", None)
+    logo_liga_url_watermark = logo_liga_url_watermark.url if logo_liga_url_watermark else None
+
+    marca_agua = _logo_marca_agua(
+        logo_liga_url_watermark,
+        size=int(min(ANCHO, alto) * 0.75),  # ocupa 75% del lado más chico
+        opacidad=0.12,
+        cache=cache_logos
+    )
+
+    if marca_agua:
+        x_wm = (ANCHO - marca_agua.width) // 2
+        y_wm = (alto - marca_agua.height) // 2
+        imagen.paste(marca_agua, (x_wm, y_wm), marca_agua)
 
     # ---------- Header con logos de la liga a ambos lados ----------
     draw.rectangle((0, 0, ANCHO, ALTO_HEADER), fill=COLOR_FONDO_HEADER)
@@ -806,7 +859,7 @@ def crear_img_fechas(torneo, partidos):
     y_banner = ALTO_HEADER + 20
 
     if partidos_programados:
-        fecha_texto = _formatear_fecha_hora(partidos_programados[0].fecha_hora)
+        fecha_texto = _formatear_fecha_hora(partidos_programados[0].fecha_exacta)
     else:
         fecha_texto = torneo.nombre.upper()
 
@@ -840,7 +893,7 @@ def crear_img_fechas(torneo, partidos):
         for partido in partidos_programados:
 
             # --- Badge de hora ---
-            hora_texto = _formatear_fecha_hora(partido.fecha_hora, solo_hora=True)
+            hora_texto = _formatear_fecha_hora(partido.hora, solo_hora=True)
             bbox_hora = draw.textbbox((0, 0), hora_texto, font=fuente_hora)
             ancho_hora = bbox_hora[2] - bbox_hora[0]
 
@@ -902,8 +955,12 @@ def crear_img_fechas(torneo, partidos):
             bbox_vs = draw.textbbox((0, 0), "VS", font=fuente_vs)
             ancho_vs = bbox_vs[2] - bbox_vs[0]
             alto_vs = bbox_vs[3] - bbox_vs[1]
+            
+            x_texto_vs = x_vs + (vs_size - ancho_vs) // 2 - bbox_vs[0]
+            y_texto_vs = (centro_y - vs_size // 2) + (vs_size - alto_vs) // 2 - bbox_vs[1]
+
             draw.text(
-                (x_vs + (vs_size - ancho_vs) // 2, centro_y - alto_vs // 2 - bbox_vs[1] - vs_size // 2 + (vs_size - alto_vs) // 2),
+                (x_texto_vs, y_texto_vs),
                 "VS",
                 fill=COLOR_ORO,
                 font=fuente_vs
@@ -925,18 +982,6 @@ def crear_img_fechas(torneo, partidos):
             draw.text((x_centro_visita, centro_y - 12), nombre_visita, fill=COLOR_TEXTO, font=fuente_equipo)
 
             y = y_tarjeta + ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS + 25
-
-    # ---------- Footer con cancha ----------
-    if partidos_programados:
-        cancha_texto = f"CANCHA: {partidos_programados[0].cancha or '-'}".upper()
-        bbox_cancha = draw.textbbox((0, 0), cancha_texto, font=fuente_footer)
-        ancho_cancha = bbox_cancha[2] - bbox_cancha[0]
-        draw.text(
-            ((ANCHO - ancho_cancha) // 2, alto - 50),
-            cancha_texto,
-            fill=COLOR_TENUE,
-            font=fuente_footer
-        )
 
     buffer = BytesIO()
     imagen.save(buffer, format="PNG")
