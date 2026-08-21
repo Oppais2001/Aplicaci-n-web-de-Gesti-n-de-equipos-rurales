@@ -501,11 +501,11 @@ def validate_decimal_range(
 
 # Creador de imagenes de la tabla de posiciones
 ANCHO = 900
-ruta_titulo = finders.find("fonts/Cinzel-Regular.TTF")
-ruta_titulo_negrita = finders.find("fonts/Cinzel-Bold.TTF")
-ruta_subtitulo = finders.find("fonts/Lato-Bold.TTF")
-ruta_normal = finders.find("fonts/Lato-Regular.TTF")
-ruta_normal_negrita = finders.find("fonts/Lato-Bold.TTF")
+ruta_titulo = finders.find("fonts/Cinzel-Regular.ttf")
+ruta_titulo_negrita = finders.find("fonts/Cinzel-Bold.ttf")
+ruta_subtitulo = finders.find("fonts/Lato-Bold.ttf")
+ruta_normal = finders.find("fonts/Lato-Regular.ttf")
+ruta_normal_negrita = finders.find("fonts/Lato-Bold.ttf")
 
 def crear_img_tabla(torneo, tabla_posiciones):
     # ---------- Constantes de layout ----------
