@@ -1,6 +1,6 @@
 from django.urls import reverse
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, get_connection
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -20,10 +20,13 @@ Haz clic aquí para activar tu cuenta:
 {link}
 """
 
-    send_mail(
-        asunto,
-        mensaje,
-        settings.DEFAULT_FROM_EMAIL,
-        [usuario.email],
-        fail_silently=False,
+    timeout = max(1, min(getattr(settings, 'EMAIL_TIMEOUT', 5), 10))
+    connection = get_connection(fail_silently=False, timeout=timeout)
+    email = EmailMessage(
+        subject=asunto,
+        body=mensaje,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[usuario.email],
+        connection=connection,
     )
+    email.send(fail_silently=False)

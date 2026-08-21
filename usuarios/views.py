@@ -20,6 +20,7 @@ def registro_view(request):
 
         if form.is_valid():
             print('FORMULARIO VÁLIDO')
+            usuario = None
             try:
                 print("ANTES DE CREAR USUARIO")
                 with transaction.atomic():
@@ -34,16 +35,23 @@ def registro_view(request):
                     )
                     dirigente.usuario = usuario
                     dirigente.save()
-                    print("ANTES DE ENVIAR EMAIL")
-                    enviar_email_verificacion(request, usuario)
-                    print("EMAIL ENVIADO")
+
+                print("ANTES DE ENVIAR EMAIL")
+                enviar_email_verificacion(request, usuario)
+                print("EMAIL ENVIADO")
    
             except Exception as e:
                 print("ERROR CORREO:", repr(e))
 
+                if usuario and usuario.pk:
+                    with transaction.atomic():
+                        Dirigente.objects.filter(usuario=usuario).update(usuario=None)
+                        usuario.delete()
+
                 messages.error(
                     request,
-                    f"Error: {e}"
+                    "No se pudo enviar el correo de verificacion. "
+                    "Revisa la configuracion SMTP e intenta nuevamente."
                 )
 
                 return render(
