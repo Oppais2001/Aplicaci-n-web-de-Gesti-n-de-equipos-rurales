@@ -1,11 +1,10 @@
 import os
 import re
-from datetime import date
+from datetime import date, datetime
 import requests
 
 import logging
 logger = logging.getLogger(__name__)
-
 
 from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
@@ -15,7 +14,7 @@ from decimal import Decimal, InvalidOperation
 from io import BytesIO
 
 from django.http import HttpResponse
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from django.conf import settings
 from django.contrib.staticfiles import finders
@@ -508,137 +507,130 @@ ruta_subtitulo = finders.find("fonts/Lato-Bold.TTF")
 ruta_normal = finders.find("fonts/Lato-Regular.TTF")
 ruta_normal_negrita = finders.find("fonts/Lato-Bold.TTF")
 
-
-
-
 def crear_img_tabla(torneo, tabla_posiciones):
-    alto_fila = 45
-    alto_inicio = 220
+    # ---------- Constantes de layout ----------
+    ALTO_FILA = 48
+    ALTO_INICIO = 230
+    ALTO_HEADER_BANNER = 150
+    PADDING_X = 40
+    ANCHO_TABLA = 860
 
-    ALTO = alto_inicio + (len(tabla_posiciones) * alto_fila) + 50
-    
-    imagen = Image.new(
-        "RGB",
-        (ANCHO, ALTO),
-        "#202020"
-    )
+    COL_POS = 40
+    COL_CLUB = 110
+    COL_PJ = 560
+    COL_DG = 660
+    COL_PTS = 770
+    ANCHO_COL_CLUB = COL_PJ - COL_CLUB - 20  # margen para truncar nombre
 
+    COLOR_FONDO = "#202020"
+    COLOR_FONDO_HEADER = "#161616"
+    COLOR_FILA_PAR = "#262626"
+    COLOR_FILA_IMPAR = "#202020"
+    COLOR_ORO = "gold"
+    COLOR_TEXTO = "whitesmoke"
+    COLOR_TENUE = "#999"
+    COLOR_BORDE = "#444"
+
+    COLOR_PODIO = {
+        1: "#ffd700",  # oro
+        2: "#c0c0c0",  # plata
+        3: "#cd7f32",  # bronce
+    }
+
+    ALTO = ALTO_INICIO + (len(tabla_posiciones) * ALTO_FILA) + 40
+
+    imagen = Image.new("RGB", (ANCHO, ALTO), COLOR_FONDO)
     draw = ImageDraw.Draw(imagen)
 
-    print("TITULO:", ruta_titulo)
-    print("NORMAL:", ruta_normal)
-
-    fuente_titulo = ImageFont.truetype(
-        ruta_titulo,
-        38
-    )
-    
+    fuente_titulo = ImageFont.truetype(ruta_titulo, 38)
+    fuente_subtitulo = ImageFont.truetype(ruta_normal, 22)
+    fuente_header = ImageFont.truetype(ruta_normal, 18)
 
     cantidad_equipos = len(tabla_posiciones)
-
     if cantidad_equipos <= 12:
-        fuente_normal = ImageFont.truetype(ruta_normal, 24)
+        fuente_normal = ImageFont.truetype(ruta_normal, 22)
     elif cantidad_equipos <= 20:
-        fuente_normal = ImageFont.truetype(ruta_normal, 20)
+        fuente_normal = ImageFont.truetype(ruta_normal, 19)
     else:
         fuente_normal = ImageFont.truetype(ruta_normal, 16)
 
-    draw.text(
-
-        (40,40),
-
-        "Liga Rural",
-
-        fill="gold",
-
-        font=fuente_titulo
-
+    # ---------- Banner superior ----------
+    draw.rectangle(
+        (0, 0, ANCHO, ALTO_HEADER_BANNER),
+        fill=COLOR_FONDO_HEADER
     )
-    draw.text(
 
-        (40,90),
+    draw.text((PADDING_X, 35), "Liga Rural", fill=COLOR_ORO, font=fuente_titulo)
+    draw.text((PADDING_X, 85), torneo.nombre, fill=COLOR_TEXTO, font=fuente_subtitulo)
 
-        torneo.nombre,
-
-        fill="white",
-
-        font=fuente_normal
-
-    )
     draw.line(
-
-    (40,140,860,140),
-
-    fill="gold",
-
-    width=3
-
+        (PADDING_X, ALTO_HEADER_BANNER, ANCHO - PADDING_X, ALTO_HEADER_BANNER),
+        fill=COLOR_ORO,
+        width=3
     )
-    y = 170
 
-    draw.text((40,y),"Pos",fill="gold",font=fuente_normal)
-    draw.text((110,y),"Club",fill="gold",font=fuente_normal)
-    draw.text((520,y),"PJ",fill="gold",font=fuente_normal)
-    draw.text((600,y),"DG",fill="gold",font=fuente_normal)
-    draw.text((700,y),"PTS",fill="gold",font=fuente_normal)
-    y = 220
+    # ---------- Encabezado de columnas ----------
+    y_header = ALTO_HEADER_BANNER + 25
+    draw.text((COL_POS, y_header), "POS", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_CLUB, y_header), "CLUB", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_PJ, y_header), "PJ", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_DG, y_header), "DG", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_PTS, y_header), "PTS", fill=COLOR_ORO, font=fuente_header)
+
+    draw.line(
+        (PADDING_X, y_header + 30, ANCHO - PADDING_X, y_header + 30),
+        fill=COLOR_BORDE,
+        width=1
+    )
+
+    # ---------- Filas ----------
+    y = ALTO_INICIO
 
     for posicion, fila in enumerate(tabla_posiciones, start=1):
 
-        draw.text(
-            (40,y),
-            str(posicion),
-            fill="white",
-            font=fuente_normal
+        # Franja de fondo alternada
+        color_fila = COLOR_FILA_PAR if posicion % 2 == 0 else COLOR_FILA_IMPAR
+        draw.rectangle(
+            (PADDING_X - 10, y - 8, ANCHO - PADDING_X + 10, y + ALTO_FILA - 12),
+            fill=color_fila
         )
 
-        draw.text(
-            (110,y),
-            fila["equipo"].nombre,
-            fill="white",
-            font=fuente_normal
-        )
+        # Barra de color para el podio (1°, 2°, 3°)
+        if posicion in COLOR_PODIO:
+            draw.rectangle(
+                (PADDING_X - 10, y - 8, PADDING_X - 4, y + ALTO_FILA - 12),
+                fill=COLOR_PODIO[posicion]
+            )
 
-        draw.text(
-            (530,y),
-            str(fila["pj"]),
-            fill="white",
-            font=fuente_normal
-        )
+        color_posicion = COLOR_PODIO.get(posicion, COLOR_TEXTO)
 
-        draw.text(
-            (610,y),
-            str(fila["dg"]),
-            fill="white",
-            font=fuente_normal
-        )
+        draw.text((COL_POS, y), str(posicion), fill=color_posicion, font=fuente_normal)
 
-        draw.text(
-            (710,y),
-            str(fila["pts"]),
-            fill="gold",
-            font=fuente_normal
-        )
+        nombre_club = _texto_ajustado(draw, fila["equipo"].nombre, fuente_normal, ANCHO_COL_CLUB)
+        draw.text((COL_CLUB, y), nombre_club, fill=COLOR_TEXTO, font=fuente_normal)
 
-        y += 45
-    
-    buffer = BytesIO()
+        draw.text((COL_PJ, y), str(fila["pj"]), fill=COLOR_TENUE, font=fuente_normal)
+        draw.text((COL_DG, y), str(fila["dg"]), fill=COLOR_TENUE, font=fuente_normal)
+        draw.text((COL_PTS, y), str(fila["pts"]), fill=COLOR_ORO, font=fuente_normal)
 
-    imagen.save(
-        buffer,
-        format="PNG"
+        y += ALTO_FILA
+
+    # ---------- Pie de página ----------
+    fuente_footer = ImageFont.truetype(ruta_normal, 13)
+    fecha_generado = datetime.now().strftime("%d-%m-%Y %H:%M")
+    draw.text(
+        (PADDING_X, ALTO - 30),
+        f"Generado el {fecha_generado} · Liga Rural",
+        fill=COLOR_TENUE,
+        font=fuente_footer
     )
 
+    buffer = BytesIO()
+    imagen.save(buffer, format="PNG")
     buffer.seek(0)
 
-    response = HttpResponse(
-        buffer,
-        content_type="image/png"
-    )
-
-    response["Content-Disposition"] = (
-        'attachment; filename="tabla.png"'
-    )
+    response = HttpResponse(buffer, content_type="image/png")
+    response["Content-Disposition"] = 'attachment; filename="tabla.png"'
 
     return response
 
@@ -654,109 +646,199 @@ def _texto_ajustado(draw, texto, fuente, ancho_maximo):
 
     return f"{texto}..." if texto else "-"
 
+def _cargar_logo_circular(url, size, cache=None):
+    """
+    Descarga un logo desde una URL (Cloudinary u otra), lo recorta
+    en círculo y lo devuelve como imagen RGBA lista para pegar.
+    Devuelve None si falla la descarga o no hay URL.
+    """
+    if not url:
+        return None
+
+    if cache is not None and url in cache:
+        return cache[url]
+
+    try:
+        respuesta = requests.get(url, timeout=5)
+        respuesta.raise_for_status()
+
+        logo = Image.open(BytesIO(respuesta.content)).convert("RGBA")
+        logo = ImageOps.fit(logo, (size, size), Image.LANCZOS)
+
+        mascara = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(mascara).ellipse((0, 0, size, size), fill=255)
+
+        logo_circular = Image.new("RGBA", (size, size))
+        logo_circular.paste(logo, (0, 0), mascara)
+
+    except Exception as error:
+        print(f"No se pudo cargar el logo ({url}): {error}")
+        return None
+
+    if cache is not None:
+        cache[url] = logo_circular
+
+    return logo_circular
+
+
+def _placeholder_logo(size, letra, color_fondo="#3a3a3a", color_texto="whitesmoke"):
+    """Círculo con la inicial del equipo, para cuando no hay logo."""
+    placeholder = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(placeholder)
+    draw.ellipse((0, 0, size, size), fill=color_fondo)
+
+    fuente = ImageFont.truetype(ruta_normal, int(size * 0.5))
+    bbox = draw.textbbox((0, 0), letra, font=fuente)
+    ancho_texto = bbox[2] - bbox[0]
+    alto_texto = bbox[3] - bbox[1]
+
+    draw.text(
+        ((size - ancho_texto) / 2, (size - alto_texto) / 2 - bbox[1]),
+        letra,
+        fill=color_texto,
+        font=fuente
+    )
+    return placeholder
+
 
 def crear_img_fechas(torneo, partidos):
-    alto = max(360, 230 + (partidos.count() * 45))
-    imagen = Image.new(
-        "RGB",
-        (ANCHO, alto),
-        "#202020"
-    )
+    # ---------- Constantes de layout ----------
+    PADDING_X = 40
+    ALTO_HEADER_BANNER = 150
+    ALTO_INICIO = 200
+    ALTO_FILA = 60
+    LOGO_SIZE = 34
+    LOGO_LIGA_SIZE = 70
 
+    COL_LOCAL_LOGO = PADDING_X
+    COL_LOCAL_NOMBRE = COL_LOCAL_LOGO + LOGO_SIZE + 12
+    ANCHO_NOMBRE_EQUIPO = 150
+
+    COL_VS = COL_LOCAL_NOMBRE + ANCHO_NOMBRE_EQUIPO + 10
+    COL_VISITA_LOGO = COL_VS + 35
+    COL_VISITA_NOMBRE = COL_VISITA_LOGO + LOGO_SIZE + 12
+
+    COL_CANCHA = COL_VISITA_NOMBRE + ANCHO_NOMBRE_EQUIPO + 20
+    COL_FECHA = COL_CANCHA + 170
+
+    COLOR_FONDO = "#202020"
+    COLOR_FONDO_HEADER = "#161616"
+    COLOR_FILA_PAR = "#262626"
+    COLOR_FILA_IMPAR = "#202020"
+    COLOR_ORO = "gold"
+    COLOR_TEXTO = "whitesmoke"
+    COLOR_TENUE = "#999"
+    COLOR_BORDE = "#444"
+
+    # Solo contamos los partidos que realmente se dibujan
+    partidos_programados = [p for p in partidos if p.estado == 'Programado']
+
+    alto = max(360, ALTO_INICIO + (len(partidos_programados) * ALTO_FILA) + 60)
+
+    imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
     draw = ImageDraw.Draw(imagen)
 
-    fuente_titulo = ImageFont.truetype(
-        ruta_titulo,
-        38
-    )
+    fuente_titulo = ImageFont.truetype(ruta_titulo, 34)
+    fuente_normal = ImageFont.truetype(ruta_normal, 20)
+    fuente_pequena = ImageFont.truetype(ruta_normal, 16)
+    fuente_header = ImageFont.truetype(ruta_normal, 15)
 
-    fuente_normal = ImageFont.truetype(
-        ruta_normal,
-        22
-    )
+    cache_logos = {}
 
-    fuente_pequena = ImageFont.truetype(
-        ruta_normal,
-        18
-    )
+    # ---------- Banner superior ----------
+    draw.rectangle((0, 0, ANCHO, ALTO_HEADER_BANNER), fill=COLOR_FONDO_HEADER)
 
-    draw.text(
-        (40, 40),
-        "Liga Rural",
-        fill="gold",
-        font=fuente_titulo
-    )
+    logo_liga_url = getattr(getattr(torneo, "liga", None), "logo", None)
+    logo_liga_url = logo_liga_url.url if logo_liga_url else None
+    logo_liga = _cargar_logo_circular(logo_liga_url, LOGO_LIGA_SIZE, cache_logos)
 
-    draw.text(
-        (40, 90),
-        f"Fechas - {torneo.nombre}",
-        fill="white",
-        font=fuente_normal
-    )
+    if logo_liga:
+        imagen.paste(logo_liga, (PADDING_X, 30), logo_liga)
+        x_texto = PADDING_X + LOGO_LIGA_SIZE + 20
+    else:
+        x_texto = PADDING_X
+
+    draw.text((x_texto, 35), "Liga Rural", fill=COLOR_ORO, font=fuente_titulo)
+    draw.text((x_texto, 80), f"Fechas · {torneo.nombre}", fill=COLOR_TEXTO, font=fuente_normal)
 
     draw.line(
-        (40, 140, 860, 140),
-        fill="gold",
+        (PADDING_X, ALTO_HEADER_BANNER, ANCHO - PADDING_X, ALTO_HEADER_BANNER),
+        fill=COLOR_ORO,
         width=3
     )
 
-    y = 170
+    # ---------- Encabezado de columnas ----------
+    y_header = ALTO_HEADER_BANNER + 20
+    draw.text((COL_LOCAL_LOGO, y_header), "PARTIDO", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_CANCHA, y_header), "CANCHA", fill=COLOR_ORO, font=fuente_header)
+    draw.text((COL_FECHA, y_header), "FECHA Y HORA", fill=COLOR_ORO, font=fuente_header)
 
-    columnas = [
-        ("Partidos", 40, 160),
-        ("Cancha", 400, 150),
-        ("Fecha y Hora", 650, 90),
-    ]
+    draw.line(
+        (PADDING_X, y_header + 25, ANCHO - PADDING_X, y_header + 25),
+        fill=COLOR_BORDE,
+        width=1
+    )
 
-    for titulo, x, _ancho in columnas:
-        draw.text((x, y), titulo, fill="gold", font=fuente_pequena)
+    y = ALTO_INICIO
 
-    y = 210
-
-    if not partidos:
+    if not partidos_programados:
         draw.text(
-            (40, y),
+            (PADDING_X, y),
             "No hay fechas registradas para este torneo.",
-            fill="white",
+            fill=COLOR_TEXTO,
             font=fuente_normal
         )
     else:
-        for partido in partidos:
-            print(partido.estado)
-            if partido.estado == 'Programado':
-                valores = [
-                    (f"{partido.equipo_local} v/s {partido.equipo_visitante}", 40, 250),
-                    (partido.cancha or "-", 400, 200),
-                    (partido.fecha_hora, 650, 200),
-                ]
+        for i, partido in enumerate(partidos_programados):
 
-                for valor, x, ancho in valores:
-                    draw.text(
-                        (x, y),
-                        _texto_ajustado(draw, valor, fuente_pequena, ancho),
-                        fill="white",
-                        font=fuente_pequena
-                    )
+            color_fila = COLOR_FILA_PAR if i % 2 == 0 else COLOR_FILA_IMPAR
+            draw.rectangle(
+                (PADDING_X - 10, y - 10, ANCHO - PADDING_X + 10, y + ALTO_FILA - 15),
+                fill=color_fila
+            )
 
-                y += 45
+            centro_y_logo = y + (LOGO_SIZE // 2) - 8
+
+            # --- Equipo local ---
+            logo_local_url = getattr(partido.equipo_local, "logo", None)
+            logo_local_url = logo_local_url.url if logo_local_url else None
+            logo_local = _cargar_logo_circular(logo_local_url, LOGO_SIZE, cache_logos)
+            if not logo_local:
+                logo_local = _placeholder_logo(LOGO_SIZE, str(partido.equipo_local)[0].upper())
+            imagen.paste(logo_local, (COL_LOCAL_LOGO, centro_y_logo), logo_local)
+
+            nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_pequena, ANCHO_NOMBRE_EQUIPO)
+            draw.text((COL_LOCAL_NOMBRE, y), nombre_local, fill=COLOR_TEXTO, font=fuente_pequena)
+
+            # --- "vs" ---
+            draw.text((COL_VS, y), "vs", fill=COLOR_TENUE, font=fuente_pequena)
+
+            # --- Equipo visitante ---
+            logo_visita_url = getattr(partido.equipo_visitante, "logo", None)
+            logo_visita_url = logo_visita_url.url if logo_visita_url else None
+            logo_visita = _cargar_logo_circular(logo_visita_url, LOGO_SIZE, cache_logos)
+            if not logo_visita:
+                logo_visita = _placeholder_logo(LOGO_SIZE, str(partido.equipo_visitante)[0].upper())
+            imagen.paste(logo_visita, (COL_VISITA_LOGO, centro_y_logo), logo_visita)
+
+            nombre_visita = _texto_ajustado(draw, partido.equipo_visitante, fuente_pequena, ANCHO_NOMBRE_EQUIPO)
+            draw.text((COL_VISITA_NOMBRE, y), nombre_visita, fill=COLOR_TEXTO, font=fuente_pequena)
+
+            # --- Cancha y fecha ---
+            cancha_texto = _texto_ajustado(draw, partido.cancha or "-", fuente_pequena, 160)
+            draw.text((COL_CANCHA, y), cancha_texto, fill=COLOR_TEXTO, font=fuente_pequena)
+
+            fecha_texto = _texto_ajustado(draw, partido.fecha_hora, fuente_pequena, 190)
+            draw.text((COL_FECHA, y), fecha_texto, fill=COLOR_TEXTO, font=fuente_pequena)
+
+            y += ALTO_FILA
 
     buffer = BytesIO()
-
-    imagen.save(
-        buffer,
-        format="PNG"
-    )
-
+    imagen.save(buffer, format="PNG")
     buffer.seek(0)
 
-    response = HttpResponse(
-        buffer,
-        content_type="image/png"
-    )
-
-    response["Content-Disposition"] = (
-        'attachment; filename="fechas.png"'
-    )
+    response = HttpResponse(buffer, content_type="image/png")
+    response["Content-Disposition"] = 'attachment; filename="fechas.png"'
 
     return response
 

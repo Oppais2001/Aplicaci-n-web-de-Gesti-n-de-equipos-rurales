@@ -1057,6 +1057,150 @@ a {
     border-color: brown !important;
 }
 
+/* ================= FICHA CANCHA ================= */
+.ficha-cancha {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.ficha-cancha-foto {
+    text-align: center;
+}
+
+.ficha-cancha-foto img {
+    max-width: 500px;
+    width: 100%;
+    border-radius: var(--radio-lg);
+    border: 1px solid var(--borde);
+}
+
+.ficha-cancha-estado {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(46, 160, 67, 0.15);
+    color: #3fb950;
+    border: 1px solid rgba(63, 185, 80, 0.35);
+}
+
+.badge-danger {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.35);
+}
+
+.badge-info {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--color-principal);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+    padding: 0.9rem 1rem;
+}
+
+.info-item > i {
+    color: var(--color-principal);
+    font-size: 1.1rem;
+    margin-top: 0.15rem;
+}
+
+.info-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texto-tenue);
+}
+
+.info-valor {
+    font-size: 1rem;
+    color: var(--texto-principal);
+}
+
+.ficha-cancha-descripcion h3 {
+    color: var(--color-principal);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ficha-cancha-mapa h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.ficha-cancha-mapa #mapa {
+    height: 400px;
+    width: 100%;
+    border-radius: var(--radio-lg);
+    border: 1px solid var(--borde);
+}
+
+.ficha-cancha-maps-link {
+    text-align: center;
+}
+
+.btn-maps {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-secundario);
+    color: whitesmoke;
+    padding: 0.7rem 1.4rem;
+    border-radius: var(--radio-md);
+    text-decoration: none;
+    font-weight: 600;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.btn-maps:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+/* MOBILE */
+@media (max-width: 640px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 /* ================= MOBILE ================= */
 @media (max-width: 768px) {
