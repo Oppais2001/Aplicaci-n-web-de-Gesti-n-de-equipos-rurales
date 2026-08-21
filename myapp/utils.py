@@ -797,7 +797,7 @@ def crear_img_fechas(torneo, partidos, liga):
     imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
     draw = ImageDraw.Draw(imagen)
 
-    fuente_titulo = ImageFont.truetype(ruta_titulo_negrita, 46)
+    fuente_titulo = ImageFont.truetype(ruta_titulo_negrita, 36)
     fuente_subtitulo = ImageFont.truetype(ruta_subtitulo, 24)
     fuente_fecha = ImageFont.truetype(ruta_titulo_negrita, 30)
     fuente_hora = ImageFont.truetype(ruta_subtitulo, 20)
@@ -825,18 +825,6 @@ def crear_img_fechas(torneo, partidos, liga):
 
     # ---------- Header con logos de la liga a ambos lados ----------
     draw.rectangle((0, 0, ANCHO, ALTO_HEADER), fill=COLOR_FONDO_HEADER)
-
-    logo_liga = _cargar_logo_circular(logo_liga_url, LOGO_LIGA_SIZE, cache_logos)
-
-    margen_logo = 30
-    if logo_liga:
-        imagen.paste(logo_liga, (margen_logo, (ALTO_HEADER - LOGO_LIGA_SIZE) // 2), logo_liga)
-        imagen.paste(
-            logo_liga,
-            (ANCHO - margen_logo - LOGO_LIGA_SIZE, (ALTO_HEADER - LOGO_LIGA_SIZE) // 2),
-            logo_liga
-        )
-
     texto_titulo = "UNIÓN COMUNAL DE CLUBES DEPORTIVOS"
     bbox_titulo = draw.textbbox((0, 0), texto_titulo, font=fuente_titulo)
     ancho_titulo = bbox_titulo[2] - bbox_titulo[0]
