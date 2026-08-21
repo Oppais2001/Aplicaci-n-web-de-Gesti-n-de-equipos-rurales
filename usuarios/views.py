@@ -13,8 +13,6 @@ from .models import Usuario
 
 from .utils import enviar_email_verificacion
 
-from django.conf import settings
-
 def registro_view(request):
 
     if request.method == 'POST':
@@ -37,9 +35,6 @@ def registro_view(request):
                     dirigente.usuario = usuario
                     dirigente.save()
                     print("ANTES DE ENVIAR EMAIL")
-                    print("HOST:", settings.EMAIL_HOST)
-                    print("PORT:", settings.EMAIL_PORT)
-                    print("USER:", settings.EMAIL_HOST_USER)
                     enviar_email_verificacion(request, usuario)
                     print("EMAIL ENVIADO")
    
