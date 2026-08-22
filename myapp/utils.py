@@ -431,7 +431,6 @@ def validate_file_upload(value, allowed_extensions, max_size_mb=5, field_name="E
 
 
 def validate_transfer_date(value, base_date):
-    validate_date_not_future(value, "La fecha de traspaso", required=True)
 
     min_date = base_date + relativedelta(years=1, months=6)
     if value < min_date:
