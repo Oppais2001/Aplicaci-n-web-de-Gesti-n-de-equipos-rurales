@@ -122,7 +122,7 @@ def crear_ficha_jugador_pdf(formato="carta", ruta_logo=None):
         (alto - marca_size) / 2,
         marca_size,
         marca_size,
-        alpha=0.08,
+        alpha=0.15,
     )
 
     _draw_logo(c, ruta_logo, margen, alto - margen / 2 - logo_size, logo_size, logo_size)
@@ -241,7 +241,7 @@ def _campo_linea(c, etiqueta, x, y, ancho, size):
 
 
 def _dibujar_marca_agua_planilla(c, ancho, alto, ruta_logo, sx, sy):
-    _draw_logo(c, ruta_logo, (ancho - 700 * sx) / 2, (alto - 500 * sy) / 2 - 20 * sy, 700 * sx, 500 * sy, alpha=0.2)
+    _draw_logo(c, ruta_logo, (ancho - 700 * sx) / 2, (alto - 500 * sy) / 2 - 20 * sy, 700 * sx, 500 * sy, alpha=0.15)
 
 
 def _dibujar_tabla_pequena(c, x, y, ancho, alto, titulo, columnas, filas, sx, sy):
