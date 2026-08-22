@@ -786,12 +786,32 @@ def crear_img_fechas(torneo, partidos, liga):
 
     partidos_programados = [p for p in partidos if p.estado == 'Programado']
 
-    alto = (
+    # ---------- Cálculo correcto de altura ----------
+    y_inicial_partidos = (
         ALTO_HEADER
-        + ALTO_BANNER_FECHA + 30
-        + len(partidos_programados) * (ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS)
+        + 20                    # separación antes del banner
+        + ALTO_BANNER_FECHA
+        + 40                    # separación después del banner
+    )
+
+    # Cada partido utiliza:
+    # 30  -> separación antes de la tarjeta
+    # 130 -> altura de tarjeta
+    # 20  -> espacio entre tarjetas
+    # 25  -> espacio adicional al actualizar y
+    ALTO_POR_PARTIDO = (
+        30
+        + ALTO_TARJETA
+        + ESPACIO_ENTRE_TARJETAS
+        + 25
+    )
+
+    alto = (
+        y_inicial_partidos
+        + len(partidos_programados) * ALTO_POR_PARTIDO
         + 80
     )
+
     alto = max(alto, 500)
 
     imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
