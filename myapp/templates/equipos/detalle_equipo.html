@@ -39,10 +39,12 @@
                 </button>
             </form>
 
-            <a href="{% url 'crear_pdf_detalle_equipo' equipo.id %}" class="btn descargar">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Descargar Planilla</span>
-            </a>
+            {% if puede_ver_rut %}
+                <a href="{% url 'crear_pdf_detalle_equipo' equipo.id %}" class="btn descargar">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                    <span>Descargar Planilla</span>
+                </a>
+            {% endif %}
             </div>
         {% endif %}
 
@@ -61,11 +63,15 @@
 
                         <th>Nombre</th>
 
-                        <th>RUT</th>
+                        {% if puede_ver_rut %}
+                            <th>RUT</th>
+                        {% endif %}
+
+                        <th>F. Nac.</th>
 
                         <th>F. Inscrip.</th>
 
-                        {% if user.is_staff %}
+                        {% if puede_ver_rut %}
                             <th>Acciones</th>
                         {% endif %}
 
@@ -77,15 +83,21 @@
                             <td>
                                 {{ jugador.nombre }}
                             </td>
-                            <td data-label='RUT'>
-                                {{ jugador.rut_formateado }}
+                            {% if puede_ver_rut %}
+                                <td data-label="RUT">
+                                    {{ jugador.rut_formateado }}
+                                </td>
+                            {% endif %}
+
+                            <td data-label="F. Nac.">
+                                {{ jugador.fecha_nacimiento|date:"d/m/Y"|default:"-" }}
                             </td>
 
                             <td data-label="F. Inscrip.">
-                                {{ jugador.fecha_inscripcion }}
+                                {{ jugador.fecha_inscripcion|date:"d/m/Y" }}
                             </td>
 
-                            {% if user.is_staff %}
+                            {% if puede_ver_rut %}
 
                                 <td>
 

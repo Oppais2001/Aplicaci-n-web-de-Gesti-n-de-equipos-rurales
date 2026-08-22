@@ -622,6 +622,12 @@ def ingresar_jugador(request):
 @usuario_autorizado_required
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
+    puede_ver_rut = es_administrador(request.user)
+
+    if not puede_ver_rut:
+        dirigente = obtener_dirigente(request.user)
+        if not dirigente or dirigente.equipo_id != equipo.id:
+            return HttpResponseForbidden("No tienes permiso para ver este equipo.")
 
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
@@ -634,6 +640,7 @@ def detalle_equipo(request, equipo):
     return render(request, "equipos/detalle_equipo.html", {
         "jugadores": jugadores,
         "equipo": equipo,
+        "puede_ver_rut": puede_ver_rut,
         'hay_jugadores': jugadores_totales.exists()
     }) 
 
@@ -1117,6 +1124,7 @@ def descargar_fechas_imagen(request, torneo_id):
 
     return crear_img_fechas(torneo, partidos, liga)
 
+@admin_required
 def descargar_detalle_equipo(request, equipo_id):
     equipo = get_object_or_404(
         Equipo.objects.prefetch_related("jugadores"),
