@@ -1266,7 +1266,7 @@ def lista_fechas(request):
         'equipo_local',
         'equipo_visitante',
         'cancha'
-    )
+    ).order_by("fecha", "hora")
 
     fechas_totales = fechas
 
@@ -1279,8 +1279,6 @@ def lista_fechas(request):
             | Q(descripcion__icontains=buscar)
         )
         fechas = fechas.filter(filtros)
-
-    fechas = fechas.order_by("-fecha", "-hora")
 
     return render(request, "partidos/fechas.html", {
         "fechas": fechas,
