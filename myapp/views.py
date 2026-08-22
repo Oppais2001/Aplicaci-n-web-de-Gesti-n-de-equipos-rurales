@@ -1,9 +1,12 @@
 import json
+import os
 import secrets
 import string
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import HttpResponseForbidden
+from django.http import HttpResponse
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
@@ -30,6 +33,12 @@ from .forms import (
     TarjetaPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required, es_dirigente
+from .documentos import (
+    DOCUMENTOS_DISPONIBLES,
+    NOMBRES_FORMATOS,
+    crear_ficha_jugador_pdf,
+    crear_papeleta_partido_pdf,
+)
 from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_pdf_detalle_equipo
 
 
@@ -126,6 +135,52 @@ def home(request):
 # acesso libre a jugadores
 def about(request):
     return render(request, 'about.html')
+
+
+def obtener_logo_documentos():
+    liga = Liga.objects.exclude(logo="").filter(logo__isnull=False).first()
+
+    if liga and liga.logo:
+        try:
+            if hasattr(liga.logo, "path") and os.path.exists(liga.logo.path):
+                return liga.logo.path
+        except (NotImplementedError, ValueError):
+            pass
+
+    return finders.find("img/logo_liga.png")
+
+
+@usuario_autorizado_required
+def documentos(request):
+    return render(request, "documentos/documentos.html", {
+        "documentos": DOCUMENTOS_DISPONIBLES.items(),
+        "formatos": NOMBRES_FORMATOS.items(),
+    })
+
+
+@usuario_autorizado_required
+def descargar_documento(request):
+    tipo_documento = request.GET.get("documento", "ficha_jugador")
+    formato = request.GET.get("formato", "carta").lower()
+
+    if tipo_documento not in DOCUMENTOS_DISPONIBLES:
+        tipo_documento = "ficha_jugador"
+    if formato not in NOMBRES_FORMATOS:
+        formato = "carta"
+
+    ruta_logo = obtener_logo_documentos()
+    documento = DOCUMENTOS_DISPONIBLES[tipo_documento]
+
+    if tipo_documento == "papeleta_partido":
+        pdf = crear_papeleta_partido_pdf(formato=formato, ruta_logo=ruta_logo)
+    else:
+        pdf = crear_ficha_jugador_pdf(formato=formato, ruta_logo=ruta_logo)
+
+    nombre_archivo = f"{documento['archivo']}_{formato}.pdf"
+
+    response = HttpResponse(pdf.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+    return response
 
 # EQUIPOS
 @admin_required
@@ -225,11 +280,7 @@ def ingresar_equipo_ajax(request):
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
     equipos = Equipo.objects.all().order_by('nombre')
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        equipos = equipos.filter(id=dirigente.equipo_id)
-
+    
     equipos_totales = equipos
 
     if buscar:

@@ -204,6 +204,11 @@
                             {% endif %}
                         </ul>
                     </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'documentos' %}"><i class="fa fa-file-lines"></i> Documentos</a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'about' %}"><i class="fa fa-info-circle"></i> About</a>
                     </li>

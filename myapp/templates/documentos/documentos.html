@@ -1,0 +1,44 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+
+<div class="ingresar documentos-page">
+    <div class="card-title">
+        <h1>Documentos</h1>
+    </div>
+
+    <div class="card form-container documentos-card">
+        <form method="GET" action="{% url 'descargar_documento' %}" class="form-registro">
+            <label for="documento">DOCUMENTO</label>
+            <select name="documento" id="documento" required>
+                {% for value, documento in documentos %}
+                    <option value="{{ value }}">
+                        {{ documento.nombre }} - {{ documento.orientacion }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label for="formato">TIPO DE HOJA</label>
+            <select name="formato" id="formato" required>
+                {% for value, label in formatos %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">
+                <i class="fa fa-file-pdf"></i> Descargar PDF
+            </button>
+        </form>
+
+        <div class="documentos-lista" aria-label="Documentos disponibles">
+            {% for value, documento in documentos %}
+                <div class="documento-resumen">
+                    <strong>{{ documento.nombre }}</strong>
+                    <span>{{ documento.descripcion }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
