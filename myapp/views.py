@@ -623,12 +623,6 @@ def ingresar_jugador(request):
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
 
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-
-        if equipo.id != dirigente.equipo_id:
-            return HttpResponseForbidden("Solo puedes ver jugadores de tu equipo.")
-
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
