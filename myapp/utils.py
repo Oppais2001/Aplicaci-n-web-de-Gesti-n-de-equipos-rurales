@@ -784,8 +784,10 @@ def crear_img_fechas(torneo, partidos, liga):
     COLOR_TARJETA_FONDO = "#2a2a2a"
     COLOR_BORDE = "#444"
 
-    partidos_programados = [p for p in partidos if p.estado == 'Programado']
-
+    partidos_programados = sorted(
+        [p for p in partidos if p.estado == 'Programado'],
+        key=lambda p: p.hora
+    )
     # ---------- Cálculo correcto de altura ----------
     y_inicial_partidos = (
         ALTO_HEADER
