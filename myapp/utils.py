@@ -1080,7 +1080,7 @@ def crear_img_partidos(torneo, partidos):
 
     return response
 
-def crear_pdf_detalle_equipo(equipo, lista_jugadores):
+def crear_pdf_detalle_equipo(equipo, lista_jugadores, mostrar_rut=True):
 
     # =========================================================
     # CONFIGURACIÓN A4 VERTICAL
@@ -1528,68 +1528,30 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
     # TABLA
     # =========================================================
 
-    datos = [
-
-        [
-            Paragraph(
-                "<b>N°</b>",
-                estilo_encabezado
-                ),
-            
-            Paragraph(
-                "<b>Apellido<br/>Paterno</b>",
-                estilo_encabezado
-            ),
-
-            
-            Paragraph(
-                "<b>Apellido<br/>Materno</b>",
-                estilo_encabezado
-            ),
-
-            Paragraph(
-                "<b>Nombres</b>",
-                estilo_encabezado_centrado
-            ),
-
-            Paragraph(
-                "<b>RUT</b>",
-                estilo_encabezado_centrado
-            ),
-
-            Paragraph(
-                "<b>Fecha de<br/>Nacimiento</b>",
-                estilo_encabezado
-            ),
-
-            Paragraph(
-                "<b>Fecha de<br/>Inscripción</b>",
-                estilo_encabezado
-            ),
-
-        ]
-
+    encabezados = [
+        Paragraph("<b>N°</b>", estilo_encabezado),
+        Paragraph("<b>Apellido<br/>Paterno</b>", estilo_encabezado),
+        Paragraph("<b>Apellido<br/>Materno</b>", estilo_encabezado),
+        Paragraph("<b>Nombres</b>", estilo_encabezado_centrado),
     ]
+
+    if mostrar_rut:
+        encabezados.append(Paragraph("<b>RUT</b>", estilo_encabezado_centrado))
+
+    encabezados.extend([
+        Paragraph("<b>Fecha de<br/>Nacimiento</b>", estilo_encabezado),
+        Paragraph("<b>Fecha de<br/>Inscripción</b>", estilo_encabezado),
+    ])
+
+    datos = [encabezados]
 
 
     if cantidad_jugadores == 0:
 
         datos.append(
 
-            [
-
-                Paragraph(
-                    "No hay jugadores registrados para este equipo.",
-                    estilo_celda
-                ),
-
-                "",
-
-                "",
-
-                "",
-
-            ]
+            [Paragraph("No hay jugadores registrados para este equipo.", estilo_celda)]
+            + [""] * (len(encabezados) - 1)
 
         )
 
@@ -1610,10 +1572,6 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
             nombre_divido = nombre_completo.strip()
             nombre_divido = nombre_divido.split()
             
-            print(nombre_completo)
-            print(nombre_divido)
-            print(len(nombre_divido))
-            
             if len(nombre_divido) == 4:
                 nombres = nombre_divido[0] + " " + nombre_divido[1]
                 apellido_paterno = nombre_divido[2]
@@ -1629,8 +1587,9 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
                 apellido_paterno = nombre_divido[3]
                 apellido_materno = nombre_divido[4]                
             else:
-                print("ERROR NOMBRE INCAPAZ DE INGRESAR EN LA VISTA DEL LISTADO!!!")
-                print(nombre_completo)                
+                nombres = nombre_completo
+                apellido_paterno = "-"
+                apellido_materno = "-"
 
             rut = str(
                 getattr(
@@ -1665,44 +1624,22 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
             contador +=1
 
-            datos.append(
+            fila = [
+                Paragraph(str(contador), estilo_celda),
+                Paragraph(apellido_paterno, estilo_celda),
+                Paragraph(apellido_materno, estilo_celda),
+                Paragraph(nombres, estilo_celda),
+            ]
 
-                [
-                    Paragraph(
-                        str(contador),
-                        estilo_celda  
-                    ),
-                    Paragraph(
-                        apellido_paterno,
-                        estilo_celda
-                    ),
-                    Paragraph(
-                        apellido_materno,
-                        estilo_celda    
-                    ),
-                    Paragraph(
-                        nombres,
-                        estilo_celda    
-                    ),
+            if mostrar_rut:
+                fila.append(Paragraph(rut, estilo_celda))
 
-                    Paragraph(
-                        rut,
-                        estilo_celda
-                    ),
+            fila.extend([
+                Paragraph(fechaNac, estilo_celda),
+                Paragraph(fechaInsc, estilo_celda),
+            ])
 
-                    Paragraph(
-                        fechaNac,
-                        estilo_celda
-                    ),
-
-                    Paragraph(
-                        fechaInsc,
-                        estilo_celda
-                    ),
-
-                ]
-
-            )
+            datos.append(fila)
 
     # =========================================================
     # TABLA
@@ -1712,23 +1649,26 @@ def crear_pdf_detalle_equipo(equipo, lista_jugadores):
 
         datos,
 
-        colWidths=[
-            
-            ancho_util * 0.05,
-
-            ancho_util * 0.15,
-            
-            ancho_util * 0.15,
-            
-            ancho_util * 0.19,
-
-            ancho_util * 0.16,
-
-            ancho_util * 0.15,
-
-            ancho_util * 0.15,
-
-        ],
+        colWidths=(
+            [
+                ancho_util * 0.05,
+                ancho_util * 0.15,
+                ancho_util * 0.15,
+                ancho_util * 0.19,
+                ancho_util * 0.16,
+                ancho_util * 0.15,
+                ancho_util * 0.15,
+            ]
+            if mostrar_rut else
+            [
+                ancho_util * 0.06,
+                ancho_util * 0.18,
+                ancho_util * 0.18,
+                ancho_util * 0.28,
+                ancho_util * 0.15,
+                ancho_util * 0.15,
+            ]
+        ),
 
         repeatRows=1,
 

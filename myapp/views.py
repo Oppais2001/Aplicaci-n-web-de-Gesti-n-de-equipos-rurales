@@ -623,11 +623,11 @@ def ingresar_jugador(request):
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
     puede_ver_rut = es_administrador(request.user)
-
-    if not puede_ver_rut:
-        dirigente = obtener_dirigente(request.user)
-        if not dirigente or dirigente.equipo_id != equipo.id:
-            return HttpResponseForbidden("No tienes permiso para ver este equipo.")
+    dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
+    puede_descargar_planilla = (
+        puede_ver_rut
+        or (dirigente is not None and dirigente.equipo_id == equipo.id)
+    )
 
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
@@ -641,6 +641,7 @@ def detalle_equipo(request, equipo):
         "jugadores": jugadores,
         "equipo": equipo,
         "puede_ver_rut": puede_ver_rut,
+        "puede_descargar_planilla": puede_descargar_planilla,
         'hay_jugadores': jugadores_totales.exists()
     }) 
 
@@ -1124,14 +1125,21 @@ def descargar_fechas_imagen(request, torneo_id):
 
     return crear_img_fechas(torneo, partidos, liga)
 
-@admin_required
+@usuario_autorizado_required
 def descargar_detalle_equipo(request, equipo_id):
     equipo = get_object_or_404(
         Equipo.objects.prefetch_related("jugadores"),
         id=equipo_id
     )
+    mostrar_rut = es_administrador(request.user)
+
+    if not mostrar_rut:
+        dirigente = obtener_dirigente(request.user)
+        if not dirigente or dirigente.equipo_id != equipo.id:
+            return HttpResponseForbidden("No tienes permiso para descargar la planilla de este equipo.")
+
     jugadores = sorted(equipo.jugadores.all(),key= lambda jugador: jugador.apellidos)
-    return crear_pdf_detalle_equipo(equipo, jugadores)
+    return crear_pdf_detalle_equipo(equipo, jugadores, mostrar_rut=mostrar_rut)
 
 # PARTIDOS
 @admin_required
