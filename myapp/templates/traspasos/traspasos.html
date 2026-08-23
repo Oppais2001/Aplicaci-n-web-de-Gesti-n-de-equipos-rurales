@@ -47,16 +47,16 @@
                                     <td>
                                         {{traspaso.jugador.nombre}}
                                     </td>
-                                    <td>
+                                    <td data-label="RUT">
                                         {{traspaso.jugador.rut_formateado}}
                                     </td>
-                                    <td>
+                                    <td data-label="Equipo Origen">
                                         {{traspaso.equipo_origen}}
                                     </td>
-                                    <td>
+                                    <td data-label="Equipo Destino">
                                         {{traspaso.equipo_destino}}
                                     </td>
-                                    <td>
+                                    <td data-label="Fecha">
                                         {{traspaso.fecha_inscripcion_actual}}
                                     </td>
                                     {% if user.is_staff %}
