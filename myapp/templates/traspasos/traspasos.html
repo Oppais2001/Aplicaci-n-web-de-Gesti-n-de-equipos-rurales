@@ -47,9 +47,11 @@
                                     <td>
                                         {{traspaso.jugador.nombre}}
                                     </td>
-                                    <td data-label="RUT">
-                                        {{traspaso.jugador.rut_formateado}}
-                                    </td>
+                                    {% if user.is_staff %}
+                                        <td data-label="RUT">
+                                            {{traspaso.jugador.rut_formateado}}
+                                        </td>
+                                    {% endif %}
                                     <td data-label="Equipo Origen">
                                         {{traspaso.equipo_origen}}
                                     </td>
