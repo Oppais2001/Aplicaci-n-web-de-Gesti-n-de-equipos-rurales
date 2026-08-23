@@ -700,23 +700,12 @@ def traspasos(request):
         'equipo_origen',
         'equipo_destino'
     )
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        traspasos = traspasos.filter(
-            Q(equipo_origen=dirigente.equipo)
-            | Q(equipo_destino=dirigente.equipo)
-            | Q(jugador__equipo=dirigente.equipo)
-        ).distinct()
-
-    traspasos_totales = traspasos
-
     if buscar:
         traspasos = traspasos.filter(jugador__nombre__icontains=buscar)
                  
     return render(request, 'traspasos/traspasos.html', {
         'traspasos': traspasos,
-        'hay_traspasos': traspasos_totales.exists()
+        'hay_traspasos': traspasos.exists()
     })
 
 @admin_required
