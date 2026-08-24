@@ -10,10 +10,15 @@ class Command(BaseCommand):
 
         usuarios = [
             {
-                "username": "Nelson",
+                "username": "Nelson Carcamo",
                 "email": "ncarcamo794@gmail.cl",
                 "password": "@carcamo123",
             },
+            {
+                "username": "Felipe Alvarado",
+                "email": "felipealvrado@gmail.com",
+                "password":"*Alvarado08*"
+            }
         ]
 
         for datos in usuarios:
