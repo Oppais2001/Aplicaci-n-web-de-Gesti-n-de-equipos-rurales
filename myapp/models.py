@@ -270,12 +270,13 @@ class Jugador(models.Model):
         return self.apellido_paterno + " " + self.apellido_materno
         
 class Dirigente(models.Model):
-
-    usuario = models.OneToOneField(
+    
+    usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="dirigencias"
     )
 
     equipo = models.ForeignKey(
