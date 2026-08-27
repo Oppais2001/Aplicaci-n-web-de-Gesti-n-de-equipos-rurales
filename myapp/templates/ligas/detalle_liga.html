@@ -38,6 +38,7 @@
                 <span class="liga-label">Fecha de Fundación</span>
                 <span class="liga-valor">{{ liga.fecha_fundacion|default:"No definido" }}</span>
               </div>
+              <!--
               <div class="liga-dato">
                 <span class="liga-label">Dirección</span>
                 <span class="liga-valor">{{ liga.direccion|default:"No definido" }}</span>
@@ -46,6 +47,7 @@
                 <span class="liga-label">Teléfono</span>
                 <span class="liga-valor">{{ liga.telefono_contacto|default:"No definido" }}</span>
               </div>
+            -->
               <div class="liga-dato">
                 <span class="liga-label">Correo</span>
                 <span class="liga-valor">{{ liga.correo_contacto|default:"No definido" }}</span>
@@ -64,6 +66,7 @@
 
         </div>
 
+        <!--
         <div class="liga-col-lateral">
 
           <section class="liga-seccion">
@@ -83,7 +86,7 @@
               </div>
             </div>
           </section>
-
+          -->
           <section class="liga-seccion">
             <h3>Redes Sociales</h3>
             {% if liga.redes.all %}
