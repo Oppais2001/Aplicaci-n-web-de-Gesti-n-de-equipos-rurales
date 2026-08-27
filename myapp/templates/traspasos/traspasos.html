@@ -22,9 +22,11 @@
                                 <th>
                                     Nombre
                                 </th>
+                                {% if user.is_staff %}
                                 <th>
                                     Rut
                                 </th>
+                                {% endif %}
                                 <th>
                                     Equipo Origen
                                 </th>

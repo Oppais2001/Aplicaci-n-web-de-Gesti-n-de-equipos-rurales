@@ -698,7 +698,6 @@ def realizar_traspaso(request, id_jugador):
         "jugador": jugador
     })
     
-@usuario_autorizado_required
 def traspasos(request):
     buscar = request.GET.get('buscar')
     traspasos = Traspaso.objects.select_related(
