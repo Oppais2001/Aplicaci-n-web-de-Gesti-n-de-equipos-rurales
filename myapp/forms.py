@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido, Torneo
+from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido, Torneo, GolPartido
 from .utils import (
     calculate_age,
     validate_address,
@@ -1137,21 +1137,322 @@ class TarjetaPartidoForm(forms.ModelForm):
 
         fields = [
             "equipo",
+            "jugador",
             "tipo_tarjeta",
-            "afectado",
-            "numero_camiseta",
-            "nombre_persona",
         ]
 
         labels = {
             "equipo": "EQUIPO",
+            "jugador": "JUGADOR",
             "tipo_tarjeta": "TIPO DE TARJETA",
-            "afectado": "CATEGORÍA",
-            "numero_camiseta": "NÚMERO",
-            "nombre_persona": "NOMBRE",
         }
-        
+
+    def __init__(self, *args, **kwargs):
+
+        self.partido = kwargs.pop("partido", None)
+
+        super().__init__(*args, **kwargs)
+
+        # Inicialmente no mostrar equipos ni jugadores
+        self.fields["equipo"].queryset = Equipo.objects.none()
+        self.fields["jugador"].queryset = Jugador.objects.none()
+
+        if not self.partido or not self.partido.pk:
+            return
+
+        # ---------------------------------------------------------
+        # EQUIPOS DEL PARTIDO
+        # ---------------------------------------------------------
+
+        equipos_partido = Equipo.objects.filter(
+            pk__in=[
+                self.partido.equipo_local_id,
+                self.partido.equipo_visitante_id,
+            ]
+        ).order_by("nombre")
+
+        self.fields["equipo"].queryset = equipos_partido
+
+        # ---------------------------------------------------------
+        # EDICIÓN
+        # ---------------------------------------------------------
+
+        if self.instance and self.instance.pk:
+
+            if self.instance.equipo_id:
+
+                self.fields["jugador"].queryset = Jugador.objects.filter(
+                    equipo_id=self.instance.equipo_id,
+                    activo=True
+                ).order_by("nombre")
+
+        # ---------------------------------------------------------
+        # FORMULARIO ENVIADO
+        # ---------------------------------------------------------
+
+        if self.is_bound:
+
+            equipo_id = self.data.get(
+                self.add_prefix("equipo")
+            )
+
+            if equipo_id:
+
+                try:
+
+                    equipo_id = int(equipo_id)
+
+                    equipos_validos = {
+                        self.partido.equipo_local_id,
+                        self.partido.equipo_visitante_id,
+                    }
+
+                    if equipo_id in equipos_validos:
+
+                        self.fields["jugador"].queryset = (
+                            Jugador.objects
+                            .filter(
+                                equipo_id=equipo_id,
+                                activo=True
+                            )
+                            .order_by("nombre")
+                        )
+
+                except (ValueError, TypeError):
+
+                    pass
 class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        partido = self.instance
+
+        if not partido or not partido.pk:
+            return
+
+        equipos_partido = Equipo.objects.filter(
+            pk__in=[
+                partido.equipo_local_id,
+                partido.equipo_visitante_id,
+            ]
+        ).order_by("nombre")
+
+        equipos_validos = {
+            partido.equipo_local_id,
+            partido.equipo_visitante_id,
+        }
+
+        for form in self.forms:
+
+            form.fields["equipo"].queryset = equipos_partido
+
+            equipo_id = None
+
+            if form.is_bound:
+
+                equipo_id = form.data.get(
+                    form.add_prefix("equipo")
+                )
+
+            elif form.instance and form.instance.pk:
+
+                equipo_id = form.instance.equipo_id
+
+            if equipo_id:
+
+                try:
+
+                    equipo_id = int(equipo_id)
+
+                    if equipo_id in equipos_validos:
+
+                        form.fields["jugador"].queryset = (
+                            Jugador.objects
+                            .filter(
+                                equipo_id=equipo_id,
+                                activo=True
+                            )
+                            .order_by("nombre")
+                        )
+
+                except (ValueError, TypeError):
+
+                    pass
+
+    def clean(self):
+
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        partido = self.instance
+
+        if not partido or not partido.pk:
+            return
+
+        equipos_validos = {
+            partido.equipo_local_id,
+            partido.equipo_visitante_id,
+        }
+
+        jugadores_roja = set()
+
+        for form in self.forms:
+
+            if not hasattr(form, "cleaned_data"):
+                continue
+
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            equipo = form.cleaned_data.get("equipo")
+            jugador = form.cleaned_data.get("jugador")
+            tipo_tarjeta = form.cleaned_data.get("tipo_tarjeta")
+
+            # Fila completamente vacía
+            if not equipo and not jugador and not tipo_tarjeta:
+                continue
+
+            if not equipo:
+                raise ValidationError(
+                    "Debes seleccionar el equipo."
+                )
+
+            if equipo.pk not in equipos_validos:
+
+                raise ValidationError(
+                    "Las tarjetas deben pertenecer a uno de "
+                    "los equipos que disputan el partido."
+                )
+
+            if not jugador:
+
+                raise ValidationError(
+                    "Debes seleccionar el jugador que recibió "
+                    "la tarjeta."
+                )
+
+            # MUY IMPORTANTE
+            # El jugador debe pertenecer al equipo seleccionado
+            if jugador.equipo_id != equipo.pk:
+
+                raise ValidationError(
+                    f"{jugador} no pertenece al equipo {equipo}."
+                )
+
+            if tipo_tarjeta == "roja":
+
+                if jugador.pk in jugadores_roja:
+
+                    raise ValidationError(
+                        f"{jugador} ya tiene una tarjeta roja "
+                        "registrada en este partido."
+                    )
+
+                jugadores_roja.add(jugador.pk)
+                
+TarjetaPartidoFormSet = inlineformset_factory(
+    Partido,
+    TarjetaPartido,
+    form=TarjetaPartidoForm,
+    formset=BaseTarjetaPartidoFormSet,
+    extra=10,
+    can_delete=True,
+)
+class GolPartidoForm(forms.ModelForm):
+
+    class Meta:
+        model = GolPartido
+
+        fields = [
+            "equipo",
+            "jugador",
+            "minuto",
+            "autogol",
+        ]
+
+        labels = {
+            "equipo": "EQUIPO",
+            "jugador": "GOLEADOR",
+            "minuto": "MINUTO",
+            "autogol": "AUTOGOL",
+        }
+
+        widgets = {
+            "minuto": forms.NumberInput(
+                attrs={
+                    "min": 1,
+                    "max": 150,
+                    "placeholder": "Ej: 23",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.partido = kwargs.pop("partido", None)
+        super().__init__(*args, **kwargs)
+
+        # Por defecto no mostrar jugadores hasta seleccionar equipo.
+        self.fields["equipo"].queryset = Equipo.objects.none()
+        self.fields["jugador"].queryset = Jugador.objects.none()
+
+        if not self.partido or not self.partido.pk:
+            return
+
+        # Solamente los dos equipos que disputan el partido.
+        equipos_partido = Equipo.objects.filter(
+            pk__in=[
+                self.partido.equipo_local_id,
+                self.partido.equipo_visitante_id,
+            ]
+        ).order_by("nombre")
+
+        self.fields["equipo"].queryset = equipos_partido
+
+        # Si estamos editando un gol existente.
+        if self.instance and self.instance.pk:
+            if self.instance.equipo_id:
+                self.fields["jugador"].queryset = Jugador.objects.filter(
+                    equipo=self.instance.equipo
+                ).order_by("nombre")
+
+        # Si el formulario fue enviado, obtener equipo seleccionado.
+        if self.is_bound:
+            equipo_id = self.data.get(
+                self.add_prefix("equipo")
+            )
+
+            if equipo_id:
+                try:
+                    equipo_id = int(equipo_id)
+
+                    if equipo_id in {
+                        self.partido.equipo_local_id,
+                        self.partido.equipo_visitante_id,
+                    }:
+                        self.fields["jugador"].queryset = Jugador.objects.filter(
+                            equipo_id=equipo_id,
+                            activo=True
+                        ).order_by("nombre")
+
+                except (ValueError, TypeError):
+                    pass
+
+    def clean_minuto(self):
+        minuto = self.cleaned_data.get("minuto")
+
+        if minuto is not None and minuto > 150:
+            raise ValidationError(
+                "El minuto del gol no puede ser superior a 150."
+            )
+
+        return minuto
+    
+class BaseGolPartidoFormSet(BaseInlineFormSet):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1168,7 +1469,36 @@ class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
         )
 
         for form in self.forms:
+
+            # Solamente equipos que están jugando este partido.
             form.fields["equipo"].queryset = equipos_partido
+
+            # Si el formulario ya tiene equipo seleccionado,
+            # mostrar solamente sus jugadores.
+            equipo_id = None
+
+            if form.is_bound:
+                equipo_id = form.data.get(
+                    form.add_prefix("equipo")
+                )
+            elif form.instance and form.instance.pk:
+                equipo_id = form.instance.equipo_id
+
+            if equipo_id:
+                try:
+                    equipo_id = int(equipo_id)
+
+                    if equipo_id in {
+                        partido.equipo_local_id,
+                        partido.equipo_visitante_id,
+                    }:
+                        form.fields["jugador"].queryset = Jugador.objects.filter(
+                            equipo_id=equipo_id,
+                            activo=True
+                        ).order_by("nombre")
+
+                except (ValueError, TypeError):
+                    pass
 
     def clean(self):
         super().clean()
@@ -1176,45 +1506,89 @@ class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
         if any(self.errors):
             return
 
-        contador_rojas = {}  # (equipo, afectado) -> cantidad
+        partido = self.instance
+
+        if not partido or not partido.pk:
+            return
+
+        contador_goles = {
+            partido.equipo_local_id: 0,
+            partido.equipo_visitante_id: 0,
+        }
+
+        equipos_partido = {
+            partido.equipo_local_id,
+            partido.equipo_visitante_id,
+        }
 
         for form in self.forms:
-            if not hasattr(form, "cleaned_data") or form.cleaned_data.get("DELETE"):
+
+            if not hasattr(form, "cleaned_data"):
+                continue
+
+            if form.cleaned_data.get("DELETE"):
                 continue
 
             equipo = form.cleaned_data.get("equipo")
-            tipo_tarjeta = form.cleaned_data.get("tipo_tarjeta")
-            afectado = form.cleaned_data.get("afectado")
+            jugador = form.cleaned_data.get("jugador")
+            autogol = form.cleaned_data.get("autogol", False)
 
-            if equipo and self.instance.pk and equipo.pk not in {
-                self.instance.equipo_local_id,
-                self.instance.equipo_visitante_id,
-            }:
-                raise ValidationError("Las tarjetas deben pertenecer al local o visitante del partido.")
-
-            if not equipo or tipo_tarjeta != "roja" or not afectado:
+            if not equipo:
                 continue
 
-            clave = (equipo, afectado)
-            contador_rojas[clave] = contador_rojas.get(clave, 0) + 1
-
-        etiquetas_afectado = dict(TarjetaPartido.TIPOS_AFECTADO)
-
-        for (equipo, afectado), cantidad in contador_rojas.items():
-            limite = TarjetaPartido.LIMITES_ROJAS_POR_AFECTADO.get(afectado)
-
-            if limite is not None and cantidad > limite:
+            # El equipo debe participar en el partido.
+            if equipo.pk not in equipos_partido:
                 raise ValidationError(
-                    f"{equipo} no puede tener más de {limite} tarjetas rojas "
-                    f"para '{etiquetas_afectado.get(afectado, afectado)}'."
+                    "Los goles deben pertenecer a uno de los equipos del partido."
+                )
+
+            if not jugador:
+                continue
+
+            # Gol normal.
+            if not autogol:
+
+                if jugador.equipo_id != equipo.pk:
+                    raise ValidationError(
+                        f"{jugador} no pertenece a {equipo}."
+                    )
+
+            # Autogol.
+            else:
+
+                if jugador.equipo_id == equipo.pk:
+                    raise ValidationError(
+                        f"El autogol de {jugador} debe beneficiar al equipo contrario."
+                    )
+
+            contador_goles[equipo.pk] += 1
+
+        # Si el partido ya tiene resultado, comprobar que la cantidad
+        # de registros de goles coincida con el marcador.
+        if partido.goles_local is not None:
+
+            if contador_goles.get(partido.equipo_local_id, 0) != partido.goles_local:
+                raise ValidationError(
+                    f"El equipo local tiene {partido.goles_local} goles "
+                    f"en el marcador, pero se registraron "
+                    f"{contador_goles.get(partido.equipo_local_id, 0)}."
+                )
+
+        if partido.goles_visitante is not None:
+
+            if contador_goles.get(partido.equipo_visitante_id, 0) != partido.goles_visitante:
+                raise ValidationError(
+                    f"El equipo visitante tiene {partido.goles_visitante} goles "
+                    f"en el marcador, pero se registraron "
+                    f"{contador_goles.get(partido.equipo_visitante_id, 0)}."
                 )
 
 
-TarjetaPartidoFormSet = inlineformset_factory(
+GolPartidoFormSet = inlineformset_factory(
     Partido,
-    TarjetaPartido,
-    form=TarjetaPartidoForm,
-    formset=BaseTarjetaPartidoFormSet,
+    GolPartido,
+    form=GolPartidoForm,
+    formset=BaseGolPartidoFormSet,
     extra=10,
     can_delete=True,
 )

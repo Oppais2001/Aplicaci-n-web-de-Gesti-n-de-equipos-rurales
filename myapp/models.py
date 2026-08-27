@@ -641,56 +641,102 @@ class Partido(models.Model):
     
 class TarjetaPartido(models.Model):
 
-    TIPOS_TARJETA = [
-        ("amarilla", "Amarilla"),
-        ("roja", "Roja"),
-    ]
-
-
-    TIPOS_AFECTADO = [
-        ("campo", "Jugador en cancha"),
-        ("banca", "Jugador en banca"),
-        ("tecnico", "Cuerpo técnico"),
-    ]
-
-    LIMITES_ROJAS_POR_AFECTADO = {
-        "campo": 4,
-        "banca": 7,
-        "tecnico": 5,
-    }
-
     partido = models.ForeignKey(
         Partido,
         on_delete=models.CASCADE,
         related_name="tarjetas"
     )
 
-
     equipo = models.ForeignKey(
         Equipo,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="tarjetas_partido"
     )
 
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="tarjetas"
+    )
 
     tipo_tarjeta = models.CharField(
-        max_length=10,
-        choices=TIPOS_TARJETA
+        max_length=20,
+        choices=[
+            ("amarilla", "Amarilla"),
+            ("roja", "Roja"),
+        ]
     )
 
-
-    afectado = models.CharField(
-        max_length=15,
-        choices=TIPOS_AFECTADO
+    def __str__(self):
+        return f"{self.jugador} - {self.tipo_tarjeta}"
+class GolPartido(models.Model):
+    partido = models.ForeignKey(
+        Partido,
+        on_delete=models.CASCADE,
+        related_name="goles"
     )
 
+    # Equipo al que se le acredita el gol
+    equipo = models.ForeignKey(
+        Equipo,
+        on_delete=models.CASCADE,
+        related_name="goles_marcados"
+    )
 
-    numero_camiseta = models.PositiveIntegerField(
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.SET_NULL,
+        related_name="goles",
         null=True,
         blank=True
     )
 
-
-    nombre_persona = models.CharField(
-        max_length=100,
+    minuto = models.PositiveIntegerField(
+        null=True,
         blank=True
     )
+
+    autogol = models.BooleanField(
+        default=False
+    )
+
+    def __str__(self):
+        return f"{self.jugador} - {self.equipo} - {self.partido}"
+
+    def clean(self):
+        super().clean()
+
+        if not self.partido_id or not self.equipo_id or not self.jugador_id:
+            return
+
+        equipos_partido = {
+            self.partido.equipo_local_id,
+            self.partido.equipo_visitante_id,
+        }
+
+        # El equipo que recibe el gol registrado debe participar
+        # en el partido.
+        if self.equipo_id not in equipos_partido:
+            raise ValidationError(
+                "El equipo del gol debe ser uno de los equipos del partido."
+            )
+
+        equipos_jugador = self.jugador.equipo_id
+
+        # Si NO es autogol, el jugador debe pertenecer al equipo
+        # al que se le acredita el gol.
+        if not self.autogol and equipos_jugador != self.equipo_id:
+            raise ValidationError(
+                "El jugador debe pertenecer al equipo al que se le acredita el gol."
+            )
+
+        # Si es autogol, el jugador debe pertenecer al equipo contrario.
+        if self.autogol and equipos_jugador == self.equipo_id:
+            raise ValidationError(
+                "En un autogol, el jugador debe pertenecer al equipo contrario."
+            )
+
+        if self.minuto is not None and self.minuto > 150:
+            raise ValidationError(
+                "El minuto del gol no puede ser superior a 150."
+            )

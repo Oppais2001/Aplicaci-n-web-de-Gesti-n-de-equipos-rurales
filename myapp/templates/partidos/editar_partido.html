@@ -36,12 +36,27 @@
                 </p>
 
             </div>
+
+            <br>
+
+            <div class="card">
+                <h2>Goles</h2>
+                <p>
+                    El número de goles registrados debe coincidir con el
+                    marcador final del partido.
+                </p>
+            </div>
         </div>
 
         <div class="card form-container">
             <form method="POST" class="form-registro">
                 {% csrf_token %}
                 {{ form.as_p }}
+
+                <!-- GOLES -->
+                {% include 'includes/goles_formset.html' %}
+
+                <!-- TARJETAS -->
                 {% include 'includes/tarjetas_formset.html' %}
                 <button type="submit">Guardar cambios</button>
             </form>

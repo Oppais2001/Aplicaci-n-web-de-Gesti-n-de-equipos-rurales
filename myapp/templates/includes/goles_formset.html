@@ -1,77 +1,64 @@
-<div class="tarjetas-widget" data-prefix="{{ tarjetas_formset.prefix }}">
+{{ goles_equipos_por_partido|json_script:"goles-equipos-por-partido" }}
+{{ goles_jugadores_por_equipo|json_script:"goles-jugadores-por-equipo" }}
 
-    <div class="tarjetas-widget-header">
-        <h3>Tarjetas del partido</h3>
+<div
+    class="goles-widget"
+    data-prefix="{{ goles_formset.prefix }}"
+    data-partido-actual="{{ goles_partido_actual_id|default:'' }}"
+>
+    <div class="goles-widget-header">
+        <h3>Goles del partido</h3>
 
         <button
             type="button"
             class="btn-red-agregar"
-            data-action="add-tarjeta"
+            data-action="add-gol"
         >
             <i class="fa-solid fa-plus"></i>
-            Agregar tarjeta
+            Agregar gol
         </button>
     </div>
 
-    {{ tarjetas_formset.management_form }}
-    {{ tarjetas_formset.non_form_errors }}
+    {{ goles_formset.management_form }}
+    {{ goles_formset.non_form_errors }}
 
-    <div class="redes-cards" data-tarjeta-cards></div>
+    <div class="redes-cards" data-gol-cards></div>
 
-    <p class="redes-empty" data-tarjeta-empty>
-        Sin tarjetas agregadas.
+    <p class="redes-empty" data-gol-empty>
+        Sin goles registrados.
     </p>
 
     <div class="redes-formset-hidden">
 
-        {% for tarjeta_form in tarjetas_formset %}
+        {% for gol_form in goles_formset %}
 
             <div
-                class="tarjeta-row"
+                class="gol-row"
                 data-form-index="{{ forloop.counter0 }}"
             >
 
-                {{ tarjeta_form.id }}
+                {{ gol_form.id }}
 
-                {{ tarjeta_form.equipo }}
-                {{ tarjeta_form.jugador }}
-                {{ tarjeta_form.tipo_tarjeta }}
+                {{ gol_form.equipo }}
 
-                {{ tarjeta_form.DELETE }}
+                {{ gol_form.jugador }}
 
-                {{ tarjeta_form.errors }}
+                {{ gol_form.minuto }}
+
+                {{ gol_form.DELETE }}
+
+                {{ gol_form.errors }}
 
             </div>
 
         {% endfor %}
 
     </div>
-
 </div>
 
 
 <script>
-
 (function () {
-
-    /* =========================================================
-       DATOS COMPARTIDOS CON EL WIDGET DE GOLES
-    ========================================================= */
-
-    const equiposPorPartido =
-        JSON.parse(
-            document.getElementById(
-                "goles-equipos-por-partido"
-            ).textContent
-        );
-
-    const jugadoresPorEquipo =
-        JSON.parse(
-            document.getElementById(
-                "goles-jugadores-por-equipo"
-            ).textContent
-        );
-
 
     /* =========================================================
        ELEMENTOS PRINCIPALES
@@ -81,22 +68,57 @@
         document.currentScript.previousElementSibling;
 
     const cardsContainer =
-        widget.querySelector("[data-tarjeta-cards]");
+        widget.querySelector("[data-gol-cards]");
 
     const emptyMessage =
-        widget.querySelector("[data-tarjeta-empty]");
+        widget.querySelector("[data-gol-empty]");
 
     const addButton =
-        widget.querySelector("[data-action='add-tarjeta']");
+        widget.querySelector("[data-action='add-gol']");
 
     const rows =
         Array.from(
-            widget.querySelectorAll(".tarjeta-row")
+            widget.querySelectorAll(".gol-row")
         );
 
 
     /* =========================================================
-       PARTIDO
+       DATOS ENVIADOS POR DJANGO
+    ========================================================= */
+
+    const equiposPorPartido =
+        JSON.parse(
+            document.getElementById(
+                "goles-equipos-por-partido"
+            ).textContent
+        );
+
+
+    const jugadoresPorEquipo =
+        JSON.parse(
+            document.getElementById(
+                "goles-jugadores-por-equipo"
+            ).textContent
+        );
+    console.log("JUGADORES POR EQUIPO:", jugadoresPorEquipo );
+    
+
+
+    /*
+     * En editar partido:
+     *
+     *     data-partido-actual="15"
+     *
+     * En registrar resultado / Create:
+     *
+     *     data-partido-actual=""
+     */
+    const partidoActualFijo =
+        widget.dataset.partidoActual || "";
+
+
+    /* =========================================================
+       SELECT DE PARTIDO
     ========================================================= */
 
     const partidoSelect =
@@ -105,13 +127,16 @@
         );
 
 
-    const partidoActualFijo =
-        widget.dataset.partidoActual || "";
-
-
     /* =========================================================
-       EQUIPOS DEL CREATE
+       SELECTS DEL CREATE DE PARTIDO
     ========================================================= */
+
+    /*
+     * Estos dos selects existen cuando estás creando
+     * directamente un Partido.
+     *
+     * Si no existen, simplemente quedan en null.
+     */
 
     const equipoLocalSelect =
         document.querySelector(
@@ -125,7 +150,7 @@
 
 
     /* =========================================================
-       DATOS
+       FUNCIONES DE DATOS
     ========================================================= */
 
     function equiposDe(partidoId) {
@@ -134,23 +159,42 @@
             equiposPorPartido[String(partidoId)] ||
             []
         );
-
     }
 
 
-    function jugadoresDe(equipoId) {
+function jugadoresDe(equipoSeleccionado) {
 
-        return (
-            jugadoresPorEquipo[String(equipoId)] ||
-            []
-        );
+    console.log("================================");
+    console.log("EQUIPO SELECCIONADO:", equipoSeleccionado);
 
-    }
+    const clave = String(equipoSeleccionado);
+
+    console.log("CLAVE:", clave);
+    console.log("TODOS LOS JUGADORES:", jugadoresPorEquipo);
+    console.log("CLAVES DISPONIBLES:", Object.keys(jugadoresPorEquipo));
+    console.log("TIPO DE CLAVE:", typeof clave);
+
+    const jugadores = jugadoresPorEquipo[clave] || [];
+
+    console.log("JUGADORES ENCONTRADOS:", jugadores);
+
+    return jugadores;
+}
 
 
     /* =========================================================
        EQUIPOS DEL CREATE
     ========================================================= */
+
+    /*
+     * Cuando estamos creando un partido todavía no existe
+     * un Partido guardado en la base de datos.
+     *
+     * Por eso no podemos utilizar partido.equipo_local
+     * ni partido.equipo_visitante desde Django.
+     *
+     * Tomamos directamente los dos selects del formulario.
+     */
 
     function equiposDelCreate() {
 
@@ -164,8 +208,7 @@
 
             equipos.push({
 
-                id:
-                    equipoLocalSelect.value,
+                id: equipoLocalSelect.value,
 
                 nombre:
                     equipoLocalSelect.options[
@@ -181,6 +224,12 @@
             equipoVisitanteSelect &&
             equipoVisitanteSelect.value
         ) {
+
+            /*
+             * Evitamos duplicar el mismo equipo
+             * si por alguna razón ambos selects
+             * tienen el mismo valor.
+             */
 
             if (
                 !equipos.some(
@@ -210,18 +259,24 @@
 
 
         return equipos;
-
     }
 
 
     /* =========================================================
-       EQUIPOS DISPONIBLES
+       OBTENER EQUIPOS SEGÚN EL CONTEXTO
     ========================================================= */
 
     function obtenerEquiposDisponibles() {
 
         /*
-         * CREAR PARTIDO
+         * CASO 1:
+         *
+         * Estamos creando un partido.
+         *
+         * Usamos directamente:
+         *
+         * equipo_local
+         * equipo_visitante
          */
 
         if (
@@ -232,7 +287,7 @@
             const equipos =
                 equiposDelCreate();
 
-            if (equipos.length) {
+            if (equipos.length > 0) {
                 return equipos;
             }
 
@@ -240,7 +295,10 @@
 
 
         /*
-         * REGISTRAR RESULTADO
+         * CASO 2:
+         *
+         * Estamos registrando resultado
+         * y primero seleccionamos un partido.
          */
 
         if (
@@ -256,7 +314,9 @@
 
 
         /*
-         * EDITAR PARTIDO
+         * CASO 3:
+         *
+         * Estamos editando un partido existente.
          */
 
         if (partidoActualFijo) {
@@ -269,7 +329,6 @@
 
 
         return [];
-
     }
 
 
@@ -286,12 +345,11 @@
             texto ?? "";
 
         return div.innerHTML;
-
     }
 
 
     /* =========================================================
-       CAMPOS DE LA FILA
+       OBTENER CAMPOS DE UNA FILA
     ========================================================= */
 
     function getFields(row) {
@@ -308,9 +366,9 @@
                     "select[name$='-jugador']"
                 ),
 
-            tipo_tarjeta:
+            minuto:
                 row.querySelector(
-                    "select[name$='-tipo_tarjeta']"
+                    "input[name$='-minuto']"
                 ),
 
             eliminar:
@@ -322,9 +380,7 @@
                 row.querySelector(
                     "input[name$='-id']"
                 )
-
         };
-
     }
 
 
@@ -352,16 +408,15 @@
 
         if (opcionVacia) {
 
-            const option =
+            const vacio =
                 document.createElement("option");
 
-            option.value = "";
+            vacio.value = "";
 
-            option.textContent =
+            vacio.textContent =
                 opcionVacia;
 
-            select.appendChild(option);
-
+            select.appendChild(vacio);
         }
 
 
@@ -382,20 +437,21 @@
 
 
         /*
-         * Mantener selección anterior
+         * Intentamos conservar el jugador/equipo
+         * que ya estaba seleccionado.
          */
 
-        const existe =
+        const sigueSiendoValido =
             Array.from(
                 select.options
             ).some(
                 option =>
-                    String(option.value) ===
+                    option.value ===
                     String(valorPrevio)
             );
 
 
-        if (existe) {
+        if (sigueSiendoValido) {
 
             select.value =
                 String(valorPrevio);
@@ -405,7 +461,6 @@
             select.value = "";
 
         }
-
     }
 
 
@@ -419,13 +474,10 @@
             getFields(row);
 
 
-        if (
-            !fields.equipo ||
-            !fields.jugador
-        ) {
+        if (!fields.equipo ||
+            !fields.jugador) {
 
             return;
-
         }
 
 
@@ -441,10 +493,9 @@
                 ? jugadoresDe(equipoId)
                 : [],
 
-            "Selecciona un jugador"
+            "Sin goleador registrado"
 
         );
-
     }
 
 
@@ -483,12 +534,11 @@
             sincronizarJugadoresDeFila(row);
 
         });
-
     }
 
 
     /* =========================================================
-       OPTIONS PARA POPUP
+       OPCIONES DEL POPUP
     ========================================================= */
 
     function buildOptions(
@@ -507,26 +557,23 @@
         .map(option => {
 
             const selected =
-                String(option.value) ===
+                option.value ===
                 String(selectedValue)
                     ? "selected"
                     : "";
 
 
             return `
-
                 <option
                     value="${escapeHtml(option.value)}"
                     ${selected}
                 >
                     ${escapeHtml(option.text)}
                 </option>
-
             `;
 
         })
         .join("");
-
     }
 
 
@@ -541,18 +588,24 @@
 
 
         /*
-         * Primero cargamos equipos y jugadores
-         * en el formset real.
+         * Antes de abrir el popup nos aseguramos
+         * de que los equipos estén correctamente
+         * filtrados.
          */
 
         sincronizarEquipos();
 
 
+        /*
+         * Volvemos a obtener los campos porque
+         * sincronizarEquipos() modificó los selects.
+         */
+
         const equipos =
             obtenerEquiposDisponibles();
 
 
-        if (!equipos.length) {
+        if (equipos.length === 0) {
 
             await Swal.fire({
 
@@ -562,17 +615,16 @@
                     "Equipos no disponibles",
 
                 text:
-                    "Primero debes seleccionar el partido."
+                    "Primero debes seleccionar el equipo local y el equipo visitante."
 
             });
 
             return;
-
         }
 
 
         /*
-         * Si el equipo de la fila ya no pertenece
+         * Si el equipo que tenía la fila ya no pertenece
          * al partido, lo limpiamos.
          */
 
@@ -592,6 +644,11 @@
         }
 
 
+        /*
+         * Si ya hay equipo seleccionado,
+         * nos aseguramos de cargar sus jugadores.
+         */
+
         sincronizarJugadoresDeFila(row);
 
 
@@ -599,9 +656,10 @@
             await Swal.fire({
 
                 title:
+
                     fields.equipo.value
-                        ? "Editar tarjeta"
-                        : "Agregar tarjeta",
+                        ? "Editar gol"
+                        : "Agregar gol",
 
 
                 html: `
@@ -613,7 +671,7 @@
                         </label>
 
                         <select
-                            id="swal-tarjeta-equipo"
+                            id="swal-gol-equipo"
                             class="swal2-select"
                         >
 
@@ -626,11 +684,11 @@
 
 
                         <label>
-                            Jugador
+                            Goleador
                         </label>
 
                         <select
-                            id="swal-tarjeta-jugador"
+                            id="swal-gol-jugador"
                             class="swal2-select"
                         >
 
@@ -643,20 +701,17 @@
 
 
                         <label>
-                            Tipo de tarjeta
+                            Minuto
                         </label>
 
-                        <select
-                            id="swal-tarjeta-tipo"
-                            class="swal2-select"
-                        >
-
-                            ${buildOptions(
-                                fields.tipo_tarjeta,
-                                fields.tipo_tarjeta.value
-                            )}
-
-                        </select>
+                        <input
+                            id="swal-gol-minuto"
+                            class="swal2-input"
+                            type="number"
+                            min="1"
+                            max="150"
+                            placeholder="Ej: 23"
+                        />
 
                     </div>
 
@@ -676,102 +731,75 @@
 
                     const swalEquipo =
                         document.getElementById(
-                            "swal-tarjeta-equipo"
+                            "swal-gol-equipo"
                         );
 
 
                     const swalJugador =
                         document.getElementById(
-                            "swal-tarjeta-jugador"
+                            "swal-gol-jugador"
                         );
 
 
-                    /*
-                     * IMPORTANTE:
-                     *
-                     * Al abrir el popup también
-                     * reconstruimos jugadores.
-                     */
-
-                    function cargarJugadoresPopup(
-                        equipoId,
-                        jugadorSeleccionado = ""
-                    ) {
-
-                        swalJugador.innerHTML = `
-
-                            <option value="">
-                                Selecciona un jugador
-                            </option>
-
-                        `;
+                    const swalMinuto =
+                        document.getElementById(
+                            "swal-gol-minuto"
+                        );
 
 
-                        if (!equipoId) {
-                            return;
-                        }
-
-
-                        jugadoresDe(equipoId)
-                            .forEach(jugador => {
-
-                                const option =
-                                    document.createElement(
-                                        "option"
-                                    );
-
-                                option.value =
-                                    jugador.id;
-
-                                option.textContent =
-                                    jugador.nombre;
-
-
-                                if (
-                                    String(jugador.id) ===
-                                    String(jugadorSeleccionado)
-                                ) {
-
-                                    option.selected =
-                                        true;
-
-                                }
-
-
-                                swalJugador.appendChild(
-                                    option
-                                );
-
-                            });
-
-                    }
+                    swalMinuto.value =
+                        fields.minuto.value || "";
 
 
                     /*
-                     * Cargar jugadores iniciales
-                     */
-
-                    cargarJugadoresPopup(
-
-                        swalEquipo.value,
-
-                        fields.jugador.value
-
-                    );
-
-
-                    /*
-                     * Cambio de equipo
+                     * Cuando cambia el equipo,
+                     * cargamos solamente sus jugadores.
                      */
 
                     swalEquipo.addEventListener(
                         "change",
                         () => {
 
-                            cargarJugadoresPopup(
-                                swalEquipo.value,
-                                ""
+                            const equipoId =
+                                swalEquipo.value;
+
+
+                            const jugadores =
+                                jugadoresDe(
+                                    equipoId
+                                );
+
+
+                            let opciones = `
+
+                                <option value="">
+                                    Sin goleador registrado
+                                </option>
+
+                            `;
+
+
+                            jugadores.forEach(
+                                jugador => {
+
+                                    opciones += `
+
+                                        <option
+                                            value="${jugador.id}"
+                                        >
+                                            ${escapeHtml(
+                                                jugador.nombre
+                                            )}
+                                        </option>
+
+                                    `;
+
+                                }
                             );
+
+
+                            swalJugador.innerHTML =
+                                opciones;
 
                         }
                     );
@@ -783,20 +811,20 @@
 
                     const equipo =
                         document.getElementById(
-                            "swal-tarjeta-equipo"
+                            "swal-gol-equipo"
                         ).value;
 
 
                     const jugador =
                         document.getElementById(
-                            "swal-tarjeta-jugador"
+                            "swal-gol-jugador"
                         ).value;
 
 
-                    const tipoTarjeta =
+                    const minuto =
                         document.getElementById(
-                            "swal-tarjeta-tipo"
-                        ).value;
+                            "swal-gol-minuto"
+                        ).value.trim();
 
 
                     if (!equipo) {
@@ -806,42 +834,35 @@
                         );
 
                         return false;
-
                     }
 
 
-                    if (!jugador) {
+                    if (
+                        minuto &&
+                        (
+                            Number(minuto) < 1 ||
+                            Number(minuto) > 150
+                        )
+                    ) {
 
                         Swal.showValidationMessage(
-                            "Debes seleccionar el jugador."
+                            "El minuto debe estar entre 1 y 150."
                         );
 
                         return false;
-
                     }
 
 
-                    if (!tipoTarjeta) {
-
-                        Swal.showValidationMessage(
-                            "Debes seleccionar el tipo de tarjeta."
-                        );
-
-                        return false;
-
-                    }
-
+                    /*
+                     * El goleador es opcional,
+                     * igual que en tu sistema actual.
+                     */
 
                     return {
 
-                        equipo:
-                            equipo,
-
-                        jugador:
-                            jugador,
-
-                        tipo_tarjeta:
-                            tipoTarjeta
+                        equipo,
+                        jugador,
+                        minuto
 
                     };
 
@@ -856,7 +877,7 @@
 
 
         /* =====================================================
-           GUARDAR EN FORMSET
+           GUARDAR EN EL FORMSET REAL
         ===================================================== */
 
         fields.equipo.value =
@@ -864,10 +885,8 @@
 
 
         /*
-         * MUY IMPORTANTE:
-         *
-         * Primero cargamos los jugadores del equipo
-         * seleccionado y después asignamos el jugador.
+         * El select real de jugador debe contener
+         * primero los jugadores del equipo.
          */
 
         sincronizarJugadoresDeFila(row);
@@ -877,8 +896,8 @@
             result.value.jugador;
 
 
-        fields.tipo_tarjeta.value =
-            result.value.tipo_tarjeta;
+        fields.minuto.value =
+            result.value.minuto;
 
 
         if (fields.eliminar) {
@@ -906,23 +925,23 @@
 
         if (
             fields.id &&
-            fields.id.value &&
-            fields.eliminar
+            fields.id.value
         ) {
 
-            fields.eliminar.checked =
-                true;
+            if (fields.eliminar) {
+
+                fields.eliminar.checked =
+                    true;
+
+            }
 
         } else {
 
-            fields.equipo.value =
-                "";
+            fields.equipo.value = "";
 
-            fields.jugador.value =
-                "";
+            fields.jugador.value = "";
 
-            fields.tipo_tarjeta.value =
-                "";
+            fields.minuto.value = "";
 
         }
 
@@ -933,7 +952,7 @@
 
 
     /* =========================================================
-       ELIMINADA
+       DATOS DE LA FILA
     ========================================================= */
 
     function isDeleted(row) {
@@ -950,10 +969,6 @@
     }
 
 
-    /* =========================================================
-       TIENE DATOS
-    ========================================================= */
-
     function hasData(row) {
 
         const fields =
@@ -964,13 +979,6 @@
 
             fields.equipo &&
             fields.equipo.value &&
-
-            fields.jugador &&
-            fields.jugador.value &&
-
-            fields.tipo_tarjeta &&
-            fields.tipo_tarjeta.value &&
-
             !isDeleted(row)
 
         );
@@ -979,7 +987,7 @@
 
 
     /* =========================================================
-       LABEL DE OPTION
+       TEXTO DE OPTION
     ========================================================= */
 
     function optionLabel(
@@ -998,7 +1006,7 @@
             )
             .find(
                 item =>
-                    String(item.value) ===
+                    item.value ===
                     String(value)
             );
 
@@ -1011,7 +1019,7 @@
 
 
     /* =========================================================
-       PRIMERA FILA DISPONIBLE
+       BUSCAR FILA LIBRE
     ========================================================= */
 
     function firstAvailableRow() {
@@ -1023,14 +1031,11 @@
 
 
             return (
-
                 !hasData(row) &&
-
                 (
                     !fields.id ||
                     !fields.id.value
                 )
-
             );
 
         });
@@ -1070,18 +1075,28 @@
                 );
 
 
-            const jugador =
-                optionLabel(
-                    fields.jugador,
-                    fields.jugador.value
-                );
+            let jugador =
+                "Goleador no registrado";
 
 
-            const tipo =
-                optionLabel(
-                    fields.tipo_tarjeta,
-                    fields.tipo_tarjeta.value
-                );
+            if (
+                fields.jugador &&
+                fields.jugador.value
+            ) {
+
+                jugador =
+                    optionLabel(
+                        fields.jugador,
+                        fields.jugador.value
+                    );
+
+            }
+
+
+            const minuto =
+                fields.minuto.value
+                    ? `${fields.minuto.value}'`
+                    : "Minuto no registrado";
 
 
             const card =
@@ -1097,13 +1112,13 @@
                 <div>
 
                     <strong>
-                        ${escapeHtml(tipo)}
+                        ⚽ ${escapeHtml(jugador)}
                     </strong>
 
                     <span>
                         ${escapeHtml(equipo)}
                         -
-                        ${escapeHtml(jugador)}
+                        ${escapeHtml(minuto)}
                     </span>
 
                 </div>
@@ -1118,11 +1133,9 @@
                         class="btn-icon-red"
                         title="Editar"
                     >
-
                         <i
                             class="fa-solid fa-pen"
                         ></i>
-
                     </button>
 
 
@@ -1131,11 +1144,9 @@
                         class="btn-icon-red danger"
                         title="Eliminar"
                     >
-
                         <i
                             class="fa-solid fa-trash"
                         ></i>
-
                     </button>
 
                 </div>
@@ -1171,12 +1182,17 @@
 
 
     /* =========================================================
-       AGREGAR TARJETA
+       BOTÓN AGREGAR GOL
     ========================================================= */
 
     addButton.addEventListener(
         "click",
         () => {
+
+            /*
+             * Si estamos en Registrar Resultado
+             * necesitamos primero seleccionar partido.
+             */
 
             if (
                 partidoSelect &&
@@ -1191,7 +1207,7 @@
                         "Selecciona un partido",
 
                     text:
-                        "Primero debes elegir el partido para registrar las tarjetas."
+                        "Primero debes elegir el partido para poder registrar los goles."
 
                 });
 
@@ -1200,10 +1216,14 @@
             }
 
 
+            /*
+             * Si estamos creando directamente un partido,
+             * necesitamos ambos equipos.
+             */
+
             if (
                 (equipoLocalSelect ||
                  equipoVisitanteSelect) &&
-
                 obtenerEquiposDisponibles().length < 2
             ) {
 
@@ -1238,7 +1258,7 @@
                         "Límite alcanzado",
 
                     text:
-                        "Ya agregaste el máximo de tarjetas permitidas."
+                        "Ya agregaste el máximo de goles permitidos."
 
                 });
 
@@ -1259,6 +1279,13 @@
 
     if (partidoSelect) {
 
+        if (partidoSelect.value) {
+
+            sincronizarEquipos();
+
+        }
+
+
         partidoSelect.addEventListener(
             "change",
             () => {
@@ -1274,6 +1301,7 @@
 
                     fields.jugador.value =
                         "";
+
 
                     if (fields.eliminar) {
 
@@ -1296,13 +1324,24 @@
 
 
     /* =========================================================
-       CREATE: CAMBIO DE EQUIPOS
+       CAMBIO DE EQUIPO LOCAL/VISITANTE
+       EN CREATE
     ========================================================= */
 
     function actualizarEquiposCreate() {
 
+        /*
+         * Cada vez que cambia el local o visitante,
+         * actualizamos las opciones de las filas.
+         */
+
         sincronizarEquipos();
 
+
+        /*
+         * Si una fila tenía un equipo que ya no
+         * pertenece al partido, la limpiamos.
+         */
 
         const equipos =
             obtenerEquiposDisponibles();
@@ -1316,7 +1355,6 @@
 
             if (
                 fields.equipo.value &&
-
                 !equipos.some(
                     equipo =>
                         String(equipo.id) ===
@@ -1372,5 +1410,4 @@
     renderCards();
 
 })();
-
 </script>

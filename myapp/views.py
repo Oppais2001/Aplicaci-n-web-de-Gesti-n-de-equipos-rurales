@@ -30,7 +30,8 @@ from .forms import (
     Programar_Partido,
     Registrar_Resultado_Partido,
     Ingresar_Torneo,
-    TarjetaPartidoFormSet
+    TarjetaPartidoFormSet,
+    GolPartidoFormSet
 )
 from .permissions import admin_required, es_administrador, obtener_dirigente, usuario_autorizado_required, es_dirigente
 from .documentos import (
@@ -276,7 +277,6 @@ def ingresar_equipo_ajax(request):
 
     }, status=400)
     
-@usuario_autorizado_required
 def lista_equipos(request):
     buscar = request.GET.get('buscar')
     equipos = Equipo.objects.all().order_by('nombre')
@@ -619,16 +619,22 @@ def ingresar_jugador(request):
         "form": form,
         "ligas": ligas
     })
-@usuario_autorizado_required
+    
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
     puede_ver_rut = es_administrador(request.user)
-    dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
-    puede_descargar_planilla = (
-        puede_ver_rut
-        or (dirigente is not None and dirigente.equipo_id == equipo.id)
-    )
-
+    if es_dirigente(request.user):
+        dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
+        puede_descargar_planilla = (
+            puede_ver_rut
+            or (dirigente is not None and dirigente.equipo_id == equipo.id)
+        )
+    elif es_administrador(request.user):
+        pass
+    else:
+        puede_ver_rut = False
+        puede_descargar_planilla = False
+    
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
@@ -1131,10 +1137,76 @@ def descargar_detalle_equipo(request, equipo_id):
     return crear_pdf_detalle_equipo(equipo, jugadores, mostrar_rut=mostrar_rut)
 
 # PARTIDOS
+def _datos_partido_para_widget(partidos):
+    """
+    Prepara los datos necesarios para los widgets de goles y tarjetas.
+
+    equipos_por_partido:
+        {
+            partido_id: [
+                {"id": equipo_id, "nombre": nombre},
+                ...
+            ]
+        }
+
+    jugadores_por_equipo:
+        {
+            equipo_id: [
+                {"id": jugador_id, "nombre": nombre},
+                ...
+            ]
+        }
+    """
+
+    equipos_por_partido = {}
+    equipos_ids = set()
+
+    for partido in partidos:
+
+        equipos_por_partido[str(partido.pk)] = [
+            {
+                "id": partido.equipo_local_id,
+                "nombre": partido.equipo_local.nombre
+            },
+            {
+                "id": partido.equipo_visitante_id,
+                "nombre": partido.equipo_visitante.nombre
+            },
+        ]
+
+        equipos_ids.add(partido.equipo_local_id)
+        equipos_ids.add(partido.equipo_visitante_id)
+
+    jugadores_por_equipo = {}
+
+    if equipos_ids:
+
+        jugadores = Jugador.objects.filter(
+            equipo_id__in=equipos_ids,
+            activo=True
+        ).order_by("nombre")
+
+        for jugador in jugadores:
+
+            jugadores_por_equipo.setdefault(
+                str(jugador.equipo_id),
+                []
+            ).append(
+                {
+                    "id": jugador.pk,
+                    "nombre": jugador.nombre
+                }
+            )
+
+    return equipos_por_partido, jugadores_por_equipo
+
 @admin_required
 def ingresar_partido(request):
+
     if request.method == "POST":
+
         form = Registrar_Resultado_Partido(request.POST)
+
         partido = None
 
         if form.is_valid():
@@ -1146,26 +1218,73 @@ def ingresar_partido(request):
             prefix="tarjetas"
         )
 
-        if form.is_valid() and tarjetas_formset.is_valid():
-            partido = form.save()
-            tarjetas_formset.instance = partido
-            tarjetas_formset.save()
-            return redirect('partidos')
+        goles_formset = GolPartidoFormSet(
+            request.POST,
+            instance=partido,
+            prefix="goles"
+        )
+
+        if (
+            form.is_valid()
+            and tarjetas_formset.is_valid()
+            and goles_formset.is_valid()
+        ):
+
+            with transaction.atomic():
+
+                partido = form.save()
+
+                tarjetas_formset.instance = partido
+                tarjetas_formset.save()
+
+                goles_formset.instance = partido
+                goles_formset.save()
+
+            return redirect("partidos")
+
     else:
+
         form = Registrar_Resultado_Partido()
+
         tarjetas_formset = TarjetaPartidoFormSet(
             prefix="tarjetas"
         )
+
+        goles_formset = GolPartidoFormSet(
+            prefix="goles"
+        )
+
+    equipos_por_partido, jugadores_por_equipo = (
+        _datos_partido_para_widget(
+            form.fields["partido"].queryset
+        )
+    )
 
     return render(
         request,
         "partidos/ingresar_partido.html",
         {
-            "form":form,
-            "tarjetas_formset":tarjetas_formset
+            "form": form,
+
+            "tarjetas_formset": tarjetas_formset,
+
+            "goles_formset": goles_formset,
+
+            "goles_equipos_por_partido":
+                equipos_por_partido,
+
+            "goles_jugadores_por_equipo":
+                jugadores_por_equipo,
+
+            # Datos para tarjetas
+            "tarjetas_equipos_por_partido":
+                equipos_por_partido,
+
+            "tarjetas_jugadores_por_equipo":
+                jugadores_por_equipo,
         }
     )
-
+    
 def lista_partidos(request):
     buscar = request.GET.get('buscar')
     partidos = Partido.objects.select_related(
@@ -1208,38 +1327,108 @@ def lista_partidos(request):
 
 @admin_required
 def editar_partido(request, id):
-    partido = get_object_or_404(Partido, id=id)
 
-    if request.method == 'POST':
-        form = Editar_Resultado_Partido(request.POST, instance=partido)
+    partido = get_object_or_404(
+        Partido.objects.select_related(
+            "equipo_local",
+            "equipo_visitante"
+        ),
+        id=id
+    )
+
+    if request.method == "POST":
+
+        form = Editar_Resultado_Partido(
+            request.POST,
+            instance=partido
+        )
+
         tarjetas_formset = TarjetaPartidoFormSet(
             request.POST,
             instance=partido,
             prefix="tarjetas"
         )
 
-        if form.is_valid() and tarjetas_formset.is_valid():
-            form.save()
-            tarjetas_formset.save()
-            return redirect('partidos')
+        goles_formset = GolPartidoFormSet(
+            request.POST,
+            instance=partido,
+            prefix="goles"
+        )
+
+        if (
+            form.is_valid()
+            and tarjetas_formset.is_valid()
+            and goles_formset.is_valid()
+        ):
+
+            with transaction.atomic():
+
+                form.save()
+
+                tarjetas_formset.save()
+
+                goles_formset.save()
+
+            return redirect("partidos")
 
     else:
-        form = Editar_Resultado_Partido(instance=partido)
+
+        form = Editar_Resultado_Partido(
+            instance=partido
+        )
+
         tarjetas_formset = TarjetaPartidoFormSet(
             instance=partido,
             prefix="tarjetas"
         )
 
-    return render(request, "partidos/editar_partido.html", {
-        "form": form,
-        "partido": partido,
-        "tarjetas_formset": tarjetas_formset,
-    })
+        goles_formset = GolPartidoFormSet(
+            instance=partido,
+            prefix="goles"
+        )
+
+    equipos_por_partido, jugadores_por_equipo = (
+        _datos_partido_para_widget([partido])
+    )
+
+    return render(
+        request,
+        "partidos/editar_partido.html",
+        {
+            "form": form,
+
+            "partido": partido,
+
+            "tarjetas_formset":
+                tarjetas_formset,
+
+            "goles_formset":
+                goles_formset,
+
+            # Goles
+            "goles_equipos_por_partido":
+                equipos_por_partido,
+
+            "goles_jugadores_por_equipo":
+                jugadores_por_equipo,
+
+            "goles_partido_actual_id":
+                partido.pk,
+
+            # Tarjetas
+            "tarjetas_equipos_por_partido":
+                equipos_por_partido,
+
+            "tarjetas_jugadores_por_equipo":
+                jugadores_por_equipo,
+        }
+    )
 @admin_required
 @require_POST
 def eliminar_partido(request, id):
     partido = get_object_or_404(Partido, id=id)
     partido.tarjetas.all().delete()
+    partido.goles.all().delete()
     partido.goles_local = None
     partido.goles_visitante = None
     partido.save()
