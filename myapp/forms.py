@@ -422,7 +422,6 @@ class Ingresar_Dirigentes(forms.ModelForm):
     def clean_rut(self):
         return validate_rut(
             self.cleaned_data.get("rut"),
-            model=Dirigente,
             instance=self.instance,
             duplicate_message="Ya existe otro dirigente con este RUT.",
         )
@@ -430,31 +429,6 @@ class Ingresar_Dirigentes(forms.ModelForm):
     def clean_telefono(self):
         return validate_phone(self.cleaned_data.get("telefono"), field_name="telefono")
 
-    def clean_correo(self):
-        correo = validate_email(self.cleaned_data.get("correo"))
-        validate_unique_value(
-            Dirigente,
-            "correo",
-            correo,
-            instance=self.instance,
-            message="Ya existe otro dirigente con este correo.",
-            iexact=True,
-        )
-
-        usuario = getattr(self.instance, "usuario", None)
-        if self.instance.pk and usuario and usuario.email:
-            if correo != usuario.email.strip().lower():
-                raise ValidationError(
-                    "No puedes cambiar el correo de un dirigente que ya tiene usuario asociado."
-                )
-        else:
-            Usuario = get_user_model()
-            if Usuario.objects.filter(email__iexact=correo).exists():
-                raise ValidationError(
-                    "Ya existe un usuario con este correo."
-                )
-
-        return correo
 
     def clean_cargo(self):
         return validate_text(
