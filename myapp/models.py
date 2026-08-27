@@ -650,6 +650,8 @@ class TarjetaPartido(models.Model):
     equipo = models.ForeignKey(
         Equipo,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="tarjetas_partido"
     )
 
