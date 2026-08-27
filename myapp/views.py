@@ -577,7 +577,6 @@ def crear_liga_ajax(request):
         "nombre": liga.nombre,
     })
     
-@usuario_autorizado_required
 def detalle_liga(request, id_liga):
 
     liga = get_object_or_404(
