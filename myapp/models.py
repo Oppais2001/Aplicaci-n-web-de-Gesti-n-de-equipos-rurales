@@ -290,12 +290,11 @@ class Dirigente(models.Model):
 
     rut = models.CharField(
         max_length=12,
-        unique=True
     )
 
     telefono = models.CharField(max_length=20)
 
-    correo = models.EmailField(unique=True)
+    correo = models.EmailField()
 
     # Datos del cargo
     cargo = models.CharField(max_length=50)
