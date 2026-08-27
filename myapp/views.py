@@ -474,14 +474,9 @@ def ingresar_liga(request):
         }
     )
 
-@usuario_autorizado_required
 def lista_ligas(request):
     buscar = request.GET.get('buscar')
     ligas = Liga.objects.all()
-
-    if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        ligas = ligas.filter(id=dirigente.equipo.liga_id)
 
     ligas_totales = ligas
 

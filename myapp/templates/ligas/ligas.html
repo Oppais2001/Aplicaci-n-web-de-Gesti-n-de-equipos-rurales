@@ -18,9 +18,7 @@
           <th>Liga</th>
           <th>Ubicación</th>
           <th>Equipos</th>
-          {% if user.is_staff %}
           <th>Acciones</th>
-          {% endif %}
         </tr>
       </thead>
       {% for liga in ligas %}
@@ -36,7 +34,6 @@
           </td>
           <td data-label="Locación">{{ liga.comuna }}, {{ liga.region }}</td>
           <td data-label="N° Equipos">{{ liga.total_equipos }}</td>
-          {% if user.is_staff %}
           <td>
             <button
               class="btn detalles"
@@ -45,6 +42,7 @@
             >
               <i class="fa-solid fa-eye"></i>
             </button>
+            {% if user.is_staff %}
             <button
               class="btn editar"
               title="Editar"
@@ -60,8 +58,8 @@
             >
               <i class="fa-solid fa-trash"></i>
             </button>
+            {% endif %}
           </td>
-          {% endif %}
         </tr>
       </tbody>
       {% endfor %}
