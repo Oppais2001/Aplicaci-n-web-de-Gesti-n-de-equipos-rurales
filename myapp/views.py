@@ -86,7 +86,27 @@ def generar_username_dirigente(dirigente):
 
 def crear_usuario_para_dirigente(dirigente):
     Usuario = get_user_model()
+
+    # Buscar otro dirigente con el mismo RUT
+    dirigente_existente = (
+        Dirigente.objects
+        .filter(rut=dirigente.rut)
+        .exclude(pk=dirigente.pk)
+        .filter(usuario__isnull=False)
+        .first()
+    )
+
+    if dirigente_existente:
+        usuario = dirigente_existente.usuario
+
+        dirigente.usuario = usuario
+        dirigente.save(update_fields=["usuario"])
+
+        return usuario, None
+
+    # No existe usuario para este RUT → crear uno nuevo
     password = generar_password_temporal()
+
     usuario = Usuario.objects.create_user(
         username=generar_username_dirigente(dirigente),
         email=dirigente.correo,
@@ -96,8 +116,10 @@ def crear_usuario_para_dirigente(dirigente):
         is_staff=False,
         is_superuser=False,
     )
+
     dirigente.usuario = usuario
     dirigente.save(update_fields=["usuario"])
+
     return usuario, password
 
 # HOME Y ABOUT
@@ -346,6 +368,7 @@ def ingresar_dirigente(request):
                 "password": password,
             }
             return redirect("credenciales_dirigente")
+
     else:
         form = Ingresar_Dirigentes()
 
@@ -619,6 +642,7 @@ def detalle_equipo(request, equipo):
     puede_ver_rut = es_administrador(request.user)
     if es_dirigente(request.user):
         dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
+        print(dirigente)
         puede_descargar_planilla = (
             puede_ver_rut
             or (dirigente is not None and dirigente.equipo_id == equipo.id)

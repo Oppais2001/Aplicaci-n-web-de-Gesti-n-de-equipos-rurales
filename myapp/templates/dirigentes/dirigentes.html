@@ -72,7 +72,6 @@
                         <td>
                             {{dirigente.direccion}}
                         </td>
-                    {% endif %}
                         {% if user.is_staff %}
                             <td>
                                 <button class="btn editar" title="Editar"
@@ -85,7 +84,8 @@
                                 </button>
                             </td>
                         {% endif %}
-                    </tr>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
                 </tbody>
             </table>

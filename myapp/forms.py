@@ -423,12 +423,10 @@ class Ingresar_Dirigentes(forms.ModelForm):
         return validate_rut(
             self.cleaned_data.get("rut"),
             instance=self.instance,
-            duplicate_message="Ya existe otro dirigente con este RUT.",
         )
 
     def clean_telefono(self):
         return validate_phone(self.cleaned_data.get("telefono"), field_name="telefono")
-
 
     def clean_cargo(self):
         return validate_text(
@@ -451,6 +449,28 @@ class Ingresar_Dirigentes(forms.ModelForm):
             max_age_years=100,
         )
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        rut = cleaned_data.get("rut")
+        equipo = cleaned_data.get("equipo")
+
+        if rut and equipo:
+            queryset = Dirigente.objects.filter(
+                rut=rut,
+                equipo=equipo
+            )
+
+            if self.instance.pk:
+                queryset = queryset.exclude(pk=self.instance.pk)
+
+            if queryset.exists():
+                self.add_error(
+                    "rut",
+                    "Este dirigente ya está registrado en este equipo."
+                )
+
+        return cleaned_data
 
 class Editar_Dirigentes(Ingresar_Dirigentes):
     class Meta(Ingresar_Dirigentes.Meta):

@@ -4,33 +4,72 @@
 
 <div class="ingresar">
     <div>
-        <h1>Usuario creado</h1>
+        {% if credenciales.usuario_nuevo %}
+            <h1>Usuario creado</h1>
+        {% else %}
+            <h1>Dirigente agregado</h1>
+        {% endif %}
     </div>
 
     <div class="card form-container credenciales-temporales">
-        <p>Entrega estos datos al dirigente. La contrasena se muestra solo ahora.</p>
+
+        {% if credenciales.usuario_nuevo %}
+
+            <p>
+                Entrega estos datos al dirigente.
+                La contraseña se muestra solo ahora.
+            </p>
+
+        {% else %}
+
+            <p>
+                El dirigente ya tenía una cuenta de usuario.
+                Se ha asociado correctamente al nuevo equipo.
+            </p>
+
+        {% endif %}
+
 
         <div class="credencial-linea">
             <strong>Dirigente:</strong>
             <span>{{ credenciales.nombre }}</span>
         </div>
+
         <div class="credencial-linea">
             <strong>Usuario:</strong>
             <code>{{ credenciales.username }}</code>
         </div>
+
         <div class="credencial-linea">
             <strong>Correo:</strong>
             <span>{{ credenciales.email }}</span>
         </div>
-        <div class="credencial-linea">
-            <strong>Contrasena temporal:</strong>
-            <code>{{ credenciales.password }}</code>
-        </div>
+
+
+        {% if credenciales.usuario_nuevo %}
+            <div class="credencial-linea">
+                <strong>Contraseña temporal:</strong>
+                <code>{{ credenciales.password }}</code>
+            </div>
+        {% endif %}
+
 
         <div class="acciones-credenciales">
-            <a href="{% url 'ingresar_dirigente' %}" class="btn-credencial">Crear otro dirigente</a>
-            <a href="{% url 'dirigentes' %}" class="btn-credencial btn-secundario">Ver dirigentes</a>
+            <a
+                href="{% url 'ingresar_dirigente' %}"
+                class="btn-credencial"
+            >
+                Crear otro dirigente
+            </a>
+
+            <a
+                href="{% url 'dirigentes' %}"
+                class="btn-credencial btn-secundario"
+            >
+                Ver dirigentes
+            </a>
         </div>
+
     </div>
 </div>
 
