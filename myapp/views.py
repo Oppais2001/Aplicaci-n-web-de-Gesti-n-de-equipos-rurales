@@ -640,19 +640,11 @@ def ingresar_jugador(request):
 def detalle_equipo(request, equipo):
     equipo = get_object_or_404(Equipo, nombre=equipo)
     puede_ver_rut = es_administrador(request.user)
-    if es_dirigente(request.user):
-        dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
-        print(dirigente)
-        puede_descargar_planilla = (
-            puede_ver_rut
-            or (dirigente is not None and dirigente.equipo_id == equipo.id)
-        )
-    elif es_administrador(request.user):
-        pass
-    else:
-        puede_ver_rut = False
-        puede_descargar_planilla = False
-    
+    dirigente = None if puede_ver_rut else obtener_dirigente(request.user)
+    puede_descargar_planilla = (
+        puede_ver_rut
+        or (dirigente is not None and dirigente.equipo_id == equipo.id)
+    )
     buscar = request.GET.get('buscar')
     jugadores_totales = Jugador.objects.filter(equipo=equipo)
 
