@@ -392,6 +392,7 @@ def ingresar_dirigente(request):
                 "username": usuario.username,
                 "email": usuario.email,
                 "password": password,
+                "usuario_nuevo": password is not None,
             }
             return redirect("credenciales_dirigente")
 
