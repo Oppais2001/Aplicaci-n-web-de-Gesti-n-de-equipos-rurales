@@ -124,23 +124,42 @@ def crear_usuario_para_dirigente(dirigente):
 
 # HOME Y ABOUT
 def home(request):
-    
+
     if es_dirigente(request.user):
-        dirigente = obtener_dirigente(request.user)
-        equipos = Equipo.objects.filter(
-            id=dirigente.equipo_id
-        ).annotate(
-            total_jugadores=Count('jugadores')
-        )
-        total_traspasos = Traspaso.objects.filter(
-            Q(equipo_origen=dirigente.equipo)
-            | Q(equipo_destino=dirigente.equipo)
-            | Q(jugador__equipo=dirigente.equipo)
-        ).distinct().count()
+        perfiles_dirigente_asignados = obtener_dirigente(request.user)
+
+        equipos = []
+        total_traspasos = 0
+
+        for dirigente in perfiles_dirigente_asignados:
+            equipo = (
+                Equipo.objects
+                .filter(id=dirigente.equipo_id)
+                .annotate(total_jugadores=Count('jugadores'))
+                .first()
+            )
+
+            if equipo:
+                equipos.append(equipo)
+
+                total_traspasos += (
+                    Traspaso.objects
+                    .filter(
+                        Q(equipo_origen=equipo)
+                        | Q(equipo_destino=equipo)
+                        | Q(jugador__equipo=equipo)
+                    )
+                    .distinct()
+                    .count()
+                )
+
     else:
-        equipos = Equipo.objects.annotate(
-            total_jugadores=Count('jugadores')
-        ).order_by('nombre')
+        equipos = list(
+            Equipo.objects
+            .annotate(total_jugadores=Count('jugadores'))
+            .order_by('nombre')
+        )
+
         total_traspasos = Traspaso.objects.count()
 
     lista_equipos_dict = {
@@ -150,11 +169,10 @@ def home(request):
 
     return render(request, 'home.html', {
         'equipos': lista_equipos_dict,
-        'total_equipos': equipos.count(),
+        'total_equipos': len(equipos),
         'total_jugadores': sum(lista_equipos_dict.values()),
         'total_traspasos': total_traspasos
     })
-
 # acesso libre a jugadores
 def about(request):
     return render(request, 'about.html')
