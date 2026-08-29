@@ -124,8 +124,16 @@ def crear_usuario_para_dirigente(dirigente):
 
 # HOME Y ABOUT
 def home(request):
-
-    if es_dirigente(request.user):
+    
+    if es_administrador(request.user):
+        equipos = list(
+            Equipo.objects
+            .annotate(total_jugadores=Count('jugadores'))
+            .order_by('nombre')
+        )
+        total_traspasos = Traspaso.objects.count()
+    
+    elif es_dirigente(request.user):
         perfiles_dirigente_asignados = obtener_dirigente(request.user)
 
         equipos = []
