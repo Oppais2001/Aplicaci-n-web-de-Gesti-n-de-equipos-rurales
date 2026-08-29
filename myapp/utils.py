@@ -764,7 +764,7 @@ def _logo_marca_agua(url, size, opacidad=0.15, cache=None):
 
     return logo
 
-def crear_img_fechas(torneo, partidos, liga):
+def crear_img_fechas(torneo, partidos, liga, titulo=None, filename="fechas.png"):
     # ---------- Constantes de layout ----------
     PADDING_X = 40
     ALTO_HEADER = 200
@@ -785,15 +785,28 @@ def crear_img_fechas(torneo, partidos, liga):
 
     partidos_programados = sorted(
         [p for p in partidos if p.estado == 'Programado'],
-        key=lambda p: p.hora
+        key=lambda p: (p.fecha, p.hora)
     )
-    # ---------- Cálculo correcto de altura ----------
-    y_inicial_partidos = (
-        ALTO_HEADER
-        + 20                    # separación antes del banner
-        + ALTO_BANNER_FECHA
-        + 40                    # separación después del banner
-    )
+
+    grupos_fechas = []
+    fecha_actual = None
+    grupo_actual = None
+
+    for partido in partidos_programados:
+        if partido.fecha != fecha_actual:
+            etiqueta = "FECHA ACTUAL" if not grupos_fechas else "FECHA SIGUIENTE"
+
+            if len(grupos_fechas) >= 2:
+                etiqueta = f"FECHA {len(grupos_fechas) + 1}"
+
+            grupo_actual = {
+                "fecha_texto": f"{etiqueta} - {partido.fecha_exacta}",
+                "partidos": []
+            }
+            grupos_fechas.append(grupo_actual)
+            fecha_actual = partido.fecha
+
+        grupo_actual["partidos"].append(partido)
 
     # Cada partido utiliza:
     # 30  -> separación antes de la tarjeta
@@ -808,7 +821,9 @@ def crear_img_fechas(torneo, partidos, liga):
     )
 
     alto = (
-        y_inicial_partidos
+        ALTO_HEADER
+        + 20
+        + len(grupos_fechas) * (ALTO_BANNER_FECHA + 40)
         + len(partidos_programados) * ALTO_POR_PARTIDO
         + 80
     )
@@ -829,7 +844,7 @@ def crear_img_fechas(torneo, partidos, liga):
     cache_logos = {}
 
     # ---------- URL del logo de la liga (una sola vez, se reusa abajo) ----------
-    logo_liga_url = liga.logo.url if liga.logo else None
+    logo_liga_url = liga.logo.url if liga and liga.logo else None
 
     # ---------- Marca de agua: logo de la liga de fondo ----------
     marca_agua = _logo_marca_agua(
@@ -853,38 +868,15 @@ def crear_img_fechas(torneo, partidos, liga):
 
     draw.text((x_titulo, 55), texto_titulo, fill=COLOR_ORO, font=fuente_titulo)
 
-    texto_subtitulo = torneo.nombre.upper()
+    texto_subtitulo = titulo or (torneo.nombre if torneo else "Fechas programadas")
+    texto_subtitulo = texto_subtitulo.upper()
     bbox_sub = draw.textbbox((0, 0), texto_subtitulo, font=fuente_subtitulo)
     ancho_sub = bbox_sub[2] - bbox_sub[0]
     x_sub = (ANCHO - ancho_sub) // 2
     draw.text((x_sub, 115), texto_subtitulo, fill=COLOR_TEXTO, font=fuente_subtitulo)
 
-    # ---------- Banner de fecha ----------
-    y_banner = ALTO_HEADER + 20
-
-    if partidos_programados:
-        fecha_texto = _formatear_fecha_hora(partidos_programados[0].fecha_exacta)
-    else:
-        fecha_texto = torneo.nombre.upper()
-
-    draw.rounded_rectangle(
-        (PADDING_X, y_banner, ANCHO - PADDING_X, y_banner + ALTO_BANNER_FECHA),
-        radius=14,
-        fill=COLOR_CAFE
-    )
-
-    bbox_fecha = draw.textbbox((0, 0), fecha_texto, font=fuente_fecha)
-    ancho_fecha = bbox_fecha[2] - bbox_fecha[0]
-    alto_fecha = bbox_fecha[3] - bbox_fecha[1]
-    draw.text(
-        ((ANCHO - ancho_fecha) // 2, y_banner + (ALTO_BANNER_FECHA - alto_fecha) // 2 - bbox_fecha[1]),
-        fecha_texto,
-        fill=COLOR_ORO,
-        font=fuente_fecha
-    )
-
     # ---------- Tarjetas de partido ----------
-    y = y_banner + ALTO_BANNER_FECHA + 40
+    y = ALTO_HEADER + 20
 
     if not partidos_programados:
         draw.text(
@@ -894,105 +886,126 @@ def crear_img_fechas(torneo, partidos, liga):
             font=fuente_equipo
         )
     else:
-        for partido in partidos_programados:
-
-            # --- Badge de hora ---
-            hora_texto = _formatear_fecha_hora(partido.hora, solo_hora=True)
-            bbox_hora = draw.textbbox((0, 0), hora_texto, font=fuente_hora)
-            ancho_hora = bbox_hora[2] - bbox_hora[0]
+        for grupo in grupos_fechas:
+            fecha_texto = grupo["fecha_texto"].upper()
 
             draw.rounded_rectangle(
-                (
-                    (ANCHO - ancho_hora) // 2 - 20, y - 18,
-                    (ANCHO + ancho_hora) // 2 + 20, y + 18
-                ),
-                radius=18,
-                fill=COLOR_ORO
-            )
-            draw.text(
-                ((ANCHO - ancho_hora) // 2, y - bbox_hora[3] // 2),
-                hora_texto,
-                fill="#202020",
-                font=fuente_hora
-            )
-
-            y_tarjeta = y + 30
-
-            # --- Fondo de la tarjeta ---
-            draw.rounded_rectangle(
-                (PADDING_X, y_tarjeta, ANCHO - PADDING_X, y_tarjeta + ALTO_TARJETA),
+                (PADDING_X, y, ANCHO - PADDING_X, y + ALTO_BANNER_FECHA),
                 radius=14,
-                fill=COLOR_TARJETA_FONDO,
-                outline=COLOR_BORDE,
-                width=1
-            )
-
-            centro_y = y_tarjeta + ALTO_TARJETA // 2
-
-            # --- Logo equipo local (izquierda) ---
-            logo_local_url = getattr(partido.equipo_local, "logo", None)
-            logo_local_url = logo_local_url.url if logo_local_url else None
-            logo_local = _cargar_logo_circular(logo_local_url, LOGO_EQUIPO_SIZE, cache_logos)
-            if not logo_local:
-                logo_local = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_local)[0].upper())
-
-            x_logo_local = PADDING_X + 25
-            imagen.paste(logo_local, (x_logo_local, centro_y - LOGO_EQUIPO_SIZE // 2), logo_local)
-
-            # --- Logo equipo visitante (derecha) ---
-            logo_visita_url = getattr(partido.equipo_visitante, "logo", None)
-            logo_visita_url = logo_visita_url.url if logo_visita_url else None
-            logo_visita = _cargar_logo_circular(logo_visita_url, LOGO_EQUIPO_SIZE, cache_logos)
-            if not logo_visita:
-                logo_visita = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_visitante)[0].upper())
-
-            x_logo_visita = ANCHO - PADDING_X - 25 - LOGO_EQUIPO_SIZE
-            imagen.paste(logo_visita, (x_logo_visita, centro_y - LOGO_EQUIPO_SIZE // 2), logo_visita)
-
-            # --- Badge central "VS" ---
-            vs_size = 60
-            x_vs = (ANCHO - vs_size) // 2
-            draw.ellipse(
-                (x_vs, centro_y - vs_size // 2, x_vs + vs_size, centro_y + vs_size // 2),
                 fill=COLOR_CAFE
             )
-            bbox_vs = draw.textbbox((0, 0), "VS", font=fuente_vs)
-            ancho_vs = bbox_vs[2] - bbox_vs[0]
-            alto_vs = bbox_vs[3] - bbox_vs[1]
 
-            x_texto_vs = x_vs + (vs_size - ancho_vs) // 2 - bbox_vs[0]
-            y_texto_vs = (centro_y - vs_size // 2) + (vs_size - alto_vs) // 2 - bbox_vs[1]
-
+            bbox_fecha = draw.textbbox((0, 0), fecha_texto, font=fuente_fecha)
+            ancho_fecha = bbox_fecha[2] - bbox_fecha[0]
+            alto_fecha = bbox_fecha[3] - bbox_fecha[1]
             draw.text(
-                (x_texto_vs, y_texto_vs),
-                "VS",
+                ((ANCHO - ancho_fecha) // 2, y + (ALTO_BANNER_FECHA - alto_fecha) // 2 - bbox_fecha[1]),
+                fecha_texto,
                 fill=COLOR_ORO,
-                font=fuente_vs
+                font=fuente_fecha
             )
 
-            # --- Nombre equipo local ---
-            ancho_columna = x_vs - (x_logo_local + LOGO_EQUIPO_SIZE) - 20
-            nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_equipo, ancho_columna)
-            bbox_nl = draw.textbbox((0, 0), nombre_local, font=fuente_equipo)
-            ancho_nl = bbox_nl[2] - bbox_nl[0]
-            x_centro_local = x_logo_local + LOGO_EQUIPO_SIZE + 15 + (ancho_columna - ancho_nl) // 2
-            draw.text((x_centro_local, centro_y - 12), nombre_local, fill=COLOR_TEXTO, font=fuente_equipo)
+            y += ALTO_BANNER_FECHA + 40
 
-            # --- Nombre equipo visitante ---
-            nombre_visita = _texto_ajustado(draw, partido.equipo_visitante, fuente_equipo, ancho_columna)
-            bbox_nv = draw.textbbox((0, 0), nombre_visita, font=fuente_equipo)
-            ancho_nv = bbox_nv[2] - bbox_nv[0]
-            x_centro_visita = (x_vs + vs_size + 15) + (ancho_columna - ancho_nv) // 2
-            draw.text((x_centro_visita, centro_y - 12), nombre_visita, fill=COLOR_TEXTO, font=fuente_equipo)
+            for partido in grupo["partidos"]:
 
-            y = y_tarjeta + ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS + 25
+                # --- Badge de hora ---
+                hora_texto = _formatear_fecha_hora(partido.hora, solo_hora=True)
+                bbox_hora = draw.textbbox((0, 0), hora_texto, font=fuente_hora)
+                ancho_hora = bbox_hora[2] - bbox_hora[0]
+
+                draw.rounded_rectangle(
+                    (
+                        (ANCHO - ancho_hora) // 2 - 20, y - 18,
+                        (ANCHO + ancho_hora) // 2 + 20, y + 18
+                    ),
+                    radius=18,
+                    fill=COLOR_ORO
+                )
+                draw.text(
+                    ((ANCHO - ancho_hora) // 2, y - bbox_hora[3] // 2),
+                    hora_texto,
+                    fill="#202020",
+                    font=fuente_hora
+                )
+
+                y_tarjeta = y + 30
+
+                # --- Fondo de la tarjeta ---
+                draw.rounded_rectangle(
+                    (PADDING_X, y_tarjeta, ANCHO - PADDING_X, y_tarjeta + ALTO_TARJETA),
+                    radius=14,
+                    fill=COLOR_TARJETA_FONDO,
+                    outline=COLOR_BORDE,
+                    width=1
+                )
+
+                centro_y = y_tarjeta + ALTO_TARJETA // 2
+
+                # --- Logo equipo local (izquierda) ---
+                logo_local_url = getattr(partido.equipo_local, "logo", None)
+                logo_local_url = logo_local_url.url if logo_local_url else None
+                logo_local = _cargar_logo_circular(logo_local_url, LOGO_EQUIPO_SIZE, cache_logos)
+                if not logo_local:
+                    logo_local = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_local)[0].upper())
+
+                x_logo_local = PADDING_X + 25
+                imagen.paste(logo_local, (x_logo_local, centro_y - LOGO_EQUIPO_SIZE // 2), logo_local)
+
+                # --- Logo equipo visitante (derecha) ---
+                logo_visita_url = getattr(partido.equipo_visitante, "logo", None)
+                logo_visita_url = logo_visita_url.url if logo_visita_url else None
+                logo_visita = _cargar_logo_circular(logo_visita_url, LOGO_EQUIPO_SIZE, cache_logos)
+                if not logo_visita:
+                    logo_visita = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_visitante)[0].upper())
+
+                x_logo_visita = ANCHO - PADDING_X - 25 - LOGO_EQUIPO_SIZE
+                imagen.paste(logo_visita, (x_logo_visita, centro_y - LOGO_EQUIPO_SIZE // 2), logo_visita)
+
+                # --- Badge central "VS" ---
+                vs_size = 60
+                x_vs = (ANCHO - vs_size) // 2
+                draw.ellipse(
+                    (x_vs, centro_y - vs_size // 2, x_vs + vs_size, centro_y + vs_size // 2),
+                    fill=COLOR_CAFE
+                )
+                bbox_vs = draw.textbbox((0, 0), "VS", font=fuente_vs)
+                ancho_vs = bbox_vs[2] - bbox_vs[0]
+                alto_vs = bbox_vs[3] - bbox_vs[1]
+
+                x_texto_vs = x_vs + (vs_size - ancho_vs) // 2 - bbox_vs[0]
+                y_texto_vs = (centro_y - vs_size // 2) + (vs_size - alto_vs) // 2 - bbox_vs[1]
+
+                draw.text(
+                    (x_texto_vs, y_texto_vs),
+                    "VS",
+                    fill=COLOR_ORO,
+                    font=fuente_vs
+                )
+
+                # --- Nombre equipo local ---
+                ancho_columna = x_vs - (x_logo_local + LOGO_EQUIPO_SIZE) - 20
+                nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_equipo, ancho_columna)
+                bbox_nl = draw.textbbox((0, 0), nombre_local, font=fuente_equipo)
+                ancho_nl = bbox_nl[2] - bbox_nl[0]
+                x_centro_local = x_logo_local + LOGO_EQUIPO_SIZE + 15 + (ancho_columna - ancho_nl) // 2
+                draw.text((x_centro_local, centro_y - 12), nombre_local, fill=COLOR_TEXTO, font=fuente_equipo)
+
+                # --- Nombre equipo visitante ---
+                nombre_visita = _texto_ajustado(draw, partido.equipo_visitante, fuente_equipo, ancho_columna)
+                bbox_nv = draw.textbbox((0, 0), nombre_visita, font=fuente_equipo)
+                ancho_nv = bbox_nv[2] - bbox_nv[0]
+                x_centro_visita = (x_vs + vs_size + 15) + (ancho_columna - ancho_nv) // 2
+                draw.text((x_centro_visita, centro_y - 12), nombre_visita, fill=COLOR_TEXTO, font=fuente_equipo)
+
+                y = y_tarjeta + ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS + 25
 
     buffer = BytesIO()
     imagen.save(buffer, format="PNG")
     buffer.seek(0)
 
     response = HttpResponse(buffer, content_type="image/png")
-    response["Content-Disposition"] = 'attachment; filename="fechas.png"'
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     return response
 

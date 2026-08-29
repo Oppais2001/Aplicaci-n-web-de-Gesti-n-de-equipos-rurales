@@ -60,6 +60,7 @@ urlpatterns = [
     path('fechas/crear', views.crear_fecha, name='crear_fecha'),
     path('fechas/editar/<int:id>/', views.editar_fecha, name='editar_fecha'),
     path('fechas/eliminar/<int:id>/', views.eliminar_fecha, name='eliminar_fecha'),
+    path("fechas/<str:fecha>/imagen/", views.descargar_fechas_dia_imagen, name="descargar_fechas_dia_imagen"),
     path("torneos/<int:torneo_id>/tabla/imagen/",views.descargar_tabla_imagen, name="descargar_tabla_imagen"),
     path("torneos/<int:torneo_id>/fechas/imagen/", views.descargar_fechas_imagen, name="descargar_fechas_imagen"),
     path("torneos/<int:torneo_id>/partidos/imagen/", views.descargar_partidos_imagen, name="descargar_partidos_imagen"),

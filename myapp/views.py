@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.contrib import messages
@@ -1155,19 +1156,62 @@ def descargar_partidos_imagen(request, torneo_id):
     return crear_img_partidos(torneo, partidos)
 
 def descargar_fechas_imagen(request, torneo_id):
-    liga = get_object_or_404(Liga, nombre='Unión Comunal De Clubes Deportivos Rurales, Sociales Y Culturales Entre Ríos Ex Liga Cancura, Puerto Octay')
-    
     torneo = get_object_or_404(
         Torneo.objects.prefetch_related("partidos"),
         id=torneo_id
     )
     partidos = torneo.partidos.select_related(
+        "equipo_local__liga",
+        "equipo_visitante__liga",
         "equipo_local",
         "equipo_visitante",
         "cancha"
     ).order_by("fecha", "hora")
+    liga = _obtener_liga_para_imagen_fechas(partidos)
 
     return crear_img_fechas(torneo, partidos, liga)
+
+
+def descargar_fechas_dia_imagen(request, fecha):
+    fecha_programada = parse_date(fecha)
+
+    if fecha_programada is None:
+        return HttpResponse("Fecha invalida.", status=400)
+
+    partidos = Partido.objects.filter(
+        goles_local__isnull=True,
+        goles_visitante__isnull=True,
+        fecha=fecha_programada,
+    ).select_related(
+        "torneo",
+        "equipo_local__liga",
+        "equipo_visitante__liga",
+        "equipo_local",
+        "equipo_visitante",
+        "cancha",
+    ).order_by("hora", "torneo__nombre")
+    liga = _obtener_liga_para_imagen_fechas(partidos)
+
+    titulo = f"FECHAS PROGRAMADAS - {fecha_programada.strftime('%d/%m/%Y')}"
+
+    return crear_img_fechas(
+        None,
+        partidos,
+        liga,
+        titulo=titulo,
+        filename=f"fechas-{fecha_programada.isoformat()}.png",
+    )
+
+
+def _obtener_liga_para_imagen_fechas(partidos):
+    for partido in partidos:
+        if partido.equipo_local and partido.equipo_local.liga:
+            return partido.equipo_local.liga
+
+        if partido.equipo_visitante and partido.equipo_visitante.liga:
+            return partido.equipo_visitante.liga
+
+    return Liga.objects.first()
 
 @usuario_autorizado_required
 def descargar_detalle_equipo(request, equipo_id):
@@ -1535,8 +1579,31 @@ def lista_fechas(request):
         )
         fechas = fechas.filter(filtros)
 
+    fechas_por_dia = []
+    fecha_actual = None
+    grupo_actual = None
+
+    for partido in fechas:
+        if partido.fecha != fecha_actual:
+            etiqueta = "Fecha actual" if not fechas_por_dia else "Fecha siguiente"
+
+            if len(fechas_por_dia) >= 2:
+                etiqueta = f"Fecha {len(fechas_por_dia) + 1}"
+
+            grupo_actual = {
+                "fecha": partido.fecha,
+                "fecha_texto": partido.fecha_exacta,
+                "etiqueta": etiqueta,
+                "partidos": [],
+            }
+            fechas_por_dia.append(grupo_actual)
+            fecha_actual = partido.fecha
+
+        grupo_actual["partidos"].append(partido)
+
     return render(request, "partidos/fechas.html", {
         "fechas": fechas,
+        "fechas_por_dia": fechas_por_dia,
         "hay_fechas": fechas_totales.exists()
     })
 
