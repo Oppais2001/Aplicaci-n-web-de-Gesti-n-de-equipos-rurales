@@ -424,8 +424,11 @@ def lista_dirigentes(request):
     )
 
     if not es_administrador(request.user):
-        dirigente = obtener_dirigente(request.user)
-        dirigentes = dirigentes.filter(equipo=dirigente.equipo)
+        dirigentes_asignados = obtener_dirigente(request.user)
+
+        dirigentes = dirigentes.filter(
+            equipo__in=dirigentes_asignados.values("equipo_id")
+        )
 
     dirigentes_totales = dirigentes
 
@@ -670,14 +673,12 @@ def detalle_equipo(request, equipo):
         puede_descargar_planilla = True
         
     elif es_dirigente(request.user):
-        puede_ver_rut = False
-        puede_descargar_planilla = False
-        perfiles_dirigente_asignados = None if puede_ver_rut else obtener_dirigente(request.user)
-        for dirigente in perfiles_dirigente_asignados:
-            if equipo == dirigente.equipo:
-                puede_descargar_planilla = True    
-                puede_ver_rut = True
-                break       
+        tiene_equipo = obtener_dirigente(request.user).filter(
+            equipo=equipo
+        ).exists()
+
+        puede_ver_rut = tiene_equipo
+        puede_descargar_planilla = tiene_equipo   
     else:
         puede_ver_rut = False
         puede_descargar_planilla = False 
@@ -1167,20 +1168,49 @@ def descargar_fechas_imagen(request, torneo_id):
     return crear_img_fechas(torneo, partidos, liga)
 
 @usuario_autorizado_required
+@usuario_autorizado_required
 def descargar_detalle_equipo(request, equipo_id):
     equipo = get_object_or_404(
         Equipo.objects.prefetch_related("jugadores"),
         id=equipo_id
     )
-    mostrar_rut = es_administrador(request.user)
 
-    if not mostrar_rut:
-        dirigente = obtener_dirigente(request.user)
-        if not dirigente or dirigente.equipo_id != equipo.id:
-            return HttpResponseForbidden("No tienes permiso para descargar la planilla de este equipo.")
+    # Administrador: puede descargar cualquier equipo
+    if es_administrador(request.user):
+        mostrar_rut = True
 
-    jugadores = sorted(equipo.jugadores.all(),key= lambda jugador: jugador.apellidos)
-    return crear_pdf_detalle_equipo(equipo, jugadores, mostrar_rut=mostrar_rut)
+    # Dirigente: solamente sus equipos asignados
+    elif es_dirigente(request.user):
+        dirigentes_asignados = obtener_dirigente(request.user)
+
+        tiene_acceso = dirigentes_asignados.filter(
+            equipo_id=equipo.id
+        ).exists()
+
+        if not tiene_acceso:
+            return HttpResponseForbidden(
+                "No tienes permiso para descargar la planilla de este equipo."
+            )
+
+        # Los dirigentes autorizados también pueden ver los RUT
+        mostrar_rut = True
+
+    # Cualquier otro usuario
+    else:
+        return HttpResponseForbidden(
+            "No tienes permiso para descargar la planilla de este equipo."
+        )
+
+    jugadores = sorted(
+        equipo.jugadores.all(),
+        key=lambda jugador: jugador.apellidos
+    )
+
+    return crear_pdf_detalle_equipo(
+        equipo,
+        jugadores,
+        mostrar_rut=mostrar_rut
+    )
 
 # PARTIDOS
 def _datos_partido_para_widget(partidos):
