@@ -13,20 +13,23 @@
     <div class="card">
 
         {% if hay_arbitros %}
-            <form method="GET">
+            <div class="equipo-listado-toolbar">
+                <form method="GET" class="equipo-busqueda">
 
-                <input
-                    type="text"
-                    name="buscar"
-                    placeholder="Buscar árbitro..."
-                    value="{{ request.GET.buscar }}"
-                >
+                    <input
+                        type="text"
+                        name="buscar"
+                        placeholder="Buscar árbitro..."
+                        value="{{ request.GET.buscar }}"
+                    >
 
-                <button type="submit">
-                    Buscar
-                </button>
+                    <button type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar</span>
+                    </button>
 
-            </form>
+                </form>
+            </div>
         {% endif %}
 
         {% if not arbitros %}

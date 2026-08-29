@@ -8,10 +8,21 @@
 
     <div class="card">
         {% if hay_torneos %}
-            <form method="GET">
-                <input type="text" name="buscar" placeholder="Buscar torneo..." />
-                <button type="submit">Buscar</button>
-            </form>
+            <div class="equipo-listado-toolbar">
+                <form method="GET" class="equipo-busqueda">
+                    <input
+                        type="text"
+                        name="buscar"
+                        placeholder="Buscar torneo..."
+                        value="{{ request.GET.buscar }}"
+                    >
+
+                    <button type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar</span>
+                    </button>
+                </form>
+            </div>
         {% endif %}
 
         {% if not torneos %}

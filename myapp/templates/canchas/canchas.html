@@ -8,11 +8,21 @@
   <div class="card">
     {% if hay_canchas %}
 
-    <form method="GET">
-      <input type="text" name="buscar" placeholder="Buscar cancha..." />
+    <div class="equipo-listado-toolbar">
+      <form method="GET" class="equipo-busqueda">
+        <input
+          type="text"
+          name="buscar"
+          placeholder="Buscar cancha..."
+          value="{{ request.GET.buscar }}"
+        >
 
-      <button type="submit">Buscar</button>
-    </form>
+        <button type="submit">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>Buscar</span>
+        </button>
+      </form>
+    </div>
 
     {% endif %} {% if not canchas %}
 

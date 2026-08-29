@@ -7,10 +7,21 @@
         </div>
         <div class="card">
             {% if hay_equipos %}
-            <form method="GET">
-                <input type="text" name="buscar" placeholder="Buscar equipo...">
-                <button type="submit">Buscar</button>
-            </form>
+            <div class="equipo-listado-toolbar">
+                <form method="GET" class="equipo-busqueda">
+                    <input
+                        type="text"
+                        name="buscar"
+                        placeholder="Buscar equipo..."
+                        value="{{ request.GET.buscar }}"
+                    >
+
+                    <button type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar</span>
+                    </button>
+                </form>
+            </div>
             {% endif %}
             {% if not equipos %}
             <p class="empty-message">No hay datos para mostrar.</p>
@@ -108,66 +119,4 @@ function confirmarEliminar(equipo) {
     });
 }
 </script>
-<style>
-    .equipo-info{
-
-        display:flex;
-        align-items:center;
-        gap:14px;
-    }
-
-    .equipo-logo{
-
-        width:70px;
-        height:58px;
-
-        object-fit:cover;
-
-        border-radius:50%;
-
-        border:2px solid rgba(255,215,0,.4);
-
-        background:#2a2a2a;
-
-        padding:4px;
-
-        transition:.25s;
-    }
-
-    tr:hover .equipo-logo{
-
-        border-color:gold;
-        transform:scale(1.08);
-    }
-
-    .logo-vacio{
-
-        display:flex;
-        justify-content:center;
-        align-items:center;
-
-        color:gold;
-        font-size:1.5rem;
-    }
-
-    .equipo-texto{
-
-        display:flex;
-        flex-direction:column;
-        align-items:flex-start;
-    }
-
-    .equipo-nombre{
-
-        color:gold;
-        font-size:1.1rem;
-        font-weight:bold;
-    }
-
-    .equipo-liga{
-
-        color:#bfbfbf;
-        font-size:.85rem;
-    }
-</style>
 {% endblock %}

@@ -5,10 +5,21 @@
   </div>
   <div class="card">
     {% if hay_ligas %}
-    <form method="GET">
-      <input type="text" name="buscar" placeholder="Buscar liga..." />
-      <button type="submit">Buscar</button>
-    </form>
+    <div class="equipo-listado-toolbar">
+        <form method="GET" class="equipo-busqueda">
+            <input
+                type="text"
+                name="buscar"
+                placeholder="Buscar liga..."
+                value="{{ request.GET.buscar }}"
+            >
+
+            <button type="submit">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Buscar</span>
+            </button>
+        </form>
+    </div>
     {% endif %} {% if not ligas %}
     <p class="empty-message">No hay datos para mostrar.</p>
     {% else %}
@@ -85,13 +96,5 @@
     });
   }
 </script>
-
-<style>
-  .logo-nombre {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-</style>
 
 {% endblock %}

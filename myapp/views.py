@@ -753,12 +753,13 @@ def traspasos(request):
         'equipo_origen',
         'equipo_destino'
     )
+    hay_traspasos = traspasos.exists()
     if buscar:
         traspasos = traspasos.filter(jugador__nombre__icontains=buscar)
                  
     return render(request, 'traspasos/traspasos.html', {
         'traspasos': traspasos,
-        'hay_traspasos': traspasos.exists()
+        'hay_traspasos': hay_traspasos
     })
 
 @admin_required
@@ -1167,7 +1168,6 @@ def descargar_fechas_imagen(request, torneo_id):
 
     return crear_img_fechas(torneo, partidos, liga)
 
-@usuario_autorizado_required
 @usuario_autorizado_required
 def descargar_detalle_equipo(request, equipo_id):
     equipo = get_object_or_404(
