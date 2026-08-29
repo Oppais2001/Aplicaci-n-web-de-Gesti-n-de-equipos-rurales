@@ -18,7 +18,6 @@ def obtener_dirigente(user):
         Dirigente.objects
         .select_related('equipo', 'equipo__liga')
         .filter(usuario=user)
-        .first()
     )
 
 
