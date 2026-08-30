@@ -58,7 +58,7 @@
                         <tbody>
                             {% for partido in grupo.partidos %}
                                 <tr id="fila-{{ partido.id }}">
-                                    <td class="col-local">
+                                    <td class="col-local" data-label="Local">
                                         <div class="equipo-info">
 
                                             {% if partido.equipo_local.logo %}
@@ -77,7 +77,7 @@
 
                                         </div>
                                     </td>                         
-                                    <td class="col-visitante">
+                                    <td class="col-visitante" data-label="Visitante">
                                         <div class="equipo-info">
                                             {% if partido.equipo_visitante.logo %}
                                                 <img class="equipo-logo movil-oculto"
@@ -100,7 +100,7 @@
                                     </td>
                                     <td data-label="Fecha" class="col-fecha">{{ partido.fecha_hora }}</td>
                                     {% if user.is_staff %}
-                                        <td class="col-acciones">
+                                        <td class="col-acciones" data-label="Acciones">
                                             <button class="btn editar" title="Editar"
                                             onclick="window.location='/partidos/fechas/editar/{{ partido.id }}/'">
                                                 <i class="fa-solid fa-pen"></i>
@@ -277,164 +277,7 @@ function obtenerCSRFTokenFecha(){
         color:#bfbfbf;
         font-size:.85rem;
     }
-
-    @media (orientation: landscape) and (max-height: 560px), (max-width: 760px) {
-        .contenedor-tablas {
-            gap: 0.75rem;
-            margin: 0.5rem;
-            padding: 0.5rem;
-        }
-
-        .card {
-            padding: 0.75rem;
-        }
-
-        .fecha-grupo {
-            margin-top: 1rem;
-        }
-
-        .fecha-grupo-encabezado {
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.6rem;
-        }
-
-        .fecha-grupo-encabezado h2 {
-            font-size: 1rem;
-        }
-
-        .fecha-grupo-encabezado .btn {
-            min-height: 38px;
-            padding: 0.45rem 0.75rem;
-            white-space: nowrap;
-        }
-
-        .movil-oculto {
-            display: none !important;
-        }
-
-        .tabla-datos thead {
-            display: none;
-        }
-
-        .tabla-datos,
-        .tabla-datos tbody {
-            display: block;
-            width: 100%;
-        }
-
-        .tabla-datos tbody {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .tabla-datos tbody tr {
-            background: var(--bg-card);
-            border: 1px solid var(--borde);
-            border-top: 2px solid var(--color-principal);
-            border-radius: var(--radio-md);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.28);
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            margin: 0;
-            overflow: hidden;
-            width: 100%;
-        }
-
-        .tabla-datos td {
-            align-items: center;
-            border: 0;
-            display: flex;
-            min-width: 0;
-            padding: 9px 8px;
-        }
-
-        .tabla-datos td::before {
-            display: none;
-        }
-
-        .tabla-datos .col-local {
-            background: rgba(255, 215, 0, 0.10);
-            grid-column: 1;
-            grid-row: 1;
-        }
-
-        .tabla-datos .col-visitante {
-            background: rgba(30, 144, 255, 0.10);
-            grid-column: 2;
-            grid-row: 1;
-        }
-
-        .tabla-datos .col-torneo {
-            grid-column: 1 / -1;
-            grid-row: 2;
-            justify-content: flex-end;
-            padding-bottom: 7px;
-            padding-top: 7px;
-            text-align: right;
-        }
-
-        .tabla-datos .col-fecha {
-            grid-column: 1 / -1;
-            grid-row: 3;
-            justify-content: flex-start;
-            padding-bottom: 7px;
-            padding-top: 7px;
-            text-align: left;
-        }
-
-        .tabla-datos .col-cancha {
-            grid-column: 1 / -1;
-            grid-row: 4;
-            justify-content: flex-end;
-            padding-bottom: 7px;
-            padding-top: 7px;
-            text-align: right;
-        }
-
-        .tabla-datos .col-acciones {
-            border-top: 1px solid rgba(255,255,255,0.08);
-            gap: 8px;
-            grid-column: 1 / -1;
-            grid-row: 5;
-            justify-content: center;
-            padding: 8px;
-        }
-
-        .tabla-datos .equipo-info,
-        .tabla-datos .equipo-texto {
-            min-width: 0;
-            width: 100%;
-        }
-
-        .tabla-datos .equipo-info {
-            gap: 0;
-        }
-
-        .tabla-datos .equipo-nombre {
-            display: block;
-            font-size: 0.9rem;
-            overflow-wrap: anywhere;
-            width: 100%;
-        }
-
-        .tabla-datos .col-local .equipo-nombre {
-            text-align: left;
-        }
-
-        .tabla-datos .col-visitante .equipo-nombre {
-            text-align: right;
-        }
-
-        .btn.editar,
-        .btn.eliminar {
-            min-height: 36px;
-            min-width: 40px;
-        }
-    }
-
-    @media (max-width: 600px) {
+    @media (max-width: 600px), (orientation: landscape) and (max-height: 560px) and (hover: none) and (pointer: coarse) {
         .fecha-grupo-encabezado {
             align-items: stretch;
             flex-direction: column;
@@ -457,11 +300,38 @@ function obtenerCSRFTokenFecha(){
             gap: 0;
         }
 
+        .tabla-datos thead {
+            display: none;
+        }
+
+        .tabla-datos,
+        .tabla-datos tbody,
+        .tabla-datos tr,
+        .tabla-datos td {
+            width: 100%;
+        }
+
+        .tabla-datos,
+        .tabla-datos tbody {
+            display: block;
+        }
+
+        .tabla-datos tbody {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
         /* =========================
         TARJETA DEL PARTIDO
         ========================= */
 
         .tabla-datos tbody tr {
+            background: var(--bg-card);
+            border: 1px solid var(--borde);
+            border-top: 3px solid var(--color-principal);
+            border-radius: var(--radio-lg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
             display: grid !important;
 
             /*
@@ -522,6 +392,7 @@ function obtenerCSRFTokenFecha(){
             width: 100%;
             min-width: 0;
 
+            justify-content: space-between;
             text-align: right;
         }
 
@@ -537,7 +408,8 @@ function obtenerCSRFTokenFecha(){
             width: 100%;
             min-width: 0;
 
-            text-align: left;
+            justify-content: space-between;
+            text-align: right;
         }
 
         .tabla-datos .col-cancha{
@@ -545,6 +417,8 @@ function obtenerCSRFTokenFecha(){
             grid-row: 4;
 
             width: 100%;
+            justify-content: space-between;
+            text-align: right;
         }
 
 
@@ -613,13 +487,45 @@ function obtenerCSRFTokenFecha(){
         ========================= */
 
         .tabla-datos td {
+            align-items: center;
+            border: none;
             box-sizing: border-box;
+            display: flex;
+            gap: 12px;
 
             padding: 10px 8px;
 
             min-width: 0;
 
             overflow: hidden;
+        }
+
+        .tabla-datos .col-torneo,
+        .tabla-datos .col-fecha,
+        .tabla-datos .col-cancha {
+            overflow-wrap: anywhere;
+        }
+
+        .tabla-datos .col-cancha a {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .tabla-datos td::before {
+            content: attr(data-label);
+            color: var(--color-principal);
+            display: block;
+            flex-shrink: 0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .tabla-datos .col-local::before,
+        .tabla-datos .col-visitante::before,
+        .tabla-datos .col-acciones::before {
+            display: none;
         }
     }
 </style>
