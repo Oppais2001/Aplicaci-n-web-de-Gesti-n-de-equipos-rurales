@@ -109,6 +109,10 @@ class Equipo(models.Model):
         return self.jugadores.count()
 
 
+from django.db import models
+from urllib.parse import quote
+
+
 class RedSocial(models.Model):
     INSTAGRAM = "instagram"
     FACEBOOK = "facebook"
@@ -151,6 +155,7 @@ class RedSocial(models.Model):
         null=True,
         blank=True
     )
+
     liga = models.ForeignKey(
         "Liga",
         on_delete=models.CASCADE,
@@ -158,32 +163,97 @@ class RedSocial(models.Model):
         null=True,
         blank=True
     )
+
     tipo = models.CharField(
         max_length=30,
         choices=TIPO_CHOICES
     )
+
     enlace = models.CharField(max_length=255)
 
     class Meta:
         verbose_name = "Red social"
         verbose_name_plural = "Redes sociales"
+
         constraints = [
             models.CheckConstraint(
                 check=(
-                    models.Q(equipo__isnull=False, liga__isnull=True)
-                    | models.Q(equipo__isnull=True, liga__isnull=False)
+                    models.Q(
+                        equipo__isnull=False,
+                        liga__isnull=True
+                    )
+                    |
+                    models.Q(
+                        equipo__isnull=True,
+                        liga__isnull=False
+                    )
                 ),
                 name="red_social_tiene_un_propietario"
             ),
+
             models.UniqueConstraint(
                 fields=["equipo", "tipo", "enlace"],
                 name="red_social_unica_por_equipo"
             ),
+
             models.UniqueConstraint(
                 fields=["liga", "tipo", "enlace"],
                 name="red_social_unica_por_liga"
             ),
         ]
+
+    URL_BASES = {
+        INSTAGRAM: "https://www.instagram.com/",
+        FACEBOOK: "https://www.facebook.com/",
+        TIKTOK: "https://www.tiktok.com/@",
+        X: "https://x.com/",
+        THREADS: "https://www.threads.net/@",
+        LINKEDIN: "https://www.linkedin.com/in/",
+        TWITCH: "https://www.twitch.tv/",
+        TELEGRAM: "https://t.me/",
+        SNAPCHAT: "https://www.snapchat.com/add/",
+    }
+
+    @property
+    def url(self):
+        """
+        Devuelve la URL completa de la red social.
+        """
+
+        # Si ya se guardó una URL completa, la devuelve directamente
+        if self.enlace.startswith(("http://", "https://")):
+            return self.enlace
+
+        # Redes que funcionan con nombre de usuario
+        base = self.URL_BASES.get(self.tipo)
+
+        if base:
+            usuario = self.enlace.strip().lstrip("@/")
+            return f"{base}{quote(usuario)}"
+
+        # Para sitios web, WhatsApp, YouTube, Discord, etc.
+        # dejamos el enlace tal como fue ingresado.
+        return self.enlace
+    
+    @property
+    def icono(self):
+        return {
+            self.INSTAGRAM: "fab fa-instagram",
+            self.FACEBOOK: "fab fa-facebook",
+            self.TIKTOK: "fab fa-tiktok",
+            self.X: "fab fa-x-twitter",
+            self.YOUTUBE: "fab fa-youtube",
+            self.WHATSAPP: "fab fa-whatsapp",
+            self.THREADS: "fab fa-threads",
+            self.LINKEDIN: "fab fa-linkedin",
+            self.TWITCH: "fab fa-twitch",
+            self.DISCORD: "fab fa-discord",
+            self.TELEGRAM: "fab fa-telegram",
+            self.SNAPCHAT: "fab fa-snapchat",
+            self.PINTEREST: "fab fa-pinterest",
+            self.SITIO_WEB: "fas fa-globe",
+            self.OTRO: "fas fa-link",
+        }.get(self.tipo, "fas fa-link")
 
     def __str__(self):
         propietario = self.equipo or self.liga

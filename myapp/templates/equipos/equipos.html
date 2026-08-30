@@ -73,7 +73,15 @@
                         </td>
                         <td>
                             {% for red in equipo.redes.all %}
-                                <div>{{ red.get_tipo_display }}: {{ red.enlace }}</div>
+                            <a href="{{ red.url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="red-social">
+
+                                <i class="{{ red.icono }}"></i>
+                                <span>{{ red.get_tipo_display }}</span>
+
+                            </a>
                             {% empty %}
                                 Sin redes
                             {% endfor %}

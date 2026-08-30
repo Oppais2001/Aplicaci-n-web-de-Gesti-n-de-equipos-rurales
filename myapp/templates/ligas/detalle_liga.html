@@ -93,9 +93,9 @@
               <ul class="liga-redes">
                 {% for red in liga.redes.all %}
                   <li>
-                    <span class="red-tipo">{{ red.get_tipo_display }}</span>
-                    <a target="_blank" rel="noopener noreferrer" class="red-enlace">
-                      {{ red.enlace }}
+                    <a href="{{ red.url }}" target="_blank" rel="noopener noreferrer" class="red-social">
+                      <i class="{{ red.icono }}"></i>
+                      <span>{{ red.get_tipo_display }}</span>
                     </a>
                   </li>
                 {% endfor %}

@@ -126,3 +126,61 @@ class FechasProgramadasTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "image/png")
+
+
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class PartidosJugadosTests(TestCase):
+    def setUp(self):
+        Usuario = get_user_model()
+        self.admin = Usuario.objects.create_user(
+            username="admin-partidos",
+            password="adminpass123",
+            is_staff=True,
+        )
+        self.liga = Liga.objects.create(nombre="Liga Test Partidos")
+        self.local = Equipo.objects.create(nombre="Local Jugado", liga=self.liga)
+        self.visita = Equipo.objects.create(nombre="Visita Jugado", liga=self.liga)
+        self.otro = Equipo.objects.create(nombre="Otro Jugado", liga=self.liga)
+
+    def test_lista_partidos_agrupa_partidos_jugados_por_dia(self):
+        Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=2,
+            goles_visitante=1,
+        )
+        Partido.objects.create(
+            equipo_local=self.visita,
+            equipo_visitante=self.otro,
+            fecha=date(2026, 9, 6),
+            hora=time(15, 0),
+            goles_local=0,
+            goles_visitante=3,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("partidos"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Fecha actual")
+        self.assertContains(response, "Fecha anterior")
+        self.assertEqual(len(response.context["partidos_por_dia"]), 2)
+
+    def test_descargar_partidos_dia_imagen_devuelve_png(self):
+        Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=2,
+            goles_visitante=1,
+        )
+
+        response = self.client.get(
+            reverse("descargar_partidos_dia_imagen", args=["2026-09-13"])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")

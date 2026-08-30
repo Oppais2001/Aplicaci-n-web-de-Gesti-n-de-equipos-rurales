@@ -1148,12 +1148,43 @@ def descargar_partidos_imagen(request, torneo_id):
         id=torneo_id
     )
     partidos = torneo.partidos.select_related(
+        "equipo_local__liga",
+        "equipo_visitante__liga",
         "equipo_local",
         "equipo_visitante",
         "cancha"
     ).order_by("fecha", "hora")
 
     return crear_img_partidos(torneo, partidos)
+
+
+def descargar_partidos_dia_imagen(request, fecha):
+    fecha_jugada = parse_date(fecha)
+
+    if fecha_jugada is None:
+        return HttpResponse("Fecha invalida.", status=400)
+
+    partidos = Partido.objects.filter(
+        goles_local__isnull=False,
+        goles_visitante__isnull=False,
+        fecha=fecha_jugada,
+    ).select_related(
+        "torneo",
+        "equipo_local__liga",
+        "equipo_visitante__liga",
+        "equipo_local",
+        "equipo_visitante",
+        "cancha",
+    ).order_by("hora", "torneo__nombre")
+
+    titulo = f"PARTIDOS JUGADOS - {fecha_jugada.strftime('%d/%m/%Y')}"
+
+    return crear_img_partidos(
+        None,
+        partidos,
+        titulo=titulo,
+        filename=f"partidos-{fecha_jugada.isoformat()}.png",
+    )
 
 def descargar_fechas_imagen(request, torneo_id):
     torneo = get_object_or_404(
@@ -1440,8 +1471,31 @@ def lista_partidos(request):
 
     partidos = partidos.order_by("-fecha", "-hora")
 
+    partidos_por_dia = []
+    fecha_actual = None
+    grupo_actual = None
+
+    for partido in partidos:
+        if partido.fecha != fecha_actual:
+            etiqueta = "Fecha actual" if not partidos_por_dia else "Fecha anterior"
+
+            if len(partidos_por_dia) >= 2:
+                etiqueta = f"Fecha anterior {len(partidos_por_dia)}"
+
+            grupo_actual = {
+                "fecha": partido.fecha,
+                "fecha_texto": partido.fecha_exacta,
+                "etiqueta": etiqueta,
+                "partidos": [],
+            }
+            partidos_por_dia.append(grupo_actual)
+            fecha_actual = partido.fecha
+
+        grupo_actual["partidos"].append(partido)
+
     return render(request, "partidos/partidos.html", {
         "partidos": partidos,
+        "partidos_por_dia": partidos_por_dia,
         "hay_partidos": partidos_totales.exists()
     })
 
