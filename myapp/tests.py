@@ -1,10 +1,11 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import Dirigente, Equipo, Liga, Partido
+from .models import Dirigente, Equipo, Jugador, Liga, Partido, Prestamo, Torneo
 from .views import crear_usuario_para_dirigente
 
 
@@ -72,6 +73,74 @@ class CredencialesDirigenteTests(TestCase):
         self.assertIsNotNone(password)
         self.assertTrue(get_user_model().objects.filter(pk=usuario.pk).exists())
         self.assertTrue(Dirigente.objects.filter(pk=dirigente_dos.pk, usuario=usuario).exists())
+
+
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class PrestamoTests(TestCase):
+    def setUp(self):
+        Usuario = get_user_model()
+        self.admin = Usuario.objects.create_user(
+            username="admin-prestamos",
+            password="adminpass123",
+            is_staff=True,
+        )
+        self.liga = Liga.objects.create(nombre="Liga Test Prestamos")
+        self.origen = Equipo.objects.create(nombre="Origen Prestamo", liga=self.liga)
+        self.destino = Equipo.objects.create(nombre="Destino Prestamo", liga=self.liga)
+        self.jugador = Jugador.objects.create(
+            nombre="Jugador Prestamo Test",
+            rut="123456785",
+            equipo=self.origen,
+            fecha_inscripcion=timezone.localdate() - timedelta(days=800),
+        )
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo Prestamo Test",
+            fecha_inicio=timezone.localdate(),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
+        )
+        self.torneo.equipos.add(self.destino)
+
+    def test_realizar_prestamo_mueve_jugador_y_guarda_fechas_del_torneo(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("realizar_prestamo", args=[self.jugador.id]),
+            {
+                "equipo_destino": self.destino.id,
+                "torneo": self.torneo.id,
+            },
+        )
+
+        self.assertRedirects(response, reverse("prestamos"), fetch_redirect_response=False)
+        prestamo = Prestamo.objects.get(jugador=self.jugador)
+        self.jugador.refresh_from_db()
+        self.assertEqual(self.jugador.equipo, self.destino)
+        self.assertEqual(prestamo.equipo_origen, self.origen)
+        self.assertEqual(prestamo.fecha_inicio, self.torneo.fecha_inicio)
+        self.assertEqual(prestamo.fecha_fin, self.torneo.fecha_fin)
+        self.assertTrue(prestamo.activo)
+
+    def test_listado_finaliza_prestamo_vencido_y_devuelve_jugador(self):
+        self.jugador.equipo = self.destino
+        self.jugador.save()
+        prestamo = Prestamo.objects.create(
+            jugador=self.jugador,
+            equipo_origen=self.origen,
+            equipo_destino=self.destino,
+            torneo=self.torneo,
+            fecha_prestamo=timezone.localdate() - timedelta(days=10),
+            fecha_inicio=timezone.localdate() - timedelta(days=10),
+            fecha_fin=timezone.localdate() - timedelta(days=1),
+            activo=True,
+        )
+
+        response = self.client.get(reverse("prestamos"))
+
+        self.assertEqual(response.status_code, 200)
+        self.jugador.refresh_from_db()
+        prestamo.refresh_from_db()
+        self.assertEqual(self.jugador.equipo, self.origen)
+        self.assertFalse(prestamo.activo)
 
 
 @override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")

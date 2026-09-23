@@ -433,6 +433,49 @@ class Traspaso(models.Model):
     def __str__(self):
         return f"{self.jugador} de {self.equipo_origen} inscrito en el día ({self.fecha_inscripcion_anterior}) se traspasa a {self.equipo_destino} con fecha ({self.fecha_inscripcion_actual})"
 
+
+class Prestamo(models.Model):
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="prestamos"
+    )
+
+    equipo_origen = models.ForeignKey(
+        Equipo,
+        on_delete=models.CASCADE,
+        related_name="prestamos_salida"
+    )
+
+    equipo_destino = models.ForeignKey(
+        Equipo,
+        on_delete=models.CASCADE,
+        related_name="prestamos_entrada"
+    )
+
+    torneo = models.ForeignKey(
+        "Torneo",
+        on_delete=models.CASCADE,
+        related_name="prestamos"
+    )
+
+    fecha_prestamo = models.DateField(default=timezone.now)
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    activo = models.BooleanField(default=True)
+
+    def finalizar(self):
+        jugador = self.jugador
+        jugador.equipo = self.equipo_origen
+        jugador.save()
+
+        self.activo = False
+        self.save(update_fields=["activo"])
+
+    def __str__(self):
+        return f"{self.jugador} prestado de {self.equipo_origen} a {self.equipo_destino} para {self.torneo}"
+
+
 class Arbitro(models.Model):
     CATEGORIAS_CHOICES = [
         ('Amateur', 'Amateur'),

@@ -1,0 +1,79 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+    <div class="contenedor-tablas">
+        <div class="card-title">
+            <h1>Préstamos Actuales</h1>
+        </div>
+        <div class="card">
+            {% if hay_prestamos %}
+            <div class="equipo-listado-toolbar">
+                <form method="GET" class="equipo-busqueda">
+                    <input
+                        type="text"
+                        name="buscar"
+                        placeholder="Buscar préstamo..."
+                        value="{{ request.GET.buscar }}"
+                    >
+
+                    <button type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% if not prestamos %}
+                <p class="empty-message">No hay préstamos actuales para mostrar.</p>
+            {% else %}
+                <table class="tabla-responsive">
+                    <thead>
+                        <tr class="encabezado">
+                            <th>Nombre</th>
+                            {% if user.is_staff %}
+                                <th>Rut</th>
+                            {% endif %}
+                            <th>Equipo Origen</th>
+                            <th>Equipo Destino</th>
+                            <th>Campeonato</th>
+                            <th>Fecha Préstamo</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for prestamo in prestamos %}
+                        <tr>
+                            <td>{{ prestamo.jugador.nombre }}</td>
+                            {% if user.is_staff %}
+                                <td data-label="RUT">
+                                    {{ prestamo.jugador.rut_formateado }}
+                                </td>
+                            {% endif %}
+                            <td data-label="Equipo Origen">
+                                {{ prestamo.equipo_origen }}
+                            </td>
+                            <td data-label="Equipo Destino">
+                                {{ prestamo.equipo_destino }}
+                            </td>
+                            <td data-label="Campeonato">
+                                {{ prestamo.torneo }}
+                            </td>
+                            <td data-label="Fecha Préstamo">
+                                {{ prestamo.fecha_prestamo|date:"d/m/Y" }}
+                            </td>
+                            <td data-label="Inicio">
+                                {{ prestamo.fecha_inicio|date:"d/m/Y" }}
+                            </td>
+                            <td data-label="Fin">
+                                {{ prestamo.fecha_fin|date:"d/m/Y" }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

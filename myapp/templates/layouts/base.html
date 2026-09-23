@@ -95,6 +95,9 @@
                             <li>
                                 <a href="{% url 'ingresar_jugador' %}"><i class="fa fa-plus"></i> Crear jugador</a>
                             </li>
+                            <li>
+                                <a href="{% url 'jugadores_receso' %}"><i class="fa-solid fa-user-clock"></i> Jugadores en receso</a>
+                            </li>
                         </ul>
                     </li>
                     {% endif %}
@@ -124,6 +127,9 @@
                         <ul class="dropdown-content" aria-label="Menu de traspasos">
                             <li>
                                 <a href="{% url 'traspasos' %}"><i class="fa fa-eye"></i> Ver traspasos</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'prestamos' %}"><i class="fa-solid fa-handshake"></i> Ver préstamos</a>
                             </li>
                         </ul>
                     </li>

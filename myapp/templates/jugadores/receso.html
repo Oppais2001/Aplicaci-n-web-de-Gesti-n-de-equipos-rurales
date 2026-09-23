@@ -1,0 +1,167 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+    <div class="contenedor-tablas">
+        <div class="card-title">
+            <h1>Jugadores en Receso</h1>
+        </div>
+
+        <div class="card">
+            {% if hay_jugadores_receso %}
+                <div class="equipo-listado-toolbar">
+                    <form method="GET" class="equipo-busqueda">
+                        <input
+                            type="text"
+                            name="buscar"
+                            placeholder="Buscar jugador, equipo o liga..."
+                            value="{{ request.GET.buscar }}"
+                        >
+
+                        <button type="submit">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Buscar</span>
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {% if not jugadores %}
+                <p class="empty-message">No hay jugadores en receso para mostrar.</p>
+            {% else %}
+                <table class="tabla-responsive">
+                    <thead>
+                        <tr class="encabezado">
+                            <th>Nombre</th>
+                            <th>RUT</th>
+                            <th>Equipo</th>
+                            <th>Liga</th>
+                            <th>F. Inscrip.</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for jugador in jugadores %}
+                        <tr>
+                            <td>{{ jugador.nombre }}</td>
+                            <td data-label="RUT">
+                                {{ jugador.rut_formateado }}
+                            </td>
+                            <td data-label="Equipo">
+                                {{ jugador.equipo }}
+                            </td>
+                            <td data-label="Liga">
+                                {{ jugador.equipo.liga }}
+                            </td>
+                            <td data-label="F. Inscrip.">
+                                {{ jugador.fecha_inscripcion|date:"d/m/Y" }}
+                            </td>
+                            <td>
+                                <button
+                                    class="btn ver"
+                                    title="Reactivar"
+                                    onclick='confirmarReactivar(
+                                        "{{ jugador.nombre }}",
+                                        "{{ jugador.id }}"
+                                    )'
+                                >
+                                    <i class="fa-solid fa-user-check"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+
+<script>
+function confirmarReactivar(nombre, id) {
+
+    Swal.fire({
+
+        title: '¿Reactivar jugador?',
+
+        text:
+            'El jugador "' +
+            nombre +
+            '" volverá a estar disponible para jugar, prestarse y traspasarse.',
+
+        icon: 'question',
+
+        showCancelButton: true,
+
+        confirmButtonText: 'Sí, reactivar',
+
+        cancelButtonText: 'Cancelar'
+
+    }).then((result) => {
+
+        if (result.isConfirmed) {
+
+            fetch(
+                "/jugadores/reactivar/" +
+                id +
+                "/",
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": obtenerCSRFToken()
+                    }
+                }
+            )
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.success) {
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Jugador reactivado',
+                        timer: 1200,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+
+                }
+
+            });
+
+        }
+
+    });
+
+}
+
+function obtenerCSRFToken(){
+
+    let cookieValue = null;
+
+    const cookies =
+        document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+
+        const cookie =
+            cookies[i].trim();
+
+        if(
+            cookie.startsWith(
+                'csrftoken='
+            )
+        ){
+
+            cookieValue =
+                cookie.substring(
+                    'csrftoken='.length
+                );
+
+            break;
+        }
+    }
+
+    return cookieValue;
+}
+</script>
+{% endblock %}

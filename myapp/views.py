@@ -10,11 +10,12 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Dirigente, Equipo, Jugador, Traspaso, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo
+from .models import Dirigente, Equipo, Jugador, Traspaso, Prestamo, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo
 from .forms import (
     Editar_Dirigentes,
     Editar_Traspaso,
@@ -24,6 +25,7 @@ from .forms import (
     Ingresar_Jugadores,
     Ingresar_Liga,
     LigaRedSocialFormSet,
+    Realizar_Prestamo,
     Realizar_Traspasos,
     Ingresar_Arbitros,
     Ingresar_Canchas,
@@ -686,18 +688,32 @@ def detalle_equipo(request, equipo):
         puede_descargar_planilla = False 
         
     buscar = request.GET.get('buscar')
-    jugadores_totales = Jugador.objects.filter(equipo=equipo)
+    jugadores_totales = Jugador.objects.filter(
+        equipo=equipo,
+        activo=True
+    )
 
     if buscar:
-        jugadores = Jugador.objects.filter(nombre__icontains=buscar, equipo=equipo)
+        jugadores = Jugador.objects.filter(
+            nombre__icontains=buscar,
+            equipo=equipo,
+            activo=True
+        )
     else:
-        jugadores = Jugador.objects.filter(equipo=equipo)
+        jugadores = Jugador.objects.filter(
+            equipo=equipo,
+            activo=True
+        )
 
     return render(request, "equipos/detalle_equipo.html", {
         "jugadores": jugadores,
         "equipo": equipo,
         "puede_ver_rut": puede_ver_rut,
         "puede_descargar_planilla": puede_descargar_planilla,
+        "jugadores_receso": Jugador.objects.filter(
+            equipo=equipo,
+            activo=False
+        ).count(),
         'hay_jugadores': jugadores_totales.exists()
     }) 
 
@@ -727,10 +743,64 @@ def eliminar_jugador(request, rut):
     jugador.delete()
     return redirect('detalle_equipo', equipo=equipo)
 
+
+@admin_required
+def jugadores_receso(request):
+    buscar = request.GET.get("buscar")
+    jugadores = Jugador.objects.select_related(
+        "equipo",
+        "equipo__liga"
+    ).filter(
+        activo=False
+    ).order_by("equipo__nombre", "nombre")
+
+    hay_jugadores_receso = jugadores.exists()
+
+    if buscar:
+        jugadores = jugadores.filter(
+            Q(nombre__icontains=buscar)
+            | Q(rut__icontains=buscar)
+            | Q(equipo__nombre__icontains=buscar)
+            | Q(equipo__liga__nombre__icontains=buscar)
+        )
+
+    return render(request, "jugadores/receso.html", {
+        "jugadores": jugadores,
+        "hay_jugadores_receso": hay_jugadores_receso
+    })
+
+
+@admin_required
+@require_POST
+def enviar_jugador_receso(request, id):
+    jugador = get_object_or_404(Jugador, id=id)
+    jugador.activo = False
+    jugador.save(update_fields=["activo"])
+
+    return JsonResponse({
+        "success": True
+    })
+
+
+@admin_required
+@require_POST
+def reactivar_jugador(request, id):
+    jugador = get_object_or_404(Jugador, id=id)
+    jugador.activo = True
+    jugador.save(update_fields=["activo"])
+
+    return JsonResponse({
+        "success": True
+    })
+
 # TRASPASOS
 @admin_required
 def realizar_traspaso(request, id_jugador):
     jugador = get_object_or_404(Jugador, id = id_jugador)
+
+    if not jugador.activo:
+        messages.error(request, "No puedes traspasar a un jugador en receso.")
+        return redirect("detalle_equipo", equipo=jugador.equipo.nombre)
 
     if request.method == "POST":
         form = Realizar_Traspasos(request.POST,
@@ -838,6 +908,75 @@ def eliminar_traspaso(request, id):
     return JsonResponse({
 
         'success': True
+    })
+
+
+def finalizar_prestamos_vencidos():
+    prestamos_vencidos = (
+        Prestamo.objects
+        .select_related("jugador", "equipo_origen", "equipo_destino")
+        .filter(
+            activo=True,
+            fecha_fin__lt=timezone.localdate()
+        )
+    )
+
+    for prestamo in prestamos_vencidos:
+        prestamo.finalizar()
+
+
+@admin_required
+def realizar_prestamo(request, id_jugador):
+    finalizar_prestamos_vencidos()
+    jugador = get_object_or_404(Jugador, id=id_jugador)
+
+    if not jugador.activo:
+        messages.error(request, "No puedes prestar a un jugador en receso.")
+        return redirect("detalle_equipo", equipo=jugador.equipo.nombre)
+
+    if request.method == "POST":
+        form = Realizar_Prestamo(
+            request.POST,
+            jugador=jugador
+        )
+
+        if form.is_valid():
+            form.save()
+            return redirect("prestamos")
+    else:
+        form = Realizar_Prestamo(jugador=jugador)
+
+    return render(request, "prestamos/realizar_prestamo.html", {
+        "form": form,
+        "jugador": jugador
+    })
+
+
+def prestamos(request):
+    finalizar_prestamos_vencidos()
+    buscar = request.GET.get("buscar")
+    prestamos = Prestamo.objects.select_related(
+        "jugador",
+        "equipo_origen",
+        "equipo_destino",
+        "torneo",
+    ).filter(
+        activo=True
+    ).order_by("fecha_fin", "jugador__nombre")
+
+    hay_prestamos = prestamos.exists()
+
+    if buscar:
+        prestamos = prestamos.filter(
+            Q(jugador__nombre__icontains=buscar)
+            | Q(equipo_origen__nombre__icontains=buscar)
+            | Q(equipo_destino__nombre__icontains=buscar)
+            | Q(torneo__nombre__icontains=buscar)
+        )
+
+    return render(request, "prestamos/prestamos.html", {
+        "prestamos": prestamos,
+        "hay_prestamos": hay_prestamos
     })
     
 

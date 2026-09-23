@@ -23,8 +23,9 @@
 
     <div class="card">
 
-        {% if hay_jugadores %}
+        {% if hay_jugadores or jugadores_receso %}
             <div class="equipo-listado-toolbar">
+            {% if hay_jugadores %}
             <form method="GET" class="equipo-busqueda">
                 <input
                     type="text"
@@ -36,13 +37,21 @@
                 <button type="submit">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Buscar</span>
-                </button>
-            </form>
+                    </button>
+                </form>
+            {% endif %}
 
             {% if puede_descargar_planilla %}
                 <a href="{% url 'crear_pdf_detalle_equipo' equipo.id %}" class="btn descargar">
                     <i class="fa-solid fa-file-arrow-down"></i>
                     <span>Descargar Planilla</span>
+                </a>
+            {% endif %}
+
+            {% if user.is_staff and jugadores_receso %}
+                <a href="{% url 'jugadores_receso' %}?buscar={{ equipo.nombre|urlencode }}" class="btn ver">
+                    <i class="fa-solid fa-user-clock"></i>
+                    <span>En receso: {{ jugadores_receso }}</span>
                 </a>
             {% endif %}
             </div>
@@ -114,6 +123,17 @@
                                     </button>
 
                                     <button
+                                        class="btn ver"
+                                        title="Realizar Préstamo"
+
+                                        onclick="
+                                            window.location='/prestamos/{{ jugador.id }}/'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-handshake"></i>
+                                    </button>
+
+                                    <button
                                         class="btn editar"
                                         title="Editar"
 
@@ -135,6 +155,20 @@
                                     >
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
+
+                                    {% if user.is_staff %}
+                                        <button
+                                            onclick='confirmarReceso(
+                                                "{{ jugador.nombre }}",
+                                                "{{ jugador.id }}"
+                                            )'
+
+                                            class="btn eliminar"
+                                            title="Enviar a receso"
+                                        >
+                                            <i class="fa-solid fa-user-clock"></i>
+                                        </button>
+                                    {% endif %}
 
                                 </td>
 
@@ -230,6 +264,94 @@ function confirmarEliminar(nombre, rut) {
 
     });
 
+}
+
+function confirmarReceso(nombre, id) {
+
+    Swal.fire({
+
+        title: '¿Enviar a receso?',
+
+        text:
+            'El jugador "' +
+            nombre +
+            '" seguirá en el equipo, pero no podrá jugar, traspasarse ni prestarse.',
+
+        icon: 'warning',
+
+        showCancelButton: true,
+
+        confirmButtonText: 'Sí, enviar',
+
+        cancelButtonText: 'Cancelar'
+
+    }).then((result) => {
+
+        if (result.isConfirmed) {
+
+            fetch(
+                "/jugadores/receso/" +
+                id +
+                "/",
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": obtenerCSRFToken()
+                    }
+                }
+            )
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.success) {
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Jugador en receso',
+                        timer: 1200,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+
+                }
+
+            });
+
+        }
+
+    });
+
+}
+
+function obtenerCSRFToken(){
+
+    let cookieValue = null;
+
+    const cookies =
+        document.cookie.split(';');
+
+    for(let i = 0; i < cookies.length; i++){
+
+        const cookie =
+            cookies[i].trim();
+
+        if(
+            cookie.startsWith(
+                'csrftoken='
+            )
+        ){
+
+            cookieValue =
+                cookie.substring(
+                    'csrftoken='.length
+                );
+
+            break;
+        }
+    }
+
+    return cookieValue;
 }
 
 </script>

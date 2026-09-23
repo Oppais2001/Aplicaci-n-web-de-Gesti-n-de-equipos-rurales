@@ -2,8 +2,9 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet, inlineformset_factory
+from django.utils import timezone
 
-from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Cancha, Partido, TarjetaPartido, Torneo, GolPartido
+from .models import Arbitro, Dirigente, Equipo, Jugador, Liga, RedSocial, Traspaso, Prestamo, Cancha, Partido, TarjetaPartido, Torneo, GolPartido
 from .utils import (
     calculate_age,
     validate_address,
@@ -504,6 +505,9 @@ class Realizar_Traspasos(forms.ModelForm):
         if not self.jugador:
             raise ValidationError("No se encontro el jugador para realizar el traspaso.")
 
+        if not self.jugador.activo:
+            raise ValidationError("No puedes traspasar a un jugador en receso.")
+
         if self.jugador.equipo == equipo_destino:
             raise ValidationError("El jugador ya pertenece a ese equipo.")
 
@@ -565,6 +569,68 @@ class Editar_Traspaso(forms.ModelForm):
             jugador.save()
 
         return traspaso
+
+
+class Realizar_Prestamo(forms.ModelForm):
+    class Meta:
+        model = Prestamo
+        fields = ["equipo_destino", "torneo"]
+        labels = {
+            "equipo_destino": "EQUIPO DESTINO",
+            "torneo": "CAMPEONATO",
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.jugador = kwargs.pop("jugador", None)
+        super().__init__(*args, **kwargs)
+        self.fields["torneo"].queryset = Torneo.objects.order_by("-fecha_inicio", "nombre")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        equipo_destino = cleaned_data.get("equipo_destino")
+        torneo = cleaned_data.get("torneo")
+
+        if not equipo_destino or not torneo:
+            return cleaned_data
+
+        if not self.jugador:
+            raise ValidationError("No se encontro el jugador para realizar el prestamo.")
+
+        if not self.jugador.activo:
+            raise ValidationError("No puedes prestar a un jugador en receso.")
+
+        if self.jugador.equipo == equipo_destino:
+            raise ValidationError("El jugador ya pertenece a ese equipo.")
+
+        if Prestamo.objects.filter(jugador=self.jugador, activo=True).exists():
+            raise ValidationError("El jugador ya tiene un prestamo activo.")
+
+        if torneo.fecha_fin < timezone.localdate():
+            raise ValidationError("No puedes prestar jugadores a un campeonato finalizado.")
+
+        if not torneo.equipos.filter(pk=equipo_destino.pk).exists():
+            raise ValidationError("El equipo destino debe participar en el campeonato seleccionado.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        prestamo = super().save(commit=False)
+        jugador = self.jugador
+        torneo = prestamo.torneo
+
+        prestamo.jugador = jugador
+        prestamo.equipo_origen = jugador.equipo
+        prestamo.fecha_prestamo = timezone.localdate()
+        prestamo.fecha_inicio = torneo.fecha_inicio
+        prestamo.fecha_fin = torneo.fecha_fin
+        prestamo.activo = True
+
+        if commit:
+            prestamo.save()
+            jugador.equipo = prestamo.equipo_destino
+            jugador.save()
+
+        return prestamo
 
 
 class Ingresar_Liga(forms.ModelForm):
