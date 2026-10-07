@@ -1224,24 +1224,74 @@ def detalle_torneo(request, id_torneo):
 
     tabla_posiciones = calcular_tabla_posiciones(torneo)
     partidos_programados = torneo.partidos.filter(goles_local__isnull=True, goles_visitante__isnull=True).select_related(
+        "torneo",
         "equipo_local",
         "equipo_visitante",
         "cancha"
     ).order_by("fecha", "hora")
     partidos_jugados = torneo.partidos.filter(goles_local__isnull=False, goles_visitante__isnull=False).select_related(
+        "torneo",
         "equipo_local",
         "equipo_visitante",
         "cancha"
-    ).order_by("fecha", "hora")
-    
-    print(partidos_programados)
-    print(partidos_jugados)
+    ).prefetch_related(
+        "goles__equipo",
+        "goles__jugador",
+        "tarjetas__equipo",
+        "tarjetas__jugador",
+    ).order_by("-fecha", "-hora")
+
+    fechas_por_dia = []
+    fecha_actual = None
+    grupo_actual = None
+
+    for partido in partidos_programados:
+        if partido.fecha != fecha_actual:
+            etiqueta = "Fecha actual" if not fechas_por_dia else "Fecha siguiente"
+
+            if len(fechas_por_dia) >= 2:
+                etiqueta = f"Fecha {len(fechas_por_dia) + 1}"
+
+            grupo_actual = {
+                "fecha": partido.fecha,
+                "fecha_texto": partido.fecha_exacta,
+                "etiqueta": etiqueta,
+                "partidos": [],
+            }
+            fechas_por_dia.append(grupo_actual)
+            fecha_actual = partido.fecha
+
+        grupo_actual["partidos"].append(partido)
+
+    partidos_por_dia = []
+    fecha_actual = None
+    grupo_actual = None
+
+    for partido in partidos_jugados:
+        if partido.fecha != fecha_actual:
+            etiqueta = "Fecha actual" if not partidos_por_dia else "Fecha anterior"
+
+            if len(partidos_por_dia) >= 2:
+                etiqueta = f"Fecha anterior {len(partidos_por_dia)}"
+
+            grupo_actual = {
+                "fecha": partido.fecha,
+                "fecha_texto": partido.fecha_exacta,
+                "etiqueta": etiqueta,
+                "partidos": [],
+            }
+            partidos_por_dia.append(grupo_actual)
+            fecha_actual = partido.fecha
+
+        grupo_actual["partidos"].append(partido)
 
     return render(request, "torneos/detalle_torneo.html", {
         "torneo": torneo,
         "tabla_posiciones": tabla_posiciones,
         "partidos_programados": partidos_programados,
-        "partidos_jugados":partidos_jugados
+        "partidos_jugados": partidos_jugados,
+        "fechas_por_dia": fechas_por_dia,
+        "partidos_por_dia": partidos_por_dia,
     })
 
 
