@@ -1491,6 +1491,13 @@ def _datos_partido_para_widget(partidos):
 
     return equipos_por_partido, jugadores_por_equipo
 
+
+def _aplicar_resultado_en_memoria(partido, cleaned_data):
+    partido.goles_local = cleaned_data["goles_local"]
+    partido.goles_visitante = cleaned_data["goles_visitante"]
+    partido.descripcion = cleaned_data.get("descripcion", "")
+    return partido
+
 @admin_required
 def ingresar_partido(request):
 
@@ -1501,7 +1508,10 @@ def ingresar_partido(request):
         partido = None
 
         if form.is_valid():
-            partido = form.cleaned_data["partido"]
+            partido = _aplicar_resultado_en_memoria(
+                form.cleaned_data["partido"],
+                form.cleaned_data
+            )
 
         tarjetas_formset = TarjetaPartidoFormSet(
             request.POST,
@@ -1583,6 +1593,11 @@ def lista_partidos(request):
         'equipo_local',
         'equipo_visitante',
         'cancha'
+    ).prefetch_related(
+        'goles__equipo',
+        'goles__jugador',
+        'tarjetas__equipo',
+        'tarjetas__jugador'
     ).filter(
         goles_local__isnull=False,
         goles_visitante__isnull=False
@@ -1656,6 +1671,12 @@ def editar_partido(request, id):
             request.POST,
             instance=partido
         )
+
+        if form.is_valid():
+            partido = _aplicar_resultado_en_memoria(
+                partido,
+                form.cleaned_data
+            )
 
         tarjetas_formset = TarjetaPartidoFormSet(
             request.POST,
@@ -1735,6 +1756,9 @@ def editar_partido(request, id):
 
             "tarjetas_jugadores_por_equipo":
                 jugadores_por_equipo,
+
+            "tarjetas_partido_actual_id":
+                partido.pk,
         }
     )
 @admin_required

@@ -1,4 +1,8 @@
-<div class="tarjetas-widget" data-prefix="{{ tarjetas_formset.prefix }}">
+<div
+    class="tarjetas-widget"
+    data-prefix="{{ tarjetas_formset.prefix }}"
+    data-partido-actual="{{ tarjetas_partido_actual_id|default:'' }}"
+>
 
     <div class="tarjetas-widget-header">
         <h3>Tarjetas del partido</h3>

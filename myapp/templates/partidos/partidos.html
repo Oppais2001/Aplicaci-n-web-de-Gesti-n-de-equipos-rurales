@@ -49,13 +49,12 @@
                                     <th>Visitante</th>
                                     <th> Torneo</th>
                                     <th>Fecha</th>
-                                    {% if user.is_staff %}
-                                        <th>Acciones</th>
-                                    {% endif %}
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for partido in grupo.partidos %}
+                                {% with goles=partido.goles.all tarjetas=partido.tarjetas.all %}
                                 <tr id="fila-{{ partido.id }}">                            
                                     <td class="col-local" data-label="Local">
                                         <div class="equipo-info">
@@ -77,7 +76,11 @@
                                         </div>
                                     </td>
 
-                                    <td class="col-resultado" data-label="Resultado">{{ partido.resultado }}</td>
+                                    <td class="col-resultado" data-label="Resultado">
+                                        <div class="resultado-con-detalle">
+                                            <span>{{ partido.resultado }}</span>
+                                        </div>
+                                    </td>
                                  
                                     <td class="col-visitante" data-label="Visitante">
                                         <div class="equipo-info">
@@ -100,8 +103,20 @@
                                     <td class="col-torneo" data-label="Campeonato">{{ partido.torneo|default:"-" }}</td>
 
                                     <td class="col-fecha" data-label="Fecha">{{ partido.fecha_hora }}</td>
-                                    {% if user.is_staff %}
                                         <td class="col-acciones" data-label="Acciones">
+                                            {% if goles or tarjetas %}
+                                            <button
+                                                type="button"
+                                                class="btn editar btn-detalles-partido"
+                                                data-detalle-id="{{ partido.id }}"
+                                                aria-controls="detalle-{{ partido.id }}"
+                                                aria-expanded="false"
+                                                title="Ver detalles"
+                                            >
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% if user.is_staff %}
                                             <button class="btn editar" title="Editar"
                                             onclick="window.location='/partidos/editar/{{ partido.id }}/'">
                                                 <i class="fa-solid fa-pen"></i>
@@ -111,9 +126,108 @@
                                             class="btn eliminar" title="Eliminar">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
+                                            {% endif %}
                                         </td>
-                                    {% endif %}
                                 </tr>
+                                    {% if goles or tarjetas %}
+                                        <tr
+                                            class="fila-detalle-partido"
+                                            id="detalle-{{ partido.id }}"
+                                            hidden
+                                        >
+                                            <td colspan="3">
+                                                <div class="detalle-partido">
+                                                    <section class="detalle-equipo detalle-local">
+                                                        <ul>
+                                                            {% for gol in goles %}
+                                                                {% if partido.equipo_local == gol.equipo %}
+                                                                    <li class="detalle-evento detalle-gol">
+                                                                        <span>
+                                                                            {% if gol.jugador %}
+                                                                                {{ gol.jugador.nombre_simplificado }}
+                                                                            {% else %}
+                                                                                Goleador no registrado
+                                                                            {% endif %}
+                                                                            {% if gol.minuto %}
+                                                                                · {{ gol.minuto }}'
+                                                                            {% endif %}
+                                                                            {% if gol.autogol %}
+                                                                                · Autogol
+                                                                            {% endif %}
+                                                                        </span>
+                                                                        <i class="fa-solid fa-futbol"></i>
+                                                                    </li>
+                                                                {% endif %}
+                                                            {% endfor %}
+
+                                                            {% for tarjeta in tarjetas %}
+                                                                {% if partido.equipo_local == tarjeta.equipo %}
+                                                                    {% if tarjeta.get_tipo_tarjeta_display == 'Amarilla' %}
+                                                                        <li class="detalle-evento detalle-tarjeta">
+                                                                            <span>
+                                                                                {{ tarjeta.jugador.nombre_simplificado }}
+                                                                                · {{ tarjeta.get_tipo_tarjeta_display }}
+                                                                            </span>
+                                                                            <i class="fa-solid fa-square"></i>
+                                                                        </li>
+                                                                    {% else %}
+                                                                        <li class="detalle-evento detalle-tarjeta-roja">
+                                                                            <span>
+                                                                                {{ tarjeta.jugador.nombre_simplificado }}
+                                                                                · {{ tarjeta.get_tipo_tarjeta_display }}
+                                                                            </span>
+                                                                            <i class="fa-solid fa-square"></i>
+                                                                        </li>
+                                                                    {% endif %}
+
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </section>
+
+                                                    <div class="detalle-centro" aria-hidden="true"></div>
+
+                                                    <section class="detalle-equipo detalle-visitante">
+                                                        <ul>
+                                                            {% for gol in goles %}
+                                                                {% if partido.equipo_visitante == gol.equipo %}
+                                                                    <li class="detalle-evento detalle-gol">
+                                                                        <i class="fa-solid fa-futbol"></i>
+                                                                        <span>
+                                                                            {% if gol.jugador %}
+                                                                                {{ gol.jugador.nombre_simplificado }}
+                                                                            {% else %}
+                                                                                Goleador no registrado
+                                                                            {% endif %}
+                                                                            {% if gol.minuto %}
+                                                                                · {{ gol.minuto }}'
+                                                                            {% endif %}
+                                                                            {% if gol.autogol %}
+                                                                                · Autogol
+                                                                            {% endif %}
+                                                                        </span>
+                                                                    </li>
+                                                                {% endif %}
+                                                            {% endfor %}
+
+                                                            {% for tarjeta in tarjetas %}
+                                                                {% if partido.equipo_visitante == tarjeta.equipo %}
+                                                                    <li class="detalle-evento detalle-tarjeta">
+                                                                        <i class="fa-solid fa-square"></i>
+                                                                        <span>
+                                                                            {{ tarjeta.jugador.nombre_simplificado }}
+                                                                            · {{ tarjeta.get_tipo_tarjeta_display }}
+                                                                        </span>
+                                                                    </li>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </section>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endwith %}
                             {% endfor %}
                             </tbody>
                         </table>
@@ -150,7 +264,16 @@ function confirmarEliminar(id) {
                         showConfirmButton: false
                     });
 
-                    document.getElementById('fila-' + id).remove();
+                    const fila = document.getElementById('fila-' + id);
+                    const detalle = document.getElementById('detalle-' + id);
+
+                    if (fila) {
+                        fila.remove();
+                    }
+
+                    if (detalle) {
+                        detalle.remove();
+                    }
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -178,6 +301,29 @@ function obtenerCSRFToken(){
 
     return cookieValue;
 }
+
+document.querySelectorAll('.btn-detalles-partido').forEach((boton) => {
+    boton.addEventListener('click', () => {
+        const detalle = document.getElementById(
+            'detalle-' + boton.dataset.detalleId
+        );
+
+        if (!detalle) {
+            return;
+        }
+
+        const estaOculto = detalle.hasAttribute('hidden');
+        if (estaOculto) {
+            detalle.removeAttribute('hidden');
+            boton.setAttribute('aria-expanded', 'true');
+            boton.setAttribute('title', 'Ocultar detalles');
+        } else {
+            detalle.setAttribute('hidden', '');
+            boton.setAttribute('aria-expanded', 'false');
+            boton.setAttribute('title', 'Ver detalles');
+        }
+    });
+});
 </script>
 <style>
     .fecha-grupo {
@@ -217,6 +363,87 @@ function obtenerCSRFToken(){
         white-space: nowrap;
         text-align: center;
     }
+
+    .resultado-con-detalle {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .btn-detalles-partido[aria-expanded="true"] {
+        filter: brightness(1.18);
+    }
+
+    .fila-detalle-partido[hidden] {
+        display: none !important;
+    }
+
+    .fila-detalle-partido td {
+        background: rgba(255, 255, 255, 0.03);
+        border-top: none;
+        padding: 0.75rem 1rem 1rem;
+    }
+
+    .detalle-partido {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+        width: 100%;
+    }
+
+    .detalle-equipo ul {
+        display: grid;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .detalle-evento {
+        align-items: center;
+        color: var(--texto-secundario);
+        display: flex;
+        gap: 0.4rem;
+        min-width: 0;
+    }
+
+    .detalle-evento span {
+        overflow-wrap: anywhere;
+    }
+
+    .detalle-local {
+        text-align: left;
+    }
+
+    .detalle-local .detalle-evento {
+        justify-content: flex-start;
+    }
+
+    .detalle-visitante {
+        text-align: right;
+    }
+
+    .detalle-visitante .detalle-evento {
+        justify-content: flex-end;
+    }
+
+    .detalle-centro {
+        width: 3.5rem;
+    }
+
+    .detalle-gol i {
+        color: var(--color-principal);
+    }
+
+    .detalle-tarjeta i {
+        color: #f1c40f;
+    }
+
+    .detalle-tarjeta-roja i {
+        color: brown;
+    }
+
     .equipo-info{
 
         display:flex;
@@ -355,6 +582,29 @@ function obtenerCSRFToken(){
             width: 100%;
         }
 
+        .tabla-datos tbody .fila-detalle-partido {
+            border-top: 0;
+            display: block !important;
+            margin-top: -14px;
+        }
+
+        .tabla-datos tbody .fila-detalle-partido[hidden] {
+            display: none !important;
+        }
+
+        .tabla-datos tbody .fila-detalle-partido td {
+            display: block;
+            padding: 12px;
+        }
+
+        .tabla-datos tbody .fila-detalle-partido td::before {
+            display: none;
+        }
+
+        .detalle-partido {
+            grid-template-columns: 1fr;
+        }
+
 
         /* =========================
         LOCAL
@@ -396,6 +646,15 @@ function obtenerCSRFToken(){
             text-align: center;
 
             font-weight: bold;
+        }
+
+        .resultado-con-detalle {
+            gap: 0.35rem;
+        }
+
+        .btn-detalles-partido {
+            font-size: 0.72rem;
+            padding: 0.25rem 0.4rem;
         }
 
 

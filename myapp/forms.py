@@ -1602,6 +1602,8 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
                     "Los goles deben pertenecer a uno de los equipos del partido."
                 )
 
+            contador_goles[equipo.pk] += 1
+
             if not jugador:
                 continue
 
@@ -1621,25 +1623,23 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
                         f"El autogol de {jugador} debe beneficiar al equipo contrario."
                     )
 
-            contador_goles[equipo.pk] += 1
-
-        # Si el partido ya tiene resultado, comprobar que la cantidad
-        # de registros de goles coincida con el marcador.
+        # Los goleadores son opcionales: se puede registrar ninguno,
+        # algunos o todos. Solo impedimos registrar más goles que el marcador.
         if partido.goles_local is not None:
 
-            if contador_goles.get(partido.equipo_local_id, 0) != partido.goles_local:
+            if contador_goles.get(partido.equipo_local_id, 0) > partido.goles_local:
                 raise ValidationError(
                     f"El equipo local tiene {partido.goles_local} goles "
-                    f"en el marcador, pero se registraron "
+                    f"en el marcador, pero se intentaron registrar "
                     f"{contador_goles.get(partido.equipo_local_id, 0)}."
                 )
 
         if partido.goles_visitante is not None:
 
-            if contador_goles.get(partido.equipo_visitante_id, 0) != partido.goles_visitante:
+            if contador_goles.get(partido.equipo_visitante_id, 0) > partido.goles_visitante:
                 raise ValidationError(
                     f"El equipo visitante tiene {partido.goles_visitante} goles "
-                    f"en el marcador, pero se registraron "
+                    f"en el marcador, pero se intentaron registrar "
                     f"{contador_goles.get(partido.equipo_visitante_id, 0)}."
                 )
 

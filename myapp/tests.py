@@ -5,7 +5,17 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Dirigente, Equipo, Jugador, Liga, Partido, Prestamo, Torneo
+from .models import (
+    Dirigente,
+    Equipo,
+    GolPartido,
+    Jugador,
+    Liga,
+    Partido,
+    Prestamo,
+    TarjetaPartido,
+    Torneo,
+)
 from .views import crear_usuario_para_dirigente
 
 
@@ -210,6 +220,16 @@ class PartidosJugadosTests(TestCase):
         self.local = Equipo.objects.create(nombre="Local Jugado", liga=self.liga)
         self.visita = Equipo.objects.create(nombre="Visita Jugado", liga=self.liga)
         self.otro = Equipo.objects.create(nombre="Otro Jugado", liga=self.liga)
+        self.jugador_local = Jugador.objects.create(
+            nombre="Jugador Local Uno",
+            rut="11111111-1",
+            equipo=self.local,
+        )
+        self.jugador_visita = Jugador.objects.create(
+            nombre="Jugador Visita Uno",
+            rut="22222222-2",
+            equipo=self.visita,
+        )
 
     def test_lista_partidos_agrupa_partidos_jugados_por_dia(self):
         Partido.objects.create(
@@ -237,6 +257,41 @@ class PartidosJugadosTests(TestCase):
         self.assertContains(response, "Fecha anterior")
         self.assertEqual(len(response.context["partidos_por_dia"]), 2)
 
+    def test_lista_partidos_muestra_goleadores_y_tarjetas(self):
+        partido = Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=1,
+            goles_visitante=0,
+        )
+        GolPartido.objects.create(
+            partido=partido,
+            equipo=self.local,
+            jugador=self.jugador_local,
+            minuto=23,
+        )
+        TarjetaPartido.objects.create(
+            partido=partido,
+            equipo=self.visita,
+            jugador=self.jugador_visita,
+            tipo_tarjeta="amarilla",
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("partidos"))
+
+        self.assertContains(response, 'class="btn-detalles-partido"')
+        self.assertContains(response, f'id="detalle-{partido.pk}"')
+        self.assertContains(response, "hidden")
+        self.assertContains(response, "Goles")
+        self.assertContains(response, "Tarjetas")
+        self.assertContains(response, "Jugador Local Uno")
+        self.assertContains(response, "23")
+        self.assertContains(response, "Jugador Visita Uno")
+        self.assertContains(response, "Amarilla")
+
     def test_descargar_partidos_dia_imagen_devuelve_png(self):
         Partido.objects.create(
             equipo_local=self.local,
@@ -253,3 +308,139 @@ class PartidosJugadosTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "image/png")
+
+    def test_editar_partido_permite_agregar_goles_y_tarjetas(self):
+        partido = Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=0,
+            goles_visitante=0,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("editar_partido", args=[partido.pk]),
+            {
+                "goles_local": "1",
+                "goles_visitante": "0",
+                "descripcion": "Resultado corregido",
+                "goles-TOTAL_FORMS": "1",
+                "goles-INITIAL_FORMS": "0",
+                "goles-MIN_NUM_FORMS": "0",
+                "goles-MAX_NUM_FORMS": "1000",
+                "goles-0-equipo": str(self.local.pk),
+                "goles-0-jugador": str(self.jugador_local.pk),
+                "goles-0-minuto": "23",
+                "tarjetas-TOTAL_FORMS": "1",
+                "tarjetas-INITIAL_FORMS": "0",
+                "tarjetas-MIN_NUM_FORMS": "0",
+                "tarjetas-MAX_NUM_FORMS": "1000",
+                "tarjetas-0-equipo": str(self.visita.pk),
+                "tarjetas-0-jugador": str(self.jugador_visita.pk),
+                "tarjetas-0-tipo_tarjeta": "amarilla",
+            },
+        )
+
+        self.assertRedirects(response, reverse("partidos"))
+        partido.refresh_from_db()
+        self.assertEqual(partido.goles_local, 1)
+        self.assertEqual(partido.goles_visitante, 0)
+        self.assertEqual(partido.descripcion, "Resultado corregido")
+        self.assertEqual(GolPartido.objects.filter(partido=partido).count(), 1)
+        self.assertEqual(TarjetaPartido.objects.filter(partido=partido).count(), 1)
+
+    def test_editar_partido_permite_marcador_sin_registrar_goleadores(self):
+        partido = Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=0,
+            goles_visitante=0,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("editar_partido", args=[partido.pk]),
+            {
+                "goles_local": "3",
+                "goles_visitante": "1",
+                "descripcion": "Sin detalle de goleadores",
+                "goles-TOTAL_FORMS": "0",
+                "goles-INITIAL_FORMS": "0",
+                "goles-MIN_NUM_FORMS": "0",
+                "goles-MAX_NUM_FORMS": "1000",
+                "tarjetas-TOTAL_FORMS": "0",
+                "tarjetas-INITIAL_FORMS": "0",
+                "tarjetas-MIN_NUM_FORMS": "0",
+                "tarjetas-MAX_NUM_FORMS": "1000",
+            },
+        )
+
+        self.assertRedirects(response, reverse("partidos"))
+        partido.refresh_from_db()
+        self.assertEqual(partido.goles_local, 3)
+        self.assertEqual(partido.goles_visitante, 1)
+        self.assertEqual(GolPartido.objects.filter(partido=partido).count(), 0)
+
+    def test_editar_partido_no_permite_mas_goles_detallados_que_marcador(self):
+        partido = Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=0,
+            goles_visitante=0,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("editar_partido", args=[partido.pk]),
+            {
+                "goles_local": "1",
+                "goles_visitante": "0",
+                "descripcion": "",
+                "goles-TOTAL_FORMS": "2",
+                "goles-INITIAL_FORMS": "0",
+                "goles-MIN_NUM_FORMS": "0",
+                "goles-MAX_NUM_FORMS": "1000",
+                "goles-0-equipo": str(self.local.pk),
+                "goles-0-jugador": str(self.jugador_local.pk),
+                "goles-0-minuto": "23",
+                "goles-1-equipo": str(self.local.pk),
+                "goles-1-jugador": str(self.jugador_local.pk),
+                "goles-1-minuto": "34",
+                "tarjetas-TOTAL_FORMS": "0",
+                "tarjetas-INITIAL_FORMS": "0",
+                "tarjetas-MIN_NUM_FORMS": "0",
+                "tarjetas-MAX_NUM_FORMS": "1000",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "El equipo local tiene 1 goles en el marcador",
+        )
+        self.assertEqual(GolPartido.objects.filter(partido=partido).count(), 0)
+
+    def test_editar_partido_entrega_partido_actual_al_widget_tarjetas(self):
+        partido = Partido.objects.create(
+            equipo_local=self.local,
+            equipo_visitante=self.visita,
+            fecha=date(2026, 9, 13),
+            hora=time(15, 0),
+            goles_local=0,
+            goles_visitante=0,
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(reverse("editar_partido", args=[partido.pk]))
+
+        self.assertContains(
+            response,
+            f'data-partido-actual="{partido.pk}"',
+            count=2,
+        )

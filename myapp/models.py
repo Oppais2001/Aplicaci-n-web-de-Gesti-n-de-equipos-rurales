@@ -338,6 +338,15 @@ class Jugador(models.Model):
     @property 
     def apellidos(self):
         return self.apellido_paterno + " " + self.apellido_materno
+    
+    @property
+    def nombre_simplificado(self):
+        if len(self.nombre_completo_formato_lista) == 3:
+            return str(self.nombre_completo_formato_lista[0] + " " + self.nombre_completo_formato_lista[1])
+        elif len(self.nombre_completo_formato_lista) == 4:        
+            return str(self.nombre_completo_formato_lista[0] + " " + self.nombre_completo_formato_lista[2])
+        else:
+            return self.nombre
         
 class Dirigente(models.Model):
     
