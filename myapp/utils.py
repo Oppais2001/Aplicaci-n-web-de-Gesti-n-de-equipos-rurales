@@ -939,7 +939,7 @@ def _render_cartelera(grupos, subtitulo, liga, resultado, vacio):
             _tarjeta_partido(lz, y, p, logos, resultado)
             y += CARD_H + 46
 
-    _pie(lz, alto - 64, getattr(liga, "nombre", None))
+    _pie(lz, alto - 64, getattr(liga, "nombre_corto", None))
     return lz.exportar()
 
 
