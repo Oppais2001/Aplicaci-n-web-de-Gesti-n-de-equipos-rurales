@@ -648,6 +648,22 @@ button {
     color: #202020;
     transform: translateY(-1px);
 }
+
+.btn.descargar.is-loading,
+.btn.descargar[aria-disabled="true"],
+.btn.descargar:disabled {
+    cursor: wait;
+    filter: saturate(0.8);
+    opacity: 0.78;
+    pointer-events: none;
+}
+
+.btn.descargar.is-loading {
+    background: var(--color-principal);
+    border-color: var(--color-principal);
+    color: #202020;
+    transform: none;
+}
 /* #################################################*/
 .home {
     display: grid;

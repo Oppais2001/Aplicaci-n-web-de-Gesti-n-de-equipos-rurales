@@ -315,5 +315,172 @@
     <!-- CONTENIDO -->
     {% block content %}
     {% endblock %}
+
+    <script>
+        (function () {
+            let descargaActiva = false;
+
+            function obtenerNombreArchivo(response, url) {
+                const disposicion = response.headers.get("Content-Disposition") || "";
+                const utf8 = disposicion.match(/filename\*=UTF-8''([^;]+)/i);
+                const simple = disposicion.match(/filename="?([^";]+)"?/i);
+
+                if (utf8 && utf8[1]) {
+                    return decodeURIComponent(utf8[1]);
+                }
+
+                if (simple && simple[1]) {
+                    return simple[1].trim();
+                }
+
+                const ruta = new URL(url, window.location.href).pathname;
+                return ruta.split("/").filter(Boolean).pop() || "descarga";
+            }
+
+            function cambiarEstadoBoton(elemento, cargando) {
+                const boton = elemento.tagName === "FORM"
+                    ? elemento.querySelector(".btn.descargar")
+                    : elemento;
+
+                if (!boton) {
+                    return;
+                }
+
+                if (cargando) {
+                    boton.dataset.textoOriginal = boton.innerHTML;
+                    boton.classList.add("is-loading");
+                    boton.setAttribute("aria-busy", "true");
+
+                    if (boton.tagName === "A") {
+                        boton.setAttribute("aria-disabled", "true");
+                    } else {
+                        boton.disabled = true;
+                    }
+
+                    boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Preparando...</span>';
+                    return;
+                }
+
+                boton.classList.remove("is-loading");
+                boton.removeAttribute("aria-busy");
+
+                if (boton.tagName === "A") {
+                    boton.removeAttribute("aria-disabled");
+                } else {
+                    boton.disabled = false;
+                }
+
+                if (boton.dataset.textoOriginal) {
+                    boton.innerHTML = boton.dataset.textoOriginal;
+                    delete boton.dataset.textoOriginal;
+                }
+            }
+
+            function mostrarPreparando() {
+                Swal.fire({
+                    title: "Preparando descarga",
+                    text: "Estamos generando tu archivo. Esto puede tardar unos segundos.",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => Swal.showLoading()
+                });
+            }
+
+            function mostrarLista() {
+                Swal.fire({
+                    icon: "success",
+                    title: "Descarga lista",
+                    text: "El archivo se descargó correctamente.",
+                    timer: 1600,
+                    showConfirmButton: false
+                });
+            }
+
+            function mostrarError() {
+                Swal.fire({
+                    icon: "error",
+                    title: "No se pudo descargar",
+                    text: "Inténtalo nuevamente en unos segundos."
+                });
+            }
+
+            async function descargarArchivo(elemento, url) {
+                descargaActiva = true;
+                cambiarEstadoBoton(elemento, true);
+                mostrarPreparando();
+
+                try {
+                    const response = await fetch(url, {
+                        method: "GET",
+                        credentials: "same-origin"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Respuesta no exitosa");
+                    }
+
+                    const blob = await response.blob();
+                    const nombreArchivo = obtenerNombreArchivo(response, url);
+                    const objectUrl = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+
+                    link.href = objectUrl;
+                    link.download = nombreArchivo;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+                    mostrarLista();
+                } catch (error) {
+                    mostrarError();
+                } finally {
+                    cambiarEstadoBoton(elemento, false);
+                    descargaActiva = false;
+                }
+            }
+
+            document.addEventListener("click", (event) => {
+                const enlace = event.target.closest("a.btn.descargar");
+
+                if (!enlace) {
+                    return;
+                }
+
+                if (descargaActiva) {
+                    event.preventDefault();
+                    return;
+                }
+
+                event.preventDefault();
+                descargarArchivo(enlace, enlace.href);
+            });
+
+            document.addEventListener("submit", (event) => {
+                const formulario = event.target.closest("form.js-descarga-archivo");
+
+                if (!formulario) {
+                    return;
+                }
+
+                if (descargaActiva) {
+                    event.preventDefault();
+                    return;
+                }
+
+                event.preventDefault();
+
+                const datos = new FormData(formulario);
+                const url = new URL(formulario.action, window.location.href);
+
+                datos.forEach((valor, clave) => {
+                    url.searchParams.set(clave, valor);
+                });
+
+                descargarArchivo(formulario, url.toString());
+            });
+        })();
+    </script>
 </body>
 </html>
