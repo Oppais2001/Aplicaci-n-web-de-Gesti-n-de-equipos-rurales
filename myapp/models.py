@@ -344,14 +344,14 @@ class Jugador(models.Model):
     def apellidos(self):
         return self.apellido_paterno + " " + self.apellido_materno
     
-    @property
+    @property 
     def nombre_simplificado(self):
-        if len(self.nombre_completo_formato_lista) == 3:
-            return str(self.nombre_completo_formato_lista[0] + " " + self.nombre_completo_formato_lista[1])
-        elif len(self.nombre_completo_formato_lista) == 4:        
-            return str(self.nombre_completo_formato_lista[0] + " " + self.nombre_completo_formato_lista[2])
-        else:
-            return self.nombre
+        partes = self.nombre_completo_formato_lista
+
+        if len(partes) >= 3:
+            return f"{partes[0]} {partes[-2]}"
+
+        return self.nombre
         
 class Dirigente(models.Model):
     
@@ -851,18 +851,28 @@ class GolPartido(models.Model):
             )
 
         equipos_jugador = self.jugador.equipo_id
+        jugador_misma_liga = (
+            self.jugador.equipo
+            and self.equipo
+            and self.jugador.equipo.liga_id == self.equipo.liga_id
+        )
 
         # Si NO es autogol, el jugador debe pertenecer al equipo
         # al que se le acredita el gol.
-        if not self.autogol and equipos_jugador != self.equipo_id:
+        if not self.autogol and not jugador_misma_liga:
             raise ValidationError(
-                "El jugador debe pertenecer al equipo al que se le acredita el gol."
+                "El jugador debe pertenecer a la liga del equipo al que se le acredita el gol."
             )
 
         # Si es autogol, el jugador debe pertenecer al equipo contrario.
         if self.autogol and equipos_jugador == self.equipo_id:
             raise ValidationError(
                 "En un autogol, el jugador debe pertenecer al equipo contrario."
+            )
+
+        if self.autogol and not jugador_misma_liga:
+            raise ValidationError(
+                "El jugador debe pertenecer a la liga del equipo beneficiado por el autogol."
             )
 
         if self.minuto is not None and self.minuto > 150:

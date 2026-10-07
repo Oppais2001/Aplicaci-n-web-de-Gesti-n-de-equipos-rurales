@@ -1,5 +1,6 @@
 {{ goles_equipos_por_partido|json_script:"goles-equipos-por-partido" }}
 {{ goles_jugadores_por_equipo|json_script:"goles-jugadores-por-equipo" }}
+{{ goles_jugadores_por_liga|json_script:"goles-jugadores-por-liga" }}
 
 <div
     class="goles-widget"
@@ -100,7 +101,13 @@
                 "goles-jugadores-por-equipo"
             ).textContent
         );
-    console.log("JUGADORES POR EQUIPO:", jugadoresPorEquipo );
+
+    const jugadoresPorLiga =
+        JSON.parse(
+            document.getElementById(
+                "goles-jugadores-por-liga"
+            ).textContent
+        );
     
 
 
@@ -162,24 +169,47 @@
     }
 
 
-function jugadoresDe(equipoSeleccionado) {
+    function jugadoresDe(equipoSeleccionado) {
+        return jugadoresPorEquipo[String(equipoSeleccionado)] || [];
+    }
 
-    console.log("================================");
-    console.log("EQUIPO SELECCIONADO:", equipoSeleccionado);
+    function equipoDisponible(equipoId) {
+        return obtenerEquiposDisponibles().find(
+            equipo => String(equipo.id) === String(equipoId)
+        );
+    }
 
-    const clave = String(equipoSeleccionado);
+    function jugadoresRecesoDe(equipoSeleccionado) {
+        const equipo = equipoDisponible(equipoSeleccionado);
 
-    console.log("CLAVE:", clave);
-    console.log("TODOS LOS JUGADORES:", jugadoresPorEquipo);
-    console.log("CLAVES DISPONIBLES:", Object.keys(jugadoresPorEquipo));
-    console.log("TIPO DE CLAVE:", typeof clave);
+        if (!equipo || !equipo.liga_id) {
+            return [];
+        }
 
-    const jugadores = jugadoresPorEquipo[clave] || [];
+        return jugadoresPorLiga[String(equipo.liga_id)] || [];
+    }
 
-    console.log("JUGADORES ENCONTRADOS:", jugadores);
+    function jugadoresPermitidosDe(equipoSeleccionado) {
+        const jugadores = [];
+        const usados = new Set();
 
-    return jugadores;
-}
+        jugadoresDe(equipoSeleccionado).forEach(jugador => {
+            usados.add(String(jugador.id));
+            jugadores.push(jugador);
+        });
+
+        jugadoresRecesoDe(equipoSeleccionado).forEach(jugador => {
+            if (!usados.has(String(jugador.id))) {
+                usados.add(String(jugador.id));
+                jugadores.push({
+                    id: jugador.id,
+                    nombre: `${jugador.nombre} (${jugador.equipo})`
+                });
+            }
+        });
+
+        return jugadores;
+    }
 
 
     /* =========================================================
@@ -490,7 +520,7 @@ function jugadoresDe(equipoSeleccionado) {
             fields.jugador,
 
             equipoId
-                ? jugadoresDe(equipoId)
+                ? jugadoresPermitidosDe(equipoId)
                 : [],
 
             "Sin goleador registrado"
@@ -576,6 +606,40 @@ function jugadoresDe(equipoSeleccionado) {
         .join("");
     }
 
+    function buildOptionsFromList(opciones, selectedValue, opcionVacia) {
+        const opcionesHtml = [];
+
+        if (opcionVacia) {
+            opcionesHtml.push(`
+                <option value="">
+                    ${escapeHtml(opcionVacia)}
+                </option>
+            `);
+        }
+
+        opciones.forEach(opcion => {
+            const selected =
+                String(opcion.id) === String(selectedValue)
+                    ? "selected"
+                    : "";
+
+            const etiqueta = opcion.equipo
+                ? `${opcion.nombre} (${opcion.equipo})`
+                : opcion.nombre;
+
+            opcionesHtml.push(`
+                <option
+                    value="${escapeHtml(opcion.id)}"
+                    ${selected}
+                >
+                    ${escapeHtml(etiqueta)}
+                </option>
+            `);
+        });
+
+        return opcionesHtml.join("");
+    }
+
 
     /* =========================================================
        ABRIR POPUP
@@ -651,6 +715,16 @@ function jugadoresDe(equipoSeleccionado) {
 
         sincronizarJugadoresDeFila(row);
 
+        const jugadorActual =
+            fields.jugador.value;
+
+        const esJugadorDelEquipo =
+            jugadoresDe(fields.equipo.value).some(
+                jugador =>
+                    String(jugador.id) ===
+                    String(jugadorActual)
+            );
+
 
         const result =
             await Swal.fire({
@@ -692,13 +766,30 @@ function jugadoresDe(equipoSeleccionado) {
                             class="swal2-select"
                         >
 
-                            ${buildOptions(
-                                fields.jugador,
-                                fields.jugador.value
+                            ${buildOptionsFromList(
+                                jugadoresDe(fields.equipo.value),
+                                esJugadorDelEquipo ? jugadorActual : "",
+                                "Sin goleador registrado"
                             )}
 
                         </select>
 
+                        <label>
+                            Jugador receso
+                        </label>
+
+                        <select
+                            id="swal-gol-jugador-receso"
+                            class="swal2-select"
+                        >
+
+                            ${buildOptionsFromList(
+                                jugadoresRecesoDe(fields.equipo.value),
+                                esJugadorDelEquipo ? "" : jugadorActual,
+                                "Sin jugador receso"
+                            )}
+
+                        </select>
 
                         <label>
                             Minuto
@@ -740,6 +831,11 @@ function jugadoresDe(equipoSeleccionado) {
                             "swal-gol-jugador"
                         );
 
+                    const swalJugadorReceso =
+                        document.getElementById(
+                            "swal-gol-jugador-receso"
+                        );
+
 
                     const swalMinuto =
                         document.getElementById(
@@ -753,8 +849,42 @@ function jugadoresDe(equipoSeleccionado) {
 
                     /*
                      * Cuando cambia el equipo,
-                     * cargamos solamente sus jugadores.
+                     * cargamos los jugadores del equipo y de la liga.
                      */
+
+                    function cargarJugadoresPopup(equipoId) {
+                        swalJugador.innerHTML =
+                            buildOptionsFromList(
+                                jugadoresDe(equipoId),
+                                "",
+                                "Sin goleador registrado"
+                            );
+
+                        swalJugadorReceso.innerHTML =
+                            buildOptionsFromList(
+                                jugadoresRecesoDe(equipoId),
+                                "",
+                                "Sin jugador receso"
+                            );
+                    }
+
+                    swalJugador.addEventListener(
+                        "change",
+                        () => {
+                            if (swalJugador.value) {
+                                swalJugadorReceso.value = "";
+                            }
+                        }
+                    );
+
+                    swalJugadorReceso.addEventListener(
+                        "change",
+                        () => {
+                            if (swalJugadorReceso.value) {
+                                swalJugador.value = "";
+                            }
+                        }
+                    );
 
                     swalEquipo.addEventListener(
                         "change",
@@ -763,43 +893,7 @@ function jugadoresDe(equipoSeleccionado) {
                             const equipoId =
                                 swalEquipo.value;
 
-
-                            const jugadores =
-                                jugadoresDe(
-                                    equipoId
-                                );
-
-
-                            let opciones = `
-
-                                <option value="">
-                                    Sin goleador registrado
-                                </option>
-
-                            `;
-
-
-                            jugadores.forEach(
-                                jugador => {
-
-                                    opciones += `
-
-                                        <option
-                                            value="${jugador.id}"
-                                        >
-                                            ${escapeHtml(
-                                                jugador.nombre
-                                            )}
-                                        </option>
-
-                                    `;
-
-                                }
-                            );
-
-
-                            swalJugador.innerHTML =
-                                opciones;
+                            cargarJugadoresPopup(equipoId);
 
                         }
                     );
@@ -818,6 +912,11 @@ function jugadoresDe(equipoSeleccionado) {
                     const jugador =
                         document.getElementById(
                             "swal-gol-jugador"
+                        ).value;
+
+                    const jugadorReceso =
+                        document.getElementById(
+                            "swal-gol-jugador-receso"
                         ).value;
 
 
@@ -861,7 +960,7 @@ function jugadoresDe(equipoSeleccionado) {
                     return {
 
                         equipo,
-                        jugador,
+                        jugador: jugadorReceso || jugador,
                         minuto
 
                     };

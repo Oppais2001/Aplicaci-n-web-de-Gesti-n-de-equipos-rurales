@@ -26,6 +26,39 @@ from .utils import (
     validate_integer_range,
     validate_decimal_range
 )
+
+
+def jugadores_habilitados_para_equipo(equipo_id):
+    """
+    Jugadores disponibles para registrar goles/tarjetas.
+    Hoy incluye todos los jugadores de la liga del equipo seleccionado;
+    cuando el registro de receso este completo, el segundo grupo puede filtrarse
+    por activo=False.
+    """
+    if not equipo_id:
+        return Jugador.objects.none()
+
+    try:
+        equipo = Equipo.objects.select_related("liga").get(pk=equipo_id)
+    except (Equipo.DoesNotExist, ValueError, TypeError):
+        return Jugador.objects.none()
+
+    return (
+        Jugador.objects
+        .filter(equipo__liga_id=equipo.liga_id)
+        .order_by("nombre")
+    )
+
+
+def jugador_puede_actuar_por_equipo(jugador, equipo):
+    return (
+        jugador
+        and equipo
+        and jugador.equipo
+        and jugador.equipo.liga_id == equipo.liga_id
+    )
+
+
 class RedSocialForm(forms.ModelForm):
     class Meta:
         model = RedSocial
@@ -1241,10 +1274,11 @@ class TarjetaPartidoForm(forms.ModelForm):
 
             if self.instance.equipo_id:
 
-                self.fields["jugador"].queryset = Jugador.objects.filter(
-                    equipo_id=self.instance.equipo_id,
-                    activo=True
-                ).order_by("nombre")
+                self.fields["jugador"].queryset = (
+                    jugadores_habilitados_para_equipo(
+                        self.instance.equipo_id
+                    )
+                )
 
         # ---------------------------------------------------------
         # FORMULARIO ENVIADO
@@ -1270,12 +1304,7 @@ class TarjetaPartidoForm(forms.ModelForm):
                     if equipo_id in equipos_validos:
 
                         self.fields["jugador"].queryset = (
-                            Jugador.objects
-                            .filter(
-                                equipo_id=equipo_id,
-                                activo=True
-                            )
-                            .order_by("nombre")
+                            jugadores_habilitados_para_equipo(equipo_id)
                         )
 
                 except (ValueError, TypeError):
@@ -1329,12 +1358,7 @@ class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
                     if equipo_id in equipos_validos:
 
                         form.fields["jugador"].queryset = (
-                            Jugador.objects
-                            .filter(
-                                equipo_id=equipo_id,
-                                activo=True
-                            )
-                            .order_by("nombre")
+                            jugadores_habilitados_para_equipo(equipo_id)
                         )
 
                 except (ValueError, TypeError):
@@ -1395,12 +1419,10 @@ class BaseTarjetaPartidoFormSet(BaseInlineFormSet):
                     "la tarjeta."
                 )
 
-            # MUY IMPORTANTE
-            # El jugador debe pertenecer al equipo seleccionado
-            if jugador.equipo_id != equipo.pk:
+            if not jugador_puede_actuar_por_equipo(jugador, equipo):
 
                 raise ValidationError(
-                    f"{jugador} no pertenece al equipo {equipo}."
+                    f"{jugador} no pertenece a la liga de {equipo}."
                 )
 
             if tipo_tarjeta == "roja":
@@ -1475,9 +1497,11 @@ class GolPartidoForm(forms.ModelForm):
         # Si estamos editando un gol existente.
         if self.instance and self.instance.pk:
             if self.instance.equipo_id:
-                self.fields["jugador"].queryset = Jugador.objects.filter(
-                    equipo=self.instance.equipo
-                ).order_by("nombre")
+                self.fields["jugador"].queryset = (
+                    jugadores_habilitados_para_equipo(
+                        self.instance.equipo_id
+                    )
+                )
 
         # Si el formulario fue enviado, obtener equipo seleccionado.
         if self.is_bound:
@@ -1493,10 +1517,9 @@ class GolPartidoForm(forms.ModelForm):
                         self.partido.equipo_local_id,
                         self.partido.equipo_visitante_id,
                     }:
-                        self.fields["jugador"].queryset = Jugador.objects.filter(
-                            equipo_id=equipo_id,
-                            activo=True
-                        ).order_by("nombre")
+                        self.fields["jugador"].queryset = (
+                            jugadores_habilitados_para_equipo(equipo_id)
+                        )
 
                 except (ValueError, TypeError):
                     pass
@@ -1552,10 +1575,9 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
                         partido.equipo_local_id,
                         partido.equipo_visitante_id,
                     }:
-                        form.fields["jugador"].queryset = Jugador.objects.filter(
-                            equipo_id=equipo_id,
-                            activo=True
-                        ).order_by("nombre")
+                        form.fields["jugador"].queryset = (
+                            jugadores_habilitados_para_equipo(equipo_id)
+                        )
 
                 except (ValueError, TypeError):
                     pass
@@ -1610,9 +1632,9 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
             # Gol normal.
             if not autogol:
 
-                if jugador.equipo_id != equipo.pk:
+                if not jugador_puede_actuar_por_equipo(jugador, equipo):
                     raise ValidationError(
-                        f"{jugador} no pertenece a {equipo}."
+                        f"{jugador} no pertenece a la liga de {equipo}."
                     )
 
             # Autogol.
@@ -1621,6 +1643,11 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
                 if jugador.equipo_id == equipo.pk:
                     raise ValidationError(
                         f"El autogol de {jugador} debe beneficiar al equipo contrario."
+                    )
+
+                if not jugador_puede_actuar_por_equipo(jugador, equipo):
+                    raise ValidationError(
+                        f"{jugador} no pertenece a la liga de {equipo}."
                     )
 
         # Los goleadores son opcionales: se puede registrar ninguno,

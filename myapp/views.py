@@ -1497,28 +1497,46 @@ def _datos_partido_para_widget(partidos):
                 ...
             ]
         }
+
+    jugadores_por_liga:
+        {
+            liga_id: [
+                {"id": jugador_id, "nombre": nombre, "equipo": nombre_equipo},
+                ...
+            ]
+        }
     """
 
     equipos_por_partido = {}
     equipos_ids = set()
+    ligas_ids = set()
 
     for partido in partidos:
 
         equipos_por_partido[str(partido.pk)] = [
             {
                 "id": partido.equipo_local_id,
-                "nombre": partido.equipo_local.nombre
+                "nombre": partido.equipo_local.nombre,
+                "liga_id": partido.equipo_local.liga_id,
             },
             {
                 "id": partido.equipo_visitante_id,
-                "nombre": partido.equipo_visitante.nombre
+                "nombre": partido.equipo_visitante.nombre,
+                "liga_id": partido.equipo_visitante.liga_id,
             },
         ]
 
         equipos_ids.add(partido.equipo_local_id)
         equipos_ids.add(partido.equipo_visitante_id)
 
+        if partido.equipo_local and partido.equipo_local.liga_id:
+            ligas_ids.add(partido.equipo_local.liga_id)
+
+        if partido.equipo_visitante and partido.equipo_visitante.liga_id:
+            ligas_ids.add(partido.equipo_visitante.liga_id)
+
     jugadores_por_equipo = {}
+    jugadores_por_liga = {}
 
     if equipos_ids:
 
@@ -1539,7 +1557,28 @@ def _datos_partido_para_widget(partidos):
                 }
             )
 
-    return equipos_por_partido, jugadores_por_equipo
+    if ligas_ids:
+
+        jugadores_liga = Jugador.objects.select_related(
+            "equipo"
+        ).filter(
+            equipo__liga_id__in=ligas_ids
+        ).order_by("nombre")
+
+        for jugador in jugadores_liga:
+
+            jugadores_por_liga.setdefault(
+                str(jugador.equipo.liga_id),
+                []
+            ).append(
+                {
+                    "id": jugador.pk,
+                    "nombre": jugador.nombre,
+                    "equipo": jugador.equipo.nombre,
+                }
+            )
+
+    return equipos_por_partido, jugadores_por_equipo, jugadores_por_liga
 
 
 def _aplicar_resultado_en_memoria(partido, cleaned_data):
@@ -1605,7 +1644,7 @@ def ingresar_partido(request):
             prefix="goles"
         )
 
-    equipos_por_partido, jugadores_por_equipo = (
+    equipos_por_partido, jugadores_por_equipo, jugadores_por_liga = (
         _datos_partido_para_widget(
             form.fields["partido"].queryset
         )
@@ -1627,12 +1666,18 @@ def ingresar_partido(request):
             "goles_jugadores_por_equipo":
                 jugadores_por_equipo,
 
+            "goles_jugadores_por_liga":
+                jugadores_por_liga,
+
             # Datos para tarjetas
             "tarjetas_equipos_por_partido":
                 equipos_por_partido,
 
             "tarjetas_jugadores_por_equipo":
                 jugadores_por_equipo,
+
+            "tarjetas_jugadores_por_liga":
+                jugadores_por_liga,
         }
     )
     
@@ -1772,7 +1817,7 @@ def editar_partido(request, id):
             prefix="goles"
         )
 
-    equipos_por_partido, jugadores_por_equipo = (
+    equipos_por_partido, jugadores_por_equipo, jugadores_por_liga = (
         _datos_partido_para_widget([partido])
     )
 
@@ -1797,6 +1842,9 @@ def editar_partido(request, id):
             "goles_jugadores_por_equipo":
                 jugadores_por_equipo,
 
+            "goles_jugadores_por_liga":
+                jugadores_por_liga,
+
             "goles_partido_actual_id":
                 partido.pk,
 
@@ -1806,6 +1854,9 @@ def editar_partido(request, id):
 
             "tarjetas_jugadores_por_equipo":
                 jugadores_por_equipo,
+
+            "tarjetas_jugadores_por_liga":
+                jugadores_por_liga,
 
             "tarjetas_partido_actual_id":
                 partido.pk,

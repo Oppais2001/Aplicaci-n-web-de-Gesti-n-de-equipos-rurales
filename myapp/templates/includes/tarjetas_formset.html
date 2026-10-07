@@ -76,6 +76,13 @@
             ).textContent
         );
 
+    const jugadoresPorLiga =
+        JSON.parse(
+            document.getElementById(
+                "goles-jugadores-por-liga"
+            ).textContent
+        );
+
 
     /* =========================================================
        ELEMENTOS PRINCIPALES
@@ -149,6 +156,44 @@
             []
         );
 
+    }
+
+    function equipoDisponible(equipoId) {
+        return obtenerEquiposDisponibles().find(
+            equipo => String(equipo.id) === String(equipoId)
+        );
+    }
+
+    function jugadoresRecesoDe(equipoId) {
+        const equipo = equipoDisponible(equipoId);
+
+        if (!equipo || !equipo.liga_id) {
+            return [];
+        }
+
+        return jugadoresPorLiga[String(equipo.liga_id)] || [];
+    }
+
+    function jugadoresPermitidosDe(equipoId) {
+        const jugadores = [];
+        const usados = new Set();
+
+        jugadoresDe(equipoId).forEach(jugador => {
+            usados.add(String(jugador.id));
+            jugadores.push(jugador);
+        });
+
+        jugadoresRecesoDe(equipoId).forEach(jugador => {
+            if (!usados.has(String(jugador.id))) {
+                usados.add(String(jugador.id));
+                jugadores.push({
+                    id: jugador.id,
+                    nombre: `${jugador.nombre} (${jugador.equipo})`
+                });
+            }
+        });
+
+        return jugadores;
     }
 
 
@@ -442,7 +487,7 @@
             fields.jugador,
 
             equipoId
-                ? jugadoresDe(equipoId)
+                ? jugadoresPermitidosDe(equipoId)
                 : [],
 
             "Selecciona un jugador"
@@ -533,6 +578,40 @@
 
     }
 
+    function buildOptionsFromList(opciones, selectedValue, opcionVacia) {
+        const opcionesHtml = [];
+
+        if (opcionVacia) {
+            opcionesHtml.push(`
+                <option value="">
+                    ${escapeHtml(opcionVacia)}
+                </option>
+            `);
+        }
+
+        opciones.forEach(opcion => {
+            const selected =
+                String(opcion.id) === String(selectedValue)
+                    ? "selected"
+                    : "";
+
+            const etiqueta = opcion.equipo
+                ? `${opcion.nombre} (${opcion.equipo})`
+                : opcion.nombre;
+
+            opcionesHtml.push(`
+                <option
+                    value="${escapeHtml(opcion.id)}"
+                    ${selected}
+                >
+                    ${escapeHtml(etiqueta)}
+                </option>
+            `);
+        });
+
+        return opcionesHtml.join("");
+    }
+
 
     /* =========================================================
        ABRIR POPUP
@@ -598,6 +677,16 @@
 
         sincronizarJugadoresDeFila(row);
 
+        const jugadorActual =
+            fields.jugador.value;
+
+        const esJugadorDelEquipo =
+            jugadoresDe(fields.equipo.value).some(
+                jugador =>
+                    String(jugador.id) ===
+                    String(jugadorActual)
+            );
+
 
         const result =
             await Swal.fire({
@@ -638,13 +727,30 @@
                             class="swal2-select"
                         >
 
-                            ${buildOptions(
-                                fields.jugador,
-                                fields.jugador.value
+                            ${buildOptionsFromList(
+                                jugadoresDe(fields.equipo.value),
+                                esJugadorDelEquipo ? jugadorActual : "",
+                                "Selecciona un jugador"
                             )}
 
                         </select>
 
+                        <label>
+                            Jugador receso
+                        </label>
+
+                        <select
+                            id="swal-tarjeta-jugador-receso"
+                            class="swal2-select"
+                        >
+
+                            ${buildOptionsFromList(
+                                jugadoresRecesoDe(fields.equipo.value),
+                                esJugadorDelEquipo ? "" : jugadorActual,
+                                "Sin jugador receso"
+                            )}
+
+                        </select>
 
                         <label>
                             Tipo de tarjeta
@@ -689,6 +795,11 @@
                             "swal-tarjeta-jugador"
                         );
 
+                    const swalJugadorReceso =
+                        document.getElementById(
+                            "swal-tarjeta-jugador-receso"
+                        );
+
 
                     /*
                      * IMPORTANTE:
@@ -697,57 +808,20 @@
                      * reconstruimos jugadores.
                      */
 
-                    function cargarJugadoresPopup(
-                        equipoId,
-                        jugadorSeleccionado = ""
-                    ) {
+                    function cargarJugadoresPopup(equipoId) {
+                        swalJugador.innerHTML =
+                            buildOptionsFromList(
+                                jugadoresDe(equipoId),
+                                "",
+                                "Selecciona un jugador"
+                            );
 
-                        swalJugador.innerHTML = `
-
-                            <option value="">
-                                Selecciona un jugador
-                            </option>
-
-                        `;
-
-
-                        if (!equipoId) {
-                            return;
-                        }
-
-
-                        jugadoresDe(equipoId)
-                            .forEach(jugador => {
-
-                                const option =
-                                    document.createElement(
-                                        "option"
-                                    );
-
-                                option.value =
-                                    jugador.id;
-
-                                option.textContent =
-                                    jugador.nombre;
-
-
-                                if (
-                                    String(jugador.id) ===
-                                    String(jugadorSeleccionado)
-                                ) {
-
-                                    option.selected =
-                                        true;
-
-                                }
-
-
-                                swalJugador.appendChild(
-                                    option
-                                );
-
-                            });
-
+                        swalJugadorReceso.innerHTML =
+                            buildOptionsFromList(
+                                jugadoresRecesoDe(equipoId),
+                                "",
+                                "Sin jugador receso"
+                            );
                     }
 
 
@@ -755,12 +829,22 @@
                      * Cargar jugadores iniciales
                      */
 
-                    cargarJugadoresPopup(
+                    swalJugador.addEventListener(
+                        "change",
+                        () => {
+                            if (swalJugador.value) {
+                                swalJugadorReceso.value = "";
+                            }
+                        }
+                    );
 
-                        swalEquipo.value,
-
-                        fields.jugador.value
-
+                    swalJugadorReceso.addEventListener(
+                        "change",
+                        () => {
+                            if (swalJugadorReceso.value) {
+                                swalJugador.value = "";
+                            }
+                        }
                     );
 
 
@@ -773,8 +857,7 @@
                         () => {
 
                             cargarJugadoresPopup(
-                                swalEquipo.value,
-                                ""
+                                swalEquipo.value
                             );
 
                         }
@@ -796,6 +879,11 @@
                             "swal-tarjeta-jugador"
                         ).value;
 
+                    const jugadorReceso =
+                        document.getElementById(
+                            "swal-tarjeta-jugador-receso"
+                        ).value;
+
 
                     const tipoTarjeta =
                         document.getElementById(
@@ -814,7 +902,7 @@
                     }
 
 
-                    if (!jugador) {
+                    if (!jugador && !jugadorReceso) {
 
                         Swal.showValidationMessage(
                             "Debes seleccionar el jugador."
@@ -842,7 +930,7 @@
                             equipo,
 
                         jugador:
-                            jugador,
+                            jugadorReceso || jugador,
 
                         tipo_tarjeta:
                             tipoTarjeta
