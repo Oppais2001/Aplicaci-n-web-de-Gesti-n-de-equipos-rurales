@@ -1,43 +1,63 @@
+"""
+utilidades.py — validaciones, generación de imágenes (tabla, fechas, resultados) y PDF de planilla.
+
+Índice:
+    1. Validaciones de formularios
+    2. Imágenes: configuración, fuentes y logos
+    3. Imágenes: lienzo (dibujo)
+    4. Imágenes: piezas comunes, cartelera (fechas/resultados) y tabla de posiciones
+    5. API de imágenes para las vistas (crear_img_*)
+    6. PDF de planilla de jugadores
+
+Fuentes (licencia OFL) a copiar en static/fonts/:
+    BebasNeue-Regular.ttf, BarlowCondensed-Bold.ttf,
+    BarlowCondensed-SemiBold.ttf, Barlow-Medium.ttf
+Si faltan, se usan Cinzel/Lato (imágenes) o Helvetica (PDF) como respaldo.
+"""
+import logging
 import os
 import re
-from datetime import date, datetime
-import requests
-
-import logging
-logger = logging.getLogger(__name__)
-
-from dateutil.relativedelta import relativedelta
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email as django_validate_email
+import unicodedata
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, time as dtime
 from decimal import Decimal, InvalidOperation
-
+from functools import lru_cache
 from io import BytesIO
 
-from django.http import HttpResponse
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-
-from django.conf import settings
+import requests
+from dateutil.relativedelta import relativedelta
 from django.contrib.staticfiles import finders
-
-from reportlab.lib.utils import ImageReader
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email as django_validate_email
+from django.http import HttpResponse
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    Image as ReportLabImage,
+    Paragraph,
     SimpleDocTemplate,
+    Spacer,
     Table,
     TableStyle,
-    Paragraph,
-    Spacer,
-    Image as ReportLabImage,
 )
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
+
+logger = logging.getLogger(__name__)
+
+
+# =========================================================
+# 1. VALIDACIONES DE FORMULARIOS
+# =========================================================
 
 LETTERS = "A-Za-zÁÉÍÓÚáéíóúÑñÜü"
 
+# Usadas por models.py (from .utils import DIAS, MESES)
 DIAS = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
 MESES = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
          7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -104,6 +124,7 @@ def validate_person_name(value, field_name="un nombre", required=True, min_lengt
         allowed_symbols=r"\-",
     )
 
+
 def validate_league_name(
     value,
     field_name="el nombre de la liga",
@@ -119,36 +140,25 @@ def validate_league_name(
         return ""
 
     if len(value) < min_length:
-        raise ValidationError(
-            f"{field_name.capitalize()} demasiado corto."
-        )
+        raise ValidationError(f"{field_name.capitalize()} demasiado corto.")
 
     if len(value) > max_length:
-        raise ValidationError(
-            f"{field_name.capitalize()} demasiado largo."
-        )
+        raise ValidationError(f"{field_name.capitalize()} demasiado largo.")
 
     # Letras, números, espacios, guiones y comas
     pattern = rf"^[{LETTERS}0-9\s\-,]+$"
-
     if not re.fullmatch(pattern, value):
-        raise ValidationError(
-            f"{field_name.capitalize()} contiene caracteres invalidos."
-        )
+        raise ValidationError(f"{field_name.capitalize()} contiene caracteres invalidos.")
 
     if not _has_letters(value):
-        raise ValidationError(
-            f"{field_name.capitalize()} debe contener letras."
-        )
+        raise ValidationError(f"{field_name.capitalize()} debe contener letras.")
 
     cleaned = _meaningful_text(value)
-
     if cleaned and len(set(cleaned)) == 1:
-        raise ValidationError(
-            f"Ingresa {field_name} valido."
-        )
+        raise ValidationError(f"Ingresa {field_name} valido.")
 
     return value.title()
+
 
 def validate_entity_name(value, field_name, required=True, min_length=3, max_length=100):
     return validate_text(
@@ -216,9 +226,7 @@ def validate_social_link(value, required=True):
 
     pattern = rf"^[{LETTERS}0-9\s\.\-\_\@\:\#\/\?\=\&]+$"
     if not re.fullmatch(pattern, value):
-        raise ValidationError(
-            "La red social contiene caracteres invalidos."
-        )
+        raise ValidationError("La red social contiene caracteres invalidos.")
 
     if not re.search(rf"[{LETTERS}0-9]", value):
         raise ValidationError("La red social no es valida.")
@@ -289,7 +297,7 @@ def validate_rut(value, model=None, instance=None, duplicate_message=None):
             "rut",
             rut,
             instance=instance,
-            message=duplicate_message,
+            message=duplicate_message or "Este RUT ya esta registrado.",
         )
 
     return rut
@@ -342,12 +350,7 @@ def calculate_age(birth_date, today=None):
     return relativedelta(today or date.today(), birth_date).years
 
 
-def validate_date_not_future(
-    value,
-    field_name="La fecha",
-    required=True,
-    max_age_years=None,
-):
+def validate_date_not_future(value, field_name="La fecha", required=True, max_age_years=None):
     if not value:
         if required:
             raise ValidationError(f"{field_name} es obligatoria.")
@@ -431,224 +434,661 @@ def validate_file_upload(value, allowed_extensions, max_size_mb=5, field_name="E
 
 
 def validate_transfer_date(value, base_date):
-
     min_date = base_date + relativedelta(years=1, months=6)
     if value < min_date:
         raise ValidationError(f"El jugador no puede transferirse antes de {min_date}.")
 
     return value
-def validate_integer_range(
-    value,
-    field_name,
-    minimum=None,
-    maximum=None,
-    required=False,
-):
+
+
+def validate_integer_range(value, field_name, minimum=None, maximum=None, required=False):
     if value is None:
         if required:
             raise ValidationError(f"Debes ingresar {field_name}.")
         return value
 
     if minimum is not None and value < minimum:
-        raise ValidationError(
-            f"{field_name.capitalize()} no puede ser menor que {minimum}."
-        )
+        raise ValidationError(f"{field_name.capitalize()} no puede ser menor que {minimum}.")
 
     if maximum is not None and value > maximum:
-        raise ValidationError(
-            f"{field_name.capitalize()} no puede ser mayor que {maximum}."
-        )
+        raise ValidationError(f"{field_name.capitalize()} no puede ser mayor que {maximum}.")
 
     return value
 
-def validate_decimal_range(
-    value,
-    field_name,
-    minimum=None,
-    maximum=None,
-    required=True,
-):
-    """
-    Valida un número decimal dentro de un rango permitido.
-    """
 
+def validate_decimal_range(value, field_name, minimum=None, maximum=None, required=True):
+    """Valida un número decimal dentro de un rango permitido."""
     if value in (None, ""):
         if required:
-            raise ValidationError(
-                f"Debe ingresar {field_name}."
-            )
+            raise ValidationError(f"Debe ingresar {field_name}.")
         return None
 
     try:
         value = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError):
-        raise ValidationError(
-            f"{field_name.capitalize()} debe ser un número válido."
-        )
+        raise ValidationError(f"{field_name.capitalize()} debe ser un número válido.")
 
     if minimum is not None and value < Decimal(str(minimum)):
-        raise ValidationError(
-            f"{field_name.capitalize()} debe ser mayor o igual a {minimum}."
-        )
+        raise ValidationError(f"{field_name.capitalize()} debe ser mayor o igual a {minimum}.")
 
     if maximum is not None and value > Decimal(str(maximum)):
-        raise ValidationError(
-            f"{field_name.capitalize()} debe ser menor o igual a {maximum}."
-        )
+        raise ValidationError(f"{field_name.capitalize()} debe ser menor o igual a {maximum}.")
 
     return value
 
-# Creador de imagenes de la tabla de posiciones
-ANCHO = 900
-ruta_titulo = finders.find("fonts/Cinzel-Regular.ttf")
-ruta_titulo_negrita = finders.find("fonts/Cinzel-Bold.ttf")
-ruta_subtitulo = finders.find("fonts/Lato-Bold.ttf")
-ruta_normal = finders.find("fonts/Lato-Regular.ttf")
-ruta_normal_negrita = finders.find("fonts/Lato-Bold.ttf")
+
+# =========================================================
+# 2. IMÁGENES: CONFIGURACIÓN, FUENTES Y LOGOS
+# =========================================================
+
+ANCHO = 900          # ancho final en px
+ESC = 2              # supersampling: se dibuja al doble y se reduce (bordes suaves)
+MAX_EQUIPOS = 12
+TITULO_LIGA = "UNIÓN COMUNAL DE CLUBES DEPORTIVOS"
+
+ORO = (227, 185, 72)
+ORO_CLARO = (255, 226, 140)
+ORO_OSCURO = (176, 128, 30)
+CAFE = (74, 46, 20)
+CREMA = (245, 238, 224)
+TENUE = (178, 168, 150)
+TINTA = (38, 24, 8)
+FONDO_ARRIBA = (44, 30, 16)
+FONDO_ABAJO = (9, 7, 5)
+VERDE = (126, 205, 142)
+ROJO = (226, 116, 104)
+
+PODIO = {1: (240, 196, 64), 2: (206, 208, 214), 3: (205, 127, 50)}
+
+# clave -> (archivo principal, respaldos)
+FUENTES = {
+    "titulo": ("BebasNeue-Regular.ttf", ("Cinzel-Bold.ttf",)),
+    "nombre": ("BarlowCondensed-Bold.ttf", ("Lato-Bold.ttf",)),
+    "semi": ("BarlowCondensed-SemiBold.ttf", ("Lato-Bold.ttf",)),
+    "texto": ("Barlow-Medium.ttf", ("Lato-Regular.ttf",)),
+}
+
+
+def S(v):
+    """Pasa de px lógicos a px del lienzo (con supersampling)."""
+    return int(round(v * ESC))
+
+
+# =========================================================
+# FUENTES Y LOGOS
+# =========================================================
+
+def _buscar_fuente(archivo):
+    try:
+        ruta = finders.find(f"fonts/{archivo}")
+        if ruta:
+            return ruta
+    except Exception:
+        pass
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", archivo)
+    return ruta if os.path.exists(ruta) else None
+
+
+@lru_cache(maxsize=None)
+def _fuente(clave, size):
+    principal, respaldos = FUENTES[clave]
+    for archivo in (principal, *respaldos):
+        ruta = _buscar_fuente(archivo)
+        if ruta:
+            return ImageFont.truetype(ruta, S(size))
+        logger.warning("Fuente no encontrada: %s", archivo)
+    return ImageFont.load_default(S(size))
+
+
+def _normalizar_url(url):
+    if url and url.startswith("//"):
+        return "https:" + url
+    return url
+
+
+def _url_logo(obj):
+    logo = getattr(obj, "logo", None)
+    if not logo:
+        return None
+    try:
+        return _normalizar_url(logo.url)
+    except Exception:
+        return None
+
+
+def _descargar_logo(url):
+    try:
+        r = requests.get(url, timeout=6)
+        r.raise_for_status()
+        return Image.open(BytesIO(r.content)).convert("RGBA")
+    except Exception:
+        logger.warning("No se pudo descargar el logo %s", url, exc_info=True)
+        return None
+
+
+def _precargar_logos(urls):
+    """Descarga en paralelo las URLs únicas. Devuelve {url: Image | None}."""
+    urls = {u for u in urls if u}
+    if not urls:
+        return {}
+    with ThreadPoolExecutor(max_workers=min(8, len(urls))) as pool:
+        return dict(zip(urls, pool.map(_descargar_logo, urls)))
+
+
+# =========================================================
+# 3. IMÁGENES: LIENZO (DIBUJO)
+# =========================================================
+
+class Lienzo:
+    def __init__(self, alto):
+        self.alto = alto
+        self.img = Image.new("RGBA", (S(ANCHO), S(alto)), (0, 0, 0, 255))
+        self.draw = ImageDraw.Draw(self.img)
+
+    # ---------- utilidades ----------
+    def ancho(self, txt, fuente):
+        return self.draw.textlength(txt, font=fuente) / ESC
+
+    def _pegar(self, capa, pos):
+        self.img.paste(capa.convert("RGB"), pos, capa.getchannel("A"))
+
+    # ---------- fondo ----------
+    def fondo(self, imagen=None):
+        w, h = self.img.size
+        if imagen is not None:
+            base = ImageOps.fit(imagen.convert("RGB"), (w, h), Image.LANCZOS, centering=(0.5, 0.0))
+            base = Image.blend(base, Image.new("RGB", (w, h), (8, 6, 4)), 0.72)
+        else:
+            grad = Image.linear_gradient("L").resize((w, h))
+            base = ImageOps.colorize(grad, black=FONDO_ARRIBA, white=FONDO_ABAJO)
+        self.img.paste(base.convert("RGBA"))
+
+    def resplandor(self, cx, cy, radio, color=ORO, intensidad=0.3):
+        r = S(radio)
+        # radial_gradient llega a 255 solo en las esquinas (181 en los bordes): se reescala para que el borde sea 0
+        mask = Image.radial_gradient("L").resize((2 * r, 2 * r), Image.BICUBIC)
+        mask = mask.point(lambda p: int(max(0, 255 - p * 1.41) * intensidad))
+        self.img.paste(Image.new("RGBA", (2 * r, 2 * r), color + (255,)), (S(cx) - r, S(cy) - r), mask)
+
+    def patron(self, paso=26, alpha=9):
+        w, h = self.img.size
+        capa = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(capa)
+        for x in range(-h, w, S(paso)):
+            d.line((x, h, x + h, 0), fill=(255, 230, 170, alpha), width=S(1))
+        self.img.alpha_composite(capa)
+
+    def marca_agua(self, logo, desde_y, opacidad=0.2):
+        """Logo grande repetido a lo largo de la imagen, centrado, bajo las tarjetas."""
+        if logo is None:
+            return
+        lado = S(ANCHO * 0.84)
+        marca = ImageOps.contain(logo, (lado, lado), Image.LANCZOS)  # también amplía logos pequeños
+        alpha = marca.getchannel("A").point(lambda p: int(p * opacidad))
+        rgb = marca.convert("RGB")
+        zona = self.img.height - S(desde_y) - S(80)
+        n = max(1, round(zona / (lado + S(30))))
+        paso = zona / n
+        for k in range(n):
+            cy = S(desde_y) + paso * (k + 0.5)
+            pos = (self.img.width // 2 - marca.width // 2, int(cy - marca.height // 2))
+            self.img.paste(rgb, pos, alpha)
+
+    def vineta(self, fuerza=0.6):
+        w, h = self.img.size
+        mask = Image.radial_gradient("L").resize((w, h), Image.BICUBIC).point(lambda p: int(p * fuerza))
+        self.img.paste((0, 0, 0, 255), (0, 0, w, h), mask)
+
+    # ---------- formas ----------
+    def panel(self, box, radio=16, relleno=(0, 0, 0, 150), borde=None, grosor=1):
+        x0, y0, x1, y1 = (S(v) for v in box)
+        w, h = x1 - x0, y1 - y0
+        capa = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(capa).rounded_rectangle(
+            (0, 0, w - 1, h - 1), radius=S(radio), fill=relleno,
+            outline=borde, width=S(grosor) if borde else 0)
+        self._pegar(capa, (x0, y0))
+
+    def panel_degradado(self, box, radio, arriba, abajo):
+        x0, y0, x1, y1 = (S(v) for v in box)
+        w, h = x1 - x0, y1 - y0
+        grad = ImageOps.colorize(Image.linear_gradient("L").resize((w, h)), black=arriba, white=abajo)
+        mask = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, w - 1, h - 1), radius=S(radio), fill=255)
+        self.img.paste(grad.convert("RGBA"), (x0, y0), mask)
+
+    def linea_dorada(self, y, x0=40, x1=860, grosor=2, rombo=True):
+        w, h = S(x1 - x0), S(grosor)
+        mitad = Image.linear_gradient("L").rotate(90).resize((w // 2, h))
+        mask = Image.new("L", (w, h), 0)
+        mask.paste(mitad, (0, 0))
+        mask.paste(ImageOps.mirror(mitad), (w // 2, 0))
+        self.img.paste(ORO + (255,), (S(x0), S(y), S(x0) + w, S(y) + h), mask)
+        if rombo:
+            cx, cy, r = S((x0 + x1) / 2), S(y) + h // 2, S(6)
+            self.draw.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], fill=ORO)
+
+    # ---------- texto ----------
+    def texto(self, xy, txt, fuente, color=CREMA, anchor="la", sombra=True, grad=None):
+        """Texto con sombra suave y, opcionalmente, relleno en degradado vertical (grad=(arriba, abajo))."""
+        x, y = S(xy[0]), S(xy[1])
+        l, t, r, b = self.draw.textbbox((x, y), txt, font=fuente, anchor=anchor)
+        pad = S(10)
+        ox, oy = l - pad, t - pad
+        w, h = r - l + 2 * pad, b - t + 2 * pad
+        mask = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask).text((x - ox, y - oy), txt, font=fuente, fill=255, anchor=anchor)
+        if sombra:
+            sm = mask.filter(ImageFilter.GaussianBlur(S(2.2))).point(lambda p: int(p * 0.85))
+            self.img.paste((0, 0, 0, 255), (ox + S(1), oy + S(2.5), ox + S(1) + w, oy + S(2.5) + h), sm)
+        if grad:
+            fill = ImageOps.colorize(Image.linear_gradient("L").resize((w, h)), black=grad[0], white=grad[1])
+            self.img.paste(fill.convert("RGBA"), (ox, oy), mask)
+        else:
+            self.img.paste(tuple(color) + (255,), (ox, oy, ox + w, oy + h), mask)
+
+    def fuente_ajustada(self, txt, clave, size, ancho_max, minimo=14):
+        while size > minimo:
+            f = _fuente(clave, size)
+            if self.ancho(txt, f) <= ancho_max:
+                return f
+            size -= 1
+        return _fuente(clave, minimo)
+
+    def lineas_nombre(self, nombre, clave, size, ancho_max):
+        """Divide un nombre en hasta 2 líneas; reduce la fuente si hace falta."""
+        nombre = " ".join(str(nombre or "-").split())
+        palabras = nombre.split()
+        for sz in range(size, 15, -2):
+            f = _fuente(clave, sz)
+            if self.ancho(nombre, f) <= ancho_max:
+                return [nombre], f
+            mejor = None
+            for i in range(1, len(palabras)):
+                a, b = " ".join(palabras[:i]), " ".join(palabras[i:])
+                m = max(self.ancho(a, f), self.ancho(b, f))
+                if mejor is None or m < mejor[0]:
+                    mejor = (m, [a, b])
+            if mejor and mejor[0] <= ancho_max:
+                return mejor[1], f
+        f = _fuente(clave, 16)
+        t = nombre
+        while t and self.ancho(t + "...", f) > ancho_max:
+            t = t[:-1]
+        return [(t + "...") if t else "-"], f
+
+    # ---------- logos ----------
+    def logo_libre(self, cx, cy, tam, logo):
+        """Logo de la liga sin recortar (respeta escudos y formas no circulares)."""
+        lado = S(tam)
+        l = ImageOps.contain(logo, (lado, lado), Image.LANCZOS)
+        x, y = S(cx) - l.width // 2, S(cy) - l.height // 2
+        sombra = Image.new("L", (l.width + S(40), l.height + S(40)), 0)
+        sombra.paste(l.getchannel("A").point(lambda p: int(p * 0.7)), (S(20), S(20)))
+        sombra = sombra.filter(ImageFilter.GaussianBlur(S(6)))
+        self.img.paste((0, 0, 0, 255), (x - S(20), y - S(16), x - S(20) + sombra.width, y - S(16) + sombra.height), sombra)
+        self.img.paste(l.convert("RGB"), (x, y), l.getchannel("A"))
+
+    def logo_circular(self, cx, cy, d, logo, letra="?", borde=3):
+        D = S(d)
+        x0, y0 = S(cx) - D // 2, S(cy) - D // 2
+        pad = S(14)
+        sombra = Image.new("L", (D + 2 * pad, D + 2 * pad), 0)
+        ImageDraw.Draw(sombra).ellipse((pad, pad, pad + D, pad + D), fill=190)
+        sombra = sombra.filter(ImageFilter.GaussianBlur(S(6)))
+        self.img.paste((0, 0, 0, 255), (x0 - pad, y0 - pad + S(4), x0 - pad + sombra.width, y0 - pad + S(4) + sombra.height), sombra)
+
+        B = S(borde)
+        self.draw.ellipse((x0 - B, y0 - B, x0 + D + B, y0 + D + B), fill=ORO)
+        if logo is not None:
+            self.draw.ellipse((x0, y0, x0 + D, y0 + D), fill=(246, 241, 230, 255))
+            inner = D - S(6)
+            recorte = ImageOps.fit(logo, (inner, inner), Image.LANCZOS)
+            mask = Image.new("L", (inner, inner), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, inner - 1, inner - 1), fill=255)
+            alpha = ImageChops.multiply(recorte.getchannel("A"), mask)
+            self.img.paste(recorte.convert("RGB"), (x0 + S(3), y0 + S(3)), alpha)
+        else:
+            self.draw.ellipse((x0, y0, x0 + D, y0 + D), fill=(40, 28, 16, 255))
+            self.texto((cx, cy + d * 0.03), (letra or "?")[0].upper(), _fuente("titulo", int(d * 0.62)),
+                       anchor="mm", sombra=False, grad=(ORO_CLARO, ORO_OSCURO))
+
+    def exportar(self):
+        final = self.img.resize((ANCHO, self.alto), Image.LANCZOS).convert("RGB")
+        buf = BytesIO()
+        final.save(buf, format="PNG", optimize=True)
+        return buf.getvalue()
+
+
+# =========================================================
+# 4. IMÁGENES: PIEZAS COMUNES
+# =========================================================
+
+def _inicial(obj):
+    return (str(obj or "?").strip() or "?")[0]
+
+
+def _hora_texto(h):
+    if hasattr(h, "strftime"):
+        return h.strftime("%H:%M") + " HORAS"
+    s = str(h or "").strip()
+    return (s[:5] + " HORAS") if s else "POR DEFINIR"
+
+
+def _orden(p):
+    return (p.fecha, p.hora or dtime.min)
+
+
+DIAS_LARGO = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+MESES_LARGO = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
+               "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
+
+
+def _fecha_larga(f):
+    """'SÁBADO 10 DE OCTUBRE DE 2026'. No depende del locale del servidor."""
+    if isinstance(f, datetime):
+        f = f.date()
+    if not isinstance(f, date):
+        return ""
+    return f"{DIAS_LARGO[f.weekday()]} {f.day} DE {MESES_LARGO[f.month - 1]} DEL {f.year}"
+
+
+def _plano(texto):
+    """Mayúsculas y sin tildes, para comparar textos."""
+    t = unicodedata.normalize("NFD", str(texto or "").upper())
+    return "".join(c for c in t if unicodedata.category(c) != "Mn")
+
+
+def _titulo_sin_fecha(titulo, grupos, por_defecto):
+    """
+    La fecha se muestra solo en el banner de cada grupo. Si el título recibido ya
+    trae alguna de esas fechas, se descarta y se usa el título por defecto.
+    """
+    if not titulo:
+        return por_defecto
+    t = _plano(titulo)
+    for g in grupos:
+        f = g["partidos"][0].fecha
+        if isinstance(f, datetime):
+            f = f.date()
+        if not isinstance(f, date):
+            continue
+        exacta = _plano(getattr(g["partidos"][0], "fecha_exacta", ""))
+        mes = _plano(MESES_LARGO[f.month - 1])
+        if (
+            (exacta and exacta in t)
+            or f.strftime("%d/%m/%Y") in t
+            or f.isoformat() in t
+            or (re.search(rf"\b0?{f.day}\b", t) and mes in t)
+        ):
+            return por_defecto
+    return titulo
+
+
+def _agrupar_por_fecha(partidos, etiquetas=()):
+    grupos, actual = [], None
+    for p in partidos:
+        if p.fecha != actual:
+            etiqueta = etiquetas[len(grupos)] if len(grupos) < len(etiquetas) else ""
+            fecha = _fecha_larga(p.fecha) or str(getattr(p, "fecha_exacta", "")).upper()
+            txt = f"{etiqueta}  ·  {fecha}" if etiqueta else fecha
+            grupos.append({"texto": txt.upper(), "partidos": []})
+            actual = p.fecha
+        grupos[-1]["partidos"].append(p)
+    return grupos
+
+
+def _encabezado(lz, subtitulo, logo_liga):
+    """Dibuja el encabezado y devuelve su alto."""
+    alto = 290 if logo_liga else 185
+    lz.panel((0, 0, ANCHO, alto), 0, (0, 0, 0, 125))
+    if logo_liga:
+        lz.resplandor(450, 100, 170, ORO, 0.32)
+        lz.logo_libre(450, 100, 130, logo_liga)
+        y = 182
+    else:
+        y = 34
+    f = lz.fuente_ajustada(TITULO_LIGA, "titulo", 48, 800)
+    lz.texto((450, y), TITULO_LIGA, f, anchor="ma", grad=(ORO_CLARO, ORO_OSCURO))
+    sub = subtitulo.upper()
+    fs = lz.fuente_ajustada(sub, "semi", 30, 780, minimo=18)
+    lz.texto((450, y + 56), sub, fs, CREMA, anchor="ma")
+    lz.linea_dorada(alto - 10)
+    return alto
+
+
+def _pie(lz, y, nombre_liga=None):
+    lz.linea_dorada(y, rombo=False, grosor=1.5)
+    txt = f"Generado el {datetime.now():%d-%m-%Y %H:%M}"
+    if nombre_liga:
+        txt += f"   ·   {nombre_liga}"
+    lz.texto((450, y + 14), txt, _fuente("texto", 16), TENUE, anchor="ma", sombra=False)
+
+
+def _respuesta(datos, filename):
+    r = HttpResponse(datos, content_type="image/png")
+    r["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return r
+
+
+# =========================================================
+# 4b. CARTELERA (fechas programadas y resultados)
+# =========================================================
+
+CARD_H = 228
+BANNER_H = 56
+
+
+def _tarjeta_partido(lz, y0, p, logos, resultado):
+    lz.panel((40, y0, 860, y0 + CARD_H), 20, (12, 9, 6, 150), borde=ORO + (85,), grosor=1.5)
+
+    # píldora de hora
+    hora = _hora_texto(p.hora)
+    fh = _fuente("semi", 22)
+    w = lz.ancho(hora, fh) + 46
+    lz.panel_degradado((450 - w / 2, y0 - 17, 450 + w / 2, y0 + 17), 17, ORO_CLARO, ORO_OSCURO)
+    lz.texto((450, y0), hora, fh, TINTA, anchor="mm", sombra=False)
+
+    cy = y0 + 88
+    for cx, equipo in ((150, p.equipo_local), (750, p.equipo_visitante)):
+        lz.logo_circular(cx, cy, 104, logos.get(_url_logo(equipo)), _inicial(equipo))
+        lineas, f = lz.lineas_nombre(equipo, "nombre", 28, 195)
+        ny = y0 + 156
+        for i, linea in enumerate(lineas):
+            lz.texto((cx, ny + i * 31), linea.upper(), f, CREMA, anchor="ma")
+
+    if resultado:
+        gl, gv = p.goles_local, p.goles_visitante
+        lz.panel((335, cy - 52, 565, cy + 52), 24, CAFE + (235,), borde=ORO, grosor=2)
+        fg = _fuente("titulo", 84)
+        gana_l, gana_v = (gl or 0) >= (gv or 0), (gv or 0) >= (gl or 0)
+        for x, val, gana, anc in ((450 - 34, gl, gana_l, "rm"), (450 + 34, gv, gana_v, "lm")):
+            if gana:
+                lz.texto((x, cy + 2), str(val), fg, anchor=anc, grad=(ORO_CLARO, ORO_OSCURO))
+            else:
+                lz.texto((x, cy + 2), str(val), fg, (205, 190, 160), anchor=anc)
+        lz.texto((450, cy + 2), "-", _fuente("titulo", 54), TENUE, anchor="mm", sombra=False)
+    else:
+        lz.resplandor(450, cy, 70, ORO, 0.25)
+        lz.draw.ellipse((S(450 - 40), S(cy - 40), S(450 + 40), S(cy + 40)), fill=ORO)
+        lz.draw.ellipse((S(450 - 36), S(cy - 36), S(450 + 36), S(cy + 36)), fill=CAFE + (255,))
+        lz.texto((450, cy + 2), "VS", _fuente("titulo", 38), anchor="mm", sombra=False, grad=(ORO_CLARO, ORO))
+
+    cancha = str(getattr(p, "cancha", "") or "").strip()
+    if cancha:
+        fc = lz.fuente_ajustada(cancha.upper(), "semi", 21, 230, minimo=14)
+        lz.texto((450, y0 + 150), cancha.upper(), fc, TENUE, anchor="ma", sombra=False)
+
+
+def _render_cartelera(grupos, subtitulo, liga, resultado, vacio):
+    n = sum(len(g["partidos"]) for g in grupos)
+    logo_url = _url_logo(liga) if liga else None
+    equipos = [e for g in grupos for p in g["partidos"] for e in (p.equipo_local, p.equipo_visitante)]
+    logos = _precargar_logos([logo_url] + [_url_logo(e) for e in equipos])
+    logo_liga = logos.get(logo_url)
+
+    enc = 290 if logo_liga else 185
+    cuerpo = 110 if n == 0 else len(grupos) * (BANNER_H + 46) + n * (CARD_H + 46)
+    alto = max(enc + 30 + cuerpo + 90, 700)
+
+    lz = Lienzo(alto)
+    lz.fondo()
+    lz.resplandor(450, enc, 520, ORO, 0.10)
+    lz.patron()
+    lz.marca_agua(logo_liga, enc, 0.22)
+    lz.vineta()
+    _encabezado(lz, subtitulo, logo_liga)
+
+    y = enc + 30
+    if n == 0:
+        lz.panel((40, y, 860, y + 90), 18, (12, 9, 6, 150), borde=ORO + (80,))
+        lz.texto((450, y + 45), vacio, _fuente("semi", 26), CREMA, anchor="mm")
+    for g in grupos:
+        lz.panel_degradado((40, y, 860, y + BANNER_H), 16, ORO_CLARO, ORO_OSCURO)
+        f = lz.fuente_ajustada(g["texto"], "titulo", 34, 780, minimo=18)
+        lz.texto((450, y + BANNER_H / 2 + 1), g["texto"], f, TINTA, anchor="mm", sombra=False)
+        y += BANNER_H + 46
+        for p in g["partidos"]:
+            _tarjeta_partido(lz, y, p, logos, resultado)
+            y += CARD_H + 46
+
+    _pie(lz, alto - 64, getattr(liga, "nombre", None))
+    return lz.exportar()
+
+
+def render_fechas(torneo, partidos, liga, titulo=None):
+    prog = sorted((p for p in partidos if p.estado == "Programado"), key=_orden)
+    grupos = _agrupar_por_fecha(prog, ("FECHA ACTUAL", "FECHA SIGUIENTE"))
+    defecto = getattr(torneo, "nombre", None) or "Fechas programadas"
+    sub = _titulo_sin_fecha(titulo, grupos, defecto)
+    return _render_cartelera(grupos, sub, liga, False, "No hay fechas registradas para este torneo.")
+
+
+def render_partidos(torneo, partidos, titulo=None, liga=None):
+    jug = sorted((p for p in partidos if p.estado == "Jugado"), key=_orden)
+    if liga is None:
+        liga = next((p.equipo_local.liga for p in jug if p.equipo_local and p.equipo_local.liga), None)
+    grupos = _agrupar_por_fecha(jug)
+    defecto = f"Resultados · {torneo.nombre}" if torneo else "Partidos jugados"
+    sub = _titulo_sin_fecha(titulo, grupos, defecto)
+    return _render_cartelera(grupos, sub, liga, True, "No hay partidos registrados para este torneo.")
+
+
+# =========================================================
+# 4c. TABLA DE POSICIONES
+# =========================================================
+
+FILA_H = 52
+FILA_PASO = 62
+COL_PJ, COL_DG, COL_PTS = 622, 712, 800
+
+
+def _fmt_dg(dg):
+    try:
+        v = int(dg)
+    except (TypeError, ValueError):
+        return str(dg), TENUE
+    if v > 0:
+        return f"+{v}", VERDE
+    if v < 0:
+        return str(v), ROJO
+    return "0", TENUE
+
+
+def render_tabla(torneo, tabla_posiciones, fondo_img=None):
+    filas = list(tabla_posiciones[:MAX_EQUIPOS])
+    liga = getattr(torneo, "liga", None)
+    if liga is None and filas:
+        liga = getattr(filas[0]["equipo"], "liga", None)
+
+    logo_url = _url_logo(liga) if liga else None
+    logos = _precargar_logos([logo_url] + [_url_logo(f["equipo"]) for f in filas])
+    logo_liga = logos.get(logo_url)
+
+    enc = 290 if logo_liga else 185
+    alto = enc + 24 + 52 + len(filas) * FILA_PASO + 100
+
+    lz = Lienzo(alto)
+    lz.fondo(fondo_img)
+    lz.resplandor(450, enc, 520, ORO, 0.10)
+    lz.patron()
+    lz.marca_agua(logo_liga, enc, 0.20)
+    lz.vineta()
+    _encabezado(lz, f"Tabla de posiciones · {torneo.nombre}", logo_liga)
+
+    y = enc + 24
+    fh = _fuente("semi", 22)
+    lz.texto((80, y + 14), "POS", fh, ORO, anchor="mm", sombra=False)
+    lz.texto((124, y + 14), "CLUB", fh, ORO, anchor="lm", sombra=False)
+    for x, t in ((COL_PJ, "PJ"), (COL_DG, "DG"), (COL_PTS, "PTS")):
+        lz.texto((x, y + 14), t, fh, ORO, anchor="mm", sombra=False)
+    lz.panel((40, y + 34, 860, y + 36), 0, ORO + (110,))
+    y += 52
+
+    for pos, fila in enumerate(filas, start=1):
+        equipo = fila["equipo"]
+        podio = PODIO.get(pos)
+        lz.panel((40, y, 860, y + FILA_H), 14,
+                 (12, 9, 6, 165) if pos % 2 else (30, 22, 14, 150),
+                 borde=(podio + (120,)) if podio else (255, 255, 255, 18), grosor=1.5 if podio else 1)
+        cy = y + FILA_H / 2
+
+        if podio:
+            lz.draw.ellipse((S(80 - 19), S(cy - 19), S(80 + 19), S(cy + 19)), fill=podio)
+            lz.texto((80, cy + 1), str(pos), _fuente("titulo", 28), TINTA, anchor="mm", sombra=False)
+        else:
+            lz.texto((80, cy + 1), str(pos), _fuente("titulo", 30), (205, 195, 175), anchor="mm", sombra=False)
+
+        lz.logo_circular(150, cy, 38, logos.get(_url_logo(equipo)), _inicial(equipo.nombre), borde=2)
+        nombre = str(equipo.nombre).upper()
+        f = lz.fuente_ajustada(nombre, "nombre", 30, 400, minimo=16)
+        lz.texto((184, cy + 1), nombre, f, CREMA, anchor="lm")
+
+        lz.texto((COL_PJ, cy + 1), str(fila["pj"]), _fuente("titulo", 32), (205, 195, 175), anchor="mm", sombra=False)
+        dg, color = _fmt_dg(fila["dg"])
+        lz.texto((COL_DG, cy + 1), dg, _fuente("titulo", 32), color, anchor="mm", sombra=False)
+
+        lz.panel((COL_PTS - 42, y + 7, COL_PTS + 42, y + FILA_H - 7), 14, CAFE + (230,), borde=ORO, grosor=1.5)
+        lz.texto((COL_PTS, cy + 1), str(fila["pts"]), _fuente("titulo", 34), anchor="mm", sombra=False,
+                 grad=(ORO_CLARO, ORO_OSCURO))
+        y += FILA_PASO
+
+    _pie(lz, alto - 64, getattr(liga, "nombre", None))
+    return lz.exportar()
+
+
+# =========================================================
+# 5. API DE IMÁGENES PARA LAS VISTAS (HttpResponse)
+# =========================================================
 
 def crear_img_tabla(torneo, tabla_posiciones):
-    # ---------- Constantes de layout ----------
-    ALTO_FILA = 48
-    ALTO_INICIO = 230
-    ALTO_HEADER_BANNER = 150
-    PADDING_X = 40
-    ANCHO_TABLA = 860
+    ruta = finders.find("img/tabla_fondo.png")
+    fondo = Image.open(ruta) if ruta else None
+    return _respuesta(render_tabla(torneo, tabla_posiciones, fondo), "tabla.png")
 
-    COL_POS = 40
-    COL_CLUB = 110
-    COL_PJ = 560
-    COL_DG = 660
-    COL_PTS = 770
-    ANCHO_COL_CLUB = COL_PJ - COL_CLUB - 20  # margen para truncar nombre
 
-    COLOR_FONDO = "#202020"
-    COLOR_FONDO_HEADER = "#161616"
-    COLOR_FILA_PAR = "#262626"
-    COLOR_FILA_IMPAR = "#202020"
-    COLOR_ORO = "gold"
-    COLOR_TEXTO = "whitesmoke"
-    COLOR_TENUE = "#999"
-    COLOR_BORDE = "#444"
+def crear_img_fechas(torneo, partidos, liga, titulo=None, filename="fechas.png"):
+    return _respuesta(render_fechas(torneo, partidos, liga, titulo), filename)
 
-    COLOR_PODIO = {
-        1: "#ffd700",  # oro
-        2: "#c0c0c0",  # plata
-        3: "#cd7f32",  # bronce
-    }
 
-    ALTO = ALTO_INICIO + (len(tabla_posiciones) * ALTO_FILA) + 40
+def crear_img_partidos(torneo, partidos, titulo=None, filename="partidos.png"):
+    return _respuesta(render_partidos(torneo, partidos, titulo), filename)
 
-    imagen = Image.new("RGB", (ANCHO, ALTO), COLOR_FONDO)
-    draw = ImageDraw.Draw(imagen)
 
-    fuente_titulo = ImageFont.truetype(ruta_titulo, 38)
-    fuente_subtitulo = ImageFont.truetype(ruta_normal, 22)
-    fuente_header = ImageFont.truetype(ruta_normal, 18)
-
-    cantidad_equipos = len(tabla_posiciones)
-    if cantidad_equipos <= 12:
-        fuente_normal = ImageFont.truetype(ruta_normal, 22)
-    elif cantidad_equipos <= 20:
-        fuente_normal = ImageFont.truetype(ruta_normal, 19)
-    else:
-        fuente_normal = ImageFont.truetype(ruta_normal, 16)
-
-    # ---------- Banner superior ----------
-    draw.rectangle(
-        (0, 0, ANCHO, ALTO_HEADER_BANNER),
-        fill=COLOR_FONDO_HEADER
-    )
-
-    draw.text((PADDING_X, 35), "Liga Rural", fill=COLOR_ORO, font=fuente_titulo)
-    draw.text((PADDING_X, 85), torneo.nombre, fill=COLOR_TEXTO, font=fuente_subtitulo)
-
-    draw.line(
-        (PADDING_X, ALTO_HEADER_BANNER, ANCHO - PADDING_X, ALTO_HEADER_BANNER),
-        fill=COLOR_ORO,
-        width=3
-    )
-
-    # ---------- Encabezado de columnas ----------
-    y_header = ALTO_HEADER_BANNER + 25
-    draw.text((COL_POS, y_header), "POS", fill=COLOR_ORO, font=fuente_header)
-    draw.text((COL_CLUB, y_header), "CLUB", fill=COLOR_ORO, font=fuente_header)
-    draw.text((COL_PJ, y_header), "PJ", fill=COLOR_ORO, font=fuente_header)
-    draw.text((COL_DG, y_header), "DG", fill=COLOR_ORO, font=fuente_header)
-    draw.text((COL_PTS, y_header), "PTS", fill=COLOR_ORO, font=fuente_header)
-
-    draw.line(
-        (PADDING_X, y_header + 30, ANCHO - PADDING_X, y_header + 30),
-        fill=COLOR_BORDE,
-        width=1
-    )
-
-    # ---------- Filas ----------
-    y = ALTO_INICIO
-
-    for posicion, fila in enumerate(tabla_posiciones, start=1):
-
-        # Franja de fondo alternada
-        color_fila = COLOR_FILA_PAR if posicion % 2 == 0 else COLOR_FILA_IMPAR
-        draw.rectangle(
-            (PADDING_X - 10, y - 8, ANCHO - PADDING_X + 10, y + ALTO_FILA - 12),
-            fill=color_fila
-        )
-
-        # Barra de color para el podio (1°, 2°, 3°)
-        if posicion in COLOR_PODIO:
-            draw.rectangle(
-                (PADDING_X - 10, y - 8, PADDING_X - 4, y + ALTO_FILA - 12),
-                fill=COLOR_PODIO[posicion]
-            )
-
-        color_posicion = COLOR_PODIO.get(posicion, COLOR_TEXTO)
-
-        draw.text((COL_POS, y), str(posicion), fill=color_posicion, font=fuente_normal)
-
-        nombre_club = _texto_ajustado(draw, fila["equipo"].nombre, fuente_normal, ANCHO_COL_CLUB)
-        draw.text((COL_CLUB, y), nombre_club, fill=COLOR_TEXTO, font=fuente_normal)
-
-        draw.text((COL_PJ, y), str(fila["pj"]), fill=COLOR_TENUE, font=fuente_normal)
-        draw.text((COL_DG, y), str(fila["dg"]), fill=COLOR_TENUE, font=fuente_normal)
-        draw.text((COL_PTS, y), str(fila["pts"]), fill=COLOR_ORO, font=fuente_normal)
-
-        y += ALTO_FILA
-
-    # ---------- Pie de página ----------
-    fuente_footer = ImageFont.truetype(ruta_normal, 13)
-    fecha_generado = datetime.now().strftime("%d-%m-%Y %H:%M")
-    draw.text(
-        (PADDING_X, ALTO - 30),
-        f"Generado el {fecha_generado} · Liga Rural",
-        fill=COLOR_TENUE,
-        font=fuente_footer
-    )
-
-    buffer = BytesIO()
-    imagen.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    response = HttpResponse(buffer, content_type="image/png")
-    response["Content-Disposition"] = 'attachment; filename="tabla.png"'
-
-    return response
+# ---------------------------------------------------------
+# Helpers conservados del módulo anterior (por compatibilidad con otras partes del proyecto)
+# ---------------------------------------------------------
 
 def _formatear_fecha_hora(valor, formato_salida="%A %d de %B %Y", solo_hora=False):
     """
-    Acepta un datetime real o un string, y devuelve el texto formateado.
+    Acepta un datetime/time real o un string y devuelve el texto formateado.
     Si es string y no se puede parsear, lo devuelve tal cual (sin romper).
     """
     dt = valor
 
     if isinstance(valor, str):
-        formatos_posibles = [
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d %H:%M",
-            "%d/%m/%Y %H:%M",
-            "%d-%m-%Y %H:%M",
-        ]
         dt = None
-        for formato in formatos_posibles:
+        for formato in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M", "%d-%m-%Y %H:%M"):
             try:
                 dt = datetime.strptime(valor, formato)
                 break
@@ -656,7 +1096,6 @@ def _formatear_fecha_hora(valor, formato_salida="%A %d de %B %Y", solo_hora=Fals
                 continue
 
     if dt is None or not hasattr(dt, "strftime"):
-        # No se pudo interpretar como fecha: devolvemos el string tal cual
         return valor.upper() if isinstance(valor, str) else str(valor)
 
     if solo_hora:
@@ -664,7 +1103,9 @@ def _formatear_fecha_hora(valor, formato_salida="%A %d de %B %Y", solo_hora=Fals
 
     return dt.strftime(formato_salida).upper()
 
+
 def _texto_ajustado(draw, texto, fuente, ancho_maximo):
+    """Recorta el texto con '...' hasta que quepa en ancho_maximo."""
     texto = str(texto or "-")
 
     if draw.textlength(texto, font=fuente) <= ancho_maximo:
@@ -675,1623 +1116,264 @@ def _texto_ajustado(draw, texto, fuente, ancho_maximo):
 
     return f"{texto}..." if texto else "-"
 
-def _cargar_logo_circular(url, size, cache=None):
-    """
-    Descarga un logo desde una URL (Cloudinary u otra), lo recorta
-    en círculo y lo devuelve como imagen RGBA lista para pegar.
-    Devuelve None si falla la descarga o no hay URL.
-    """
+
+# =========================================================
+# 6. PDF DE PLANILLA DE JUGADORES
+# =========================================================
+
+PDF_DORADO = colors.HexColor("#B8962E")
+PDF_NEGRO = colors.HexColor("#222222")
+PDF_GRIS = colors.HexColor("#666666")
+PDF_GRIS_CLARO = colors.HexColor("#E9E9E9")
+
+_PDF_FUENTES = None
+
+
+def _fuentes_pdf():
+    """Registra las fuentes una sola vez. Devuelve {'normal': ..., 'titulo': ...}."""
+    global _PDF_FUENTES
+    if _PDF_FUENTES:
+        return _PDF_FUENTES
+    try:
+        for nombre, clave in (("LigaNormal", "texto"), ("LigaNegrita", "nombre"), ("LigaTitulo", "titulo")):
+            archivo = FUENTES[clave][0]
+            ruta = _buscar_fuente(archivo)
+            if not ruta:
+                raise FileNotFoundError(archivo)
+            pdfmetrics.registerFont(TTFont(nombre, ruta))
+        # Necesario para que <b>...</b> use la negrita real
+        pdfmetrics.registerFontFamily("LigaNormal", normal="LigaNormal", bold="LigaNegrita")
+        _PDF_FUENTES = {"normal": "LigaNormal", "titulo": "LigaTitulo"}
+    except Exception:
+        logger.warning("No se pudieron registrar las fuentes del PDF; se usa Helvetica.", exc_info=True)
+        _PDF_FUENTES = {"normal": "Helvetica", "titulo": "Helvetica-Bold"}
+    return _PDF_FUENTES
+
+
+def _separar_nombre(nombre_completo):
+    """Devuelve (nombres, apellido_paterno, apellido_materno) según la cantidad de palabras."""
+    partes = nombre_completo.split()
+    if len(partes) == 3:
+        return partes[0], partes[1], partes[2]
+    if len(partes) == 4:
+        return " ".join(partes[:2]), partes[2], partes[3]
+    if len(partes) == 5:
+        return " ".join(partes[:3]), partes[3], partes[4]
+    return nombre_completo, "-", "-"
+
+
+def _fecha_texto(valor):
+    return valor.strftime("%d/%m/%Y") if valor else "-"
+
+
+def _descargar_bytes(url, timeout=15):
+    try:
+        r = requests.get(_normalizar_url(url), timeout=timeout)
+        r.raise_for_status()
+        return r.content
+    except Exception:
+        logger.warning("[PDF] No se pudo descargar %s", url, exc_info=True)
+        return None
+
+
+def _marca_agua_pdf(liga, opacidad=0.10):
+    """Devuelve un ImageReader con el logo de la liga translúcido, o None."""
+    url = _url_logo(liga) if liga else None
     if not url:
         return None
-
-    if cache is not None and url in cache:
-        return cache[url]
-
+    datos = _descargar_bytes(url)
+    if not datos:
+        return None
     try:
-        respuesta = requests.get(url, timeout=5)
-        respuesta.raise_for_status()
-
-        logo = Image.open(BytesIO(respuesta.content)).convert("RGBA")
-        logo = ImageOps.fit(logo, (size, size), Image.LANCZOS)
-
-        mascara = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(mascara).ellipse((0, 0, size, size), fill=255)
-
-        logo_circular = Image.new("RGBA", (size, size))
-        logo_circular.paste(logo, (0, 0), mascara)
-
-    except Exception as error:
-        print(f"No se pudo cargar el logo ({url}): {error}")
+        logo = Image.open(BytesIO(datos)).convert("RGBA")
+        logo.thumbnail((1200, 1200), Image.LANCZOS)
+        logo.putalpha(logo.getchannel("A").point(lambda p: int(p * opacidad)))
+        buf = BytesIO()
+        logo.save(buf, format="PNG")
+        buf.seek(0)
+        return ImageReader(buf)
+    except Exception:
+        logger.warning("[PDF] No se pudo procesar el logo de la liga.", exc_info=True)
         return None
 
-    if cache is not None:
-        cache[url] = logo_circular
-
-    return logo_circular
-
-
-def _placeholder_logo(size, letra, color_fondo="#3a3a3a", color_texto="whitesmoke"):
-    """Círculo con la inicial del equipo, para cuando no hay logo."""
-    placeholder = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(placeholder)
-    draw.ellipse((0, 0, size, size), fill=color_fondo)
-
-    fuente = ImageFont.truetype(ruta_normal, int(size * 0.5))
-    bbox = draw.textbbox((0, 0), letra, font=fuente)
-    ancho_texto = bbox[2] - bbox[0]
-    alto_texto = bbox[3] - bbox[1]
-
-    draw.text(
-        ((size - ancho_texto) / 2, (size - alto_texto) / 2 - bbox[1]),
-        letra,
-        fill=color_texto,
-        font=fuente
-    )
-    return placeholder
-
-def _logo_marca_agua(url, size, opacidad=0.15, cache=None):
-    """
-    Descarga el logo y lo devuelve como imagen RGBA grande,
-    con el canal alpha reducido para usarlo como marca de agua de fondo.
-    """
-    clave_cache = f"{url}_{size}_{opacidad}"
-    if cache is not None and clave_cache in cache:
-        return cache[clave_cache]
-
-    if not url:
-        return None
-
-    try:
-        respuesta = requests.get(url, timeout=5)
-        respuesta.raise_for_status()
-
-        logo = Image.open(BytesIO(respuesta.content)).convert("RGBA")
-
-        # Escalar manteniendo proporción, ajustado dentro de un cuadrado 'size'
-        logo.thumbnail((size, size), Image.LANCZOS)
-
-        # Reducir opacidad multiplicando el canal alpha
-        r, g, b, a = logo.split()
-        a = a.point(lambda px: int(px * opacidad))
-        logo = Image.merge("RGBA", (r, g, b, a))
-
-    except Exception as error:
-        print(f"No se pudo cargar la marca de agua ({url}): {error}")
-        return None
-
-    if cache is not None:
-        cache[clave_cache] = logo
-
-    return logo
-
-def crear_img_fechas(torneo, partidos, liga, titulo=None, filename="fechas.png"):
-    # ---------- Constantes de layout ----------
-    PADDING_X = 40
-    ALTO_HEADER = 200
-    ALTO_BANNER_FECHA = 70
-    ALTO_TARJETA = 130
-    ESPACIO_ENTRE_TARJETAS = 20
-    LOGO_LIGA_SIZE = 110
-    LOGO_EQUIPO_SIZE = 90
-
-    COLOR_FONDO = "#202020"
-    COLOR_FONDO_HEADER = "#161616"
-    COLOR_ORO = "#d4af37"
-    COLOR_CAFE = "#5a3a1a"
-    COLOR_TEXTO = "whitesmoke"
-    COLOR_TENUE = "#999"
-    COLOR_TARJETA_FONDO = "#2a2a2a"
-    COLOR_BORDE = "#444"
-
-    partidos_programados = sorted(
-        [p for p in partidos if p.estado == 'Programado'],
-        key=lambda p: (p.fecha, p.hora)
-    )
-
-    grupos_fechas = []
-    fecha_actual = None
-    grupo_actual = None
-
-    for partido in partidos_programados:
-        if partido.fecha != fecha_actual:
-            etiqueta = "FECHA ACTUAL" if not grupos_fechas else "FECHA SIGUIENTE"
-
-            if len(grupos_fechas) >= 2:
-                etiqueta = f"FECHA {len(grupos_fechas) + 1}"
-
-            grupo_actual = {
-                "fecha_texto": f"{etiqueta} - {partido.fecha_exacta}",
-                "partidos": []
-            }
-            grupos_fechas.append(grupo_actual)
-            fecha_actual = partido.fecha
-
-        grupo_actual["partidos"].append(partido)
-
-    # Cada partido utiliza:
-    # 30  -> separación antes de la tarjeta
-    # 130 -> altura de tarjeta
-    # 20  -> espacio entre tarjetas
-    # 25  -> espacio adicional al actualizar y
-    ALTO_POR_PARTIDO = (
-        30
-        + ALTO_TARJETA
-        + ESPACIO_ENTRE_TARJETAS
-        + 25
-    )
-
-    alto = (
-        ALTO_HEADER
-        + 20
-        + len(grupos_fechas) * (ALTO_BANNER_FECHA + 40)
-        + len(partidos_programados) * ALTO_POR_PARTIDO
-        + 80
-    )
-
-    alto = max(alto, 500)
-
-    imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
-    draw = ImageDraw.Draw(imagen)
-
-    fuente_titulo = ImageFont.truetype(ruta_titulo_negrita, 36)
-    fuente_subtitulo = ImageFont.truetype(ruta_subtitulo, 24)
-    fuente_fecha = ImageFont.truetype(ruta_titulo_negrita, 30)
-    fuente_hora = ImageFont.truetype(ruta_subtitulo, 20)
-    fuente_equipo = ImageFont.truetype(ruta_subtitulo, 24)
-    fuente_vs = ImageFont.truetype(ruta_titulo_negrita, 22)
-    fuente_footer = ImageFont.truetype(ruta_normal, 18)
-
-    cache_logos = {}
-
-    # ---------- URL del logo de la liga (una sola vez, se reusa abajo) ----------
-    logo_liga_url = liga.logo.url if liga and liga.logo else None
-
-    # ---------- Marca de agua: logo de la liga de fondo ----------
-    marca_agua = _logo_marca_agua(
-        logo_liga_url,
-        size=int(min(ANCHO, alto) * 0.75),  # ocupa 75% del lado más chico
-        opacidad=0.12,
-        cache=cache_logos
-    )
-
-    if marca_agua:
-        x_wm = (ANCHO - marca_agua.width) // 2
-        y_wm = (alto - marca_agua.height) // 2
-        imagen.paste(marca_agua, (x_wm, y_wm), marca_agua)
-
-    # ---------- Header con logos de la liga a ambos lados ----------
-    draw.rectangle((0, 0, ANCHO, ALTO_HEADER), fill=COLOR_FONDO_HEADER)
-    texto_titulo = "UNIÓN COMUNAL DE CLUBES DEPORTIVOS"
-    bbox_titulo = draw.textbbox((0, 0), texto_titulo, font=fuente_titulo)
-    ancho_titulo = bbox_titulo[2] - bbox_titulo[0]
-    x_titulo = (ANCHO - ancho_titulo) // 2
-
-    draw.text((x_titulo, 55), texto_titulo, fill=COLOR_ORO, font=fuente_titulo)
-
-    texto_subtitulo = titulo or (torneo.nombre if torneo else "Fechas programadas")
-    texto_subtitulo = texto_subtitulo.upper()
-    bbox_sub = draw.textbbox((0, 0), texto_subtitulo, font=fuente_subtitulo)
-    ancho_sub = bbox_sub[2] - bbox_sub[0]
-    x_sub = (ANCHO - ancho_sub) // 2
-    draw.text((x_sub, 115), texto_subtitulo, fill=COLOR_TEXTO, font=fuente_subtitulo)
-
-    # ---------- Tarjetas de partido ----------
-    y = ALTO_HEADER + 20
-
-    if not partidos_programados:
-        draw.text(
-            (PADDING_X, y),
-            "No hay fechas registradas para este torneo.",
-            fill=COLOR_TEXTO,
-            font=fuente_equipo
-        )
-    else:
-        for grupo in grupos_fechas:
-            fecha_texto = grupo["fecha_texto"].upper()
-
-            draw.rounded_rectangle(
-                (PADDING_X, y, ANCHO - PADDING_X, y + ALTO_BANNER_FECHA),
-                radius=14,
-                fill=COLOR_CAFE
-            )
-
-            bbox_fecha = draw.textbbox((0, 0), fecha_texto, font=fuente_fecha)
-            ancho_fecha = bbox_fecha[2] - bbox_fecha[0]
-            alto_fecha = bbox_fecha[3] - bbox_fecha[1]
-            draw.text(
-                ((ANCHO - ancho_fecha) // 2, y + (ALTO_BANNER_FECHA - alto_fecha) // 2 - bbox_fecha[1]),
-                fecha_texto,
-                fill=COLOR_ORO,
-                font=fuente_fecha
-            )
-
-            y += ALTO_BANNER_FECHA + 40
-
-            for partido in grupo["partidos"]:
-
-                # --- Badge de hora ---
-                hora_texto = _formatear_fecha_hora(partido.hora, solo_hora=True)
-                bbox_hora = draw.textbbox((0, 0), hora_texto, font=fuente_hora)
-                ancho_hora = bbox_hora[2] - bbox_hora[0]
-
-                draw.rounded_rectangle(
-                    (
-                        (ANCHO - ancho_hora) // 2 - 20, y - 18,
-                        (ANCHO + ancho_hora) // 2 + 20, y + 18
-                    ),
-                    radius=18,
-                    fill=COLOR_ORO
-                )
-                draw.text(
-                    ((ANCHO - ancho_hora) // 2, y - bbox_hora[3] // 2),
-                    hora_texto,
-                    fill="#202020",
-                    font=fuente_hora
-                )
-
-                y_tarjeta = y + 30
-
-                # --- Fondo de la tarjeta ---
-                draw.rounded_rectangle(
-                    (PADDING_X, y_tarjeta, ANCHO - PADDING_X, y_tarjeta + ALTO_TARJETA),
-                    radius=14,
-                    fill=COLOR_TARJETA_FONDO,
-                    outline=COLOR_BORDE,
-                    width=1
-                )
-
-                centro_y = y_tarjeta + ALTO_TARJETA // 2
-
-                # --- Logo equipo local (izquierda) ---
-                logo_local_url = getattr(partido.equipo_local, "logo", None)
-                logo_local_url = logo_local_url.url if logo_local_url else None
-                logo_local = _cargar_logo_circular(logo_local_url, LOGO_EQUIPO_SIZE, cache_logos)
-                if not logo_local:
-                    logo_local = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_local)[0].upper())
-
-                x_logo_local = PADDING_X + 25
-                imagen.paste(logo_local, (x_logo_local, centro_y - LOGO_EQUIPO_SIZE // 2), logo_local)
-
-                # --- Logo equipo visitante (derecha) ---
-                logo_visita_url = getattr(partido.equipo_visitante, "logo", None)
-                logo_visita_url = logo_visita_url.url if logo_visita_url else None
-                logo_visita = _cargar_logo_circular(logo_visita_url, LOGO_EQUIPO_SIZE, cache_logos)
-                if not logo_visita:
-                    logo_visita = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_visitante)[0].upper())
-
-                x_logo_visita = ANCHO - PADDING_X - 25 - LOGO_EQUIPO_SIZE
-                imagen.paste(logo_visita, (x_logo_visita, centro_y - LOGO_EQUIPO_SIZE // 2), logo_visita)
-
-                # --- Badge central "VS" ---
-                vs_size = 60
-                x_vs = (ANCHO - vs_size) // 2
-                draw.ellipse(
-                    (x_vs, centro_y - vs_size // 2, x_vs + vs_size, centro_y + vs_size // 2),
-                    fill=COLOR_CAFE
-                )
-                bbox_vs = draw.textbbox((0, 0), "VS", font=fuente_vs)
-                ancho_vs = bbox_vs[2] - bbox_vs[0]
-                alto_vs = bbox_vs[3] - bbox_vs[1]
-
-                x_texto_vs = x_vs + (vs_size - ancho_vs) // 2 - bbox_vs[0]
-                y_texto_vs = (centro_y - vs_size // 2) + (vs_size - alto_vs) // 2 - bbox_vs[1]
-
-                draw.text(
-                    (x_texto_vs, y_texto_vs),
-                    "VS",
-                    fill=COLOR_ORO,
-                    font=fuente_vs
-                )
-
-                # --- Nombre equipo local ---
-                ancho_columna = x_vs - (x_logo_local + LOGO_EQUIPO_SIZE) - 20
-                nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_equipo, ancho_columna)
-                bbox_nl = draw.textbbox((0, 0), nombre_local, font=fuente_equipo)
-                ancho_nl = bbox_nl[2] - bbox_nl[0]
-                x_centro_local = x_logo_local + LOGO_EQUIPO_SIZE + 15 + (ancho_columna - ancho_nl) // 2
-                draw.text((x_centro_local, centro_y - 12), nombre_local, fill=COLOR_TEXTO, font=fuente_equipo)
-
-                # --- Nombre equipo visitante ---
-                nombre_visita = _texto_ajustado(draw, partido.equipo_visitante, fuente_equipo, ancho_columna)
-                bbox_nv = draw.textbbox((0, 0), nombre_visita, font=fuente_equipo)
-                ancho_nv = bbox_nv[2] - bbox_nv[0]
-                x_centro_visita = (x_vs + vs_size + 15) + (ancho_columna - ancho_nv) // 2
-                draw.text((x_centro_visita, centro_y - 12), nombre_visita, fill=COLOR_TEXTO, font=fuente_equipo)
-
-                y = y_tarjeta + ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS + 25
-
-    buffer = BytesIO()
-    imagen.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    response = HttpResponse(buffer, content_type="image/png")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-    return response
-
-def crear_img_partidos(torneo, partidos, titulo=None, filename="partidos.png"):
-    # ---------- Constantes de layout ----------
-    PADDING_X = 40
-    ALTO_HEADER = 200
-    ALTO_BANNER_FECHA = 70
-    ALTO_TARJETA = 150
-    ESPACIO_ENTRE_TARJETAS = 20
-    LOGO_EQUIPO_SIZE = 90
-
-    COLOR_FONDO = "#202020"
-    COLOR_FONDO_HEADER = "#161616"
-    COLOR_ORO = "#d4af37"
-    COLOR_CAFE = "#5a3a1a"
-    COLOR_TEXTO = "whitesmoke"
-    COLOR_TENUE = "#c9c9c9"
-    COLOR_TARJETA_FONDO = "#2a2a2a"
-    COLOR_BORDE = "#444"
-
-    partidos_jugados = sorted(
-        [p for p in partidos if p.estado == "Jugado"],
-        key=lambda p: (p.fecha, p.hora)
-    )
-
-    grupos_partidos = []
-    fecha_actual = None
-    grupo_actual = None
-
-    for partido in partidos_jugados:
-        if partido.fecha != fecha_actual:
-            etiqueta = "FECHA ACTUAL" if not grupos_partidos else "FECHA SIGUIENTE"
-
-            if len(grupos_partidos) >= 2:
-                etiqueta = f"FECHA {len(grupos_partidos) + 1}"
-
-            grupo_actual = {
-                "fecha_texto": f"{etiqueta} - {partido.fecha_exacta}",
-                "partidos": []
-            }
-            grupos_partidos.append(grupo_actual)
-            fecha_actual = partido.fecha
-
-        grupo_actual["partidos"].append(partido)
-
-    ALTO_POR_PARTIDO = (
-        30
-        + ALTO_TARJETA
-        + ESPACIO_ENTRE_TARJETAS
-        + 25
-    )
-
-    alto = (
-        ALTO_HEADER
-        + 20
-        + len(grupos_partidos) * (ALTO_BANNER_FECHA + 40)
-        + len(partidos_jugados) * ALTO_POR_PARTIDO
-        + 80
-    )
-    alto = max(alto, 500)
-
-    imagen = Image.new("RGB", (ANCHO, alto), COLOR_FONDO)
-    draw = ImageDraw.Draw(imagen)
-
-    fuente_titulo = ImageFont.truetype(ruta_titulo_negrita, 36)
-    fuente_subtitulo = ImageFont.truetype(ruta_subtitulo, 24)
-    fuente_fecha = ImageFont.truetype(ruta_titulo_negrita, 30)
-    fuente_hora = ImageFont.truetype(ruta_subtitulo, 20)
-    fuente_equipo = ImageFont.truetype(ruta_subtitulo, 24)
-    fuente_resultado = ImageFont.truetype(ruta_titulo_negrita, 26)
-    fuente_detalle = ImageFont.truetype(ruta_normal, 18)
-
-    cache_logos = {}
-    liga = None
-
-    for partido in partidos_jugados:
-        if partido.equipo_local and partido.equipo_local.liga:
-            liga = partido.equipo_local.liga
-            break
-
-    logo_liga_url = liga.logo.url if liga and liga.logo else None
-    marca_agua = _logo_marca_agua(
-        logo_liga_url,
-        size=int(min(ANCHO, alto) * 0.75),
-        opacidad=0.12,
-        cache=cache_logos
-    )
-
-    if marca_agua:
-        x_wm = (ANCHO - marca_agua.width) // 2
-        y_wm = (alto - marca_agua.height) // 2
-        imagen.paste(marca_agua, (x_wm, y_wm), marca_agua)
-
-    # ---------- Header ----------
-    draw.rectangle((0, 0, ANCHO, ALTO_HEADER), fill=COLOR_FONDO_HEADER)
-    texto_titulo = "RESULTADOS OFICIALES"
-    bbox_titulo = draw.textbbox((0, 0), texto_titulo, font=fuente_titulo)
-    ancho_titulo = bbox_titulo[2] - bbox_titulo[0]
-    draw.text(((ANCHO - ancho_titulo) // 2, 55), texto_titulo, fill=COLOR_ORO, font=fuente_titulo)
-
-    texto_subtitulo = titulo or (f"Partidos - {torneo.nombre}" if torneo else "Partidos jugados")
-    texto_subtitulo = texto_subtitulo.upper()
-    bbox_sub = draw.textbbox((0, 0), texto_subtitulo, font=fuente_subtitulo)
-    ancho_sub = bbox_sub[2] - bbox_sub[0]
-    draw.text(((ANCHO - ancho_sub) // 2, 115), texto_subtitulo, fill=COLOR_TEXTO, font=fuente_subtitulo)
-
-    y = ALTO_HEADER + 20
-
-    if not partidos_jugados:
-        draw.text(
-            (PADDING_X, y),
-            "No hay partidos registrados para este torneo.",
-            fill=COLOR_TEXTO,
-            font=fuente_equipo
-        )
-    else:
-        for grupo in grupos_partidos:
-            fecha_texto = grupo["fecha_texto"].upper()
-            draw.rounded_rectangle(
-                (PADDING_X, y, ANCHO - PADDING_X, y + ALTO_BANNER_FECHA),
-                radius=14,
-                fill=COLOR_CAFE
-            )
-
-            bbox_fecha = draw.textbbox((0, 0), fecha_texto, font=fuente_fecha)
-            ancho_fecha = bbox_fecha[2] - bbox_fecha[0]
-            alto_fecha = bbox_fecha[3] - bbox_fecha[1]
-            draw.text(
-                ((ANCHO - ancho_fecha) // 2, y + (ALTO_BANNER_FECHA - alto_fecha) // 2 - bbox_fecha[1]),
-                fecha_texto,
-                fill=COLOR_ORO,
-                font=fuente_fecha
-            )
-
-            y += ALTO_BANNER_FECHA + 40
-
-            for partido in grupo["partidos"]:
-                hora_texto = _formatear_fecha_hora(partido.hora, solo_hora=True)
-                bbox_hora = draw.textbbox((0, 0), hora_texto, font=fuente_hora)
-                ancho_hora = bbox_hora[2] - bbox_hora[0]
-
-                draw.rounded_rectangle(
-                    (
-                        (ANCHO - ancho_hora) // 2 - 20, y - 18,
-                        (ANCHO + ancho_hora) // 2 + 20, y + 18
-                    ),
-                    radius=18,
-                    fill=COLOR_ORO
-                )
-                draw.text(
-                    ((ANCHO - ancho_hora) // 2, y - bbox_hora[3] // 2),
-                    hora_texto,
-                    fill=COLOR_FONDO,
-                    font=fuente_hora
-                )
-
-                y_tarjeta = y + 30
-
-                draw.rounded_rectangle(
-                    (PADDING_X, y_tarjeta, ANCHO - PADDING_X, y_tarjeta + ALTO_TARJETA),
-                    radius=14,
-                    fill=COLOR_TARJETA_FONDO,
-                    outline=COLOR_BORDE,
-                    width=1
-                )
-
-                centro_y = y_tarjeta + 65
-
-                logo_local_url = getattr(partido.equipo_local, "logo", None)
-                logo_local_url = logo_local_url.url if logo_local_url else None
-                logo_local = _cargar_logo_circular(logo_local_url, LOGO_EQUIPO_SIZE, cache_logos)
-                if not logo_local:
-                    logo_local = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_local)[0].upper())
-
-                x_logo_local = PADDING_X + 25
-                imagen.paste(logo_local, (x_logo_local, centro_y - LOGO_EQUIPO_SIZE // 2), logo_local)
-
-                logo_visita_url = getattr(partido.equipo_visitante, "logo", None)
-                logo_visita_url = logo_visita_url.url if logo_visita_url else None
-                logo_visita = _cargar_logo_circular(logo_visita_url, LOGO_EQUIPO_SIZE, cache_logos)
-                if not logo_visita:
-                    logo_visita = _placeholder_logo(LOGO_EQUIPO_SIZE, str(partido.equipo_visitante)[0].upper())
-
-                x_logo_visita = ANCHO - PADDING_X - 25 - LOGO_EQUIPO_SIZE
-                imagen.paste(logo_visita, (x_logo_visita, centro_y - LOGO_EQUIPO_SIZE // 2), logo_visita)
-
-                resultado_texto = f"{partido.goles_local} - {partido.goles_visitante}"
-                bbox_resultado = draw.textbbox((0, 0), resultado_texto, font=fuente_resultado)
-                ancho_resultado = bbox_resultado[2] - bbox_resultado[0]
-                alto_resultado = bbox_resultado[3] - bbox_resultado[1]
-                resultado_w = max(105, ancho_resultado + 34)
-                resultado_h = 58
-                x_resultado = (ANCHO - resultado_w) // 2
-
-                draw.rounded_rectangle(
-                    (
-                        x_resultado,
-                        centro_y - resultado_h // 2,
-                        x_resultado + resultado_w,
-                        centro_y + resultado_h // 2
-                    ),
-                    radius=18,
-                    fill=COLOR_CAFE,
-                    outline=COLOR_ORO,
-                    width=2
-                )
-
-                draw.text(
-                    (
-                        x_resultado + (resultado_w - ancho_resultado) // 2 - bbox_resultado[0],
-                        centro_y - alto_resultado // 2 - bbox_resultado[1],
-                    ),
-                    resultado_texto,
-                    fill=COLOR_ORO,
-                    font=fuente_resultado
-                )
-
-                ancho_columna = x_resultado - (x_logo_local + LOGO_EQUIPO_SIZE) - 20
-                nombre_local = _texto_ajustado(draw, partido.equipo_local, fuente_equipo, ancho_columna)
-                bbox_nl = draw.textbbox((0, 0), nombre_local, font=fuente_equipo)
-                ancho_nl = bbox_nl[2] - bbox_nl[0]
-                x_centro_local = x_logo_local + LOGO_EQUIPO_SIZE + 15 + (ancho_columna - ancho_nl) // 2
-                draw.text((x_centro_local, centro_y - 12), nombre_local, fill=COLOR_TEXTO, font=fuente_equipo)
-
-                nombre_visita = _texto_ajustado(draw, partido.equipo_visitante, fuente_equipo, ancho_columna)
-                bbox_nv = draw.textbbox((0, 0), nombre_visita, font=fuente_equipo)
-                ancho_nv = bbox_nv[2] - bbox_nv[0]
-                x_centro_visita = (x_resultado + resultado_w + 15) + (ancho_columna - ancho_nv) // 2
-                draw.text((x_centro_visita, centro_y - 12), nombre_visita, fill=COLOR_TEXTO, font=fuente_equipo)
-
-                detalle_texto = f"{partido.cancha or '-'}"
-                detalle_texto = _texto_ajustado(draw, detalle_texto, fuente_detalle, ANCHO - (PADDING_X * 2) - 40)
-                bbox_detalle = draw.textbbox((0, 0), detalle_texto, font=fuente_detalle)
-                ancho_detalle = bbox_detalle[2] - bbox_detalle[0]
-                draw.text(
-                    ((ANCHO - ancho_detalle) // 2, y_tarjeta + ALTO_TARJETA - 35),
-                    detalle_texto,
-                    fill=COLOR_TENUE,
-                    font=fuente_detalle
-                )
-
-                y = y_tarjeta + ALTO_TARJETA + ESPACIO_ENTRE_TARJETAS + 25
-
-    buffer = BytesIO()
-
-    imagen.save(
-        buffer,
-        format="PNG"
-    )
-
-    buffer.seek(0)
-
-    response = HttpResponse(
-        buffer,
-        content_type="image/png"
-    )
-
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-    return response
 
 def crear_pdf_detalle_equipo(equipo, lista_jugadores, mostrar_rut=True):
-
-    # =========================================================
-    # CONFIGURACIÓN A4 VERTICAL
-    # =========================================================
-
     PAGE_WIDTH, PAGE_HEIGHT = A4
+    margen_x = 10 * mm
+    ancho_util = PAGE_WIDTH - 2 * margen_x
 
-    margen_izquierdo = 10 * mm
-    margen_derecho = 10 * mm
-    margen_superior = 20 * mm
-    margen_inferior = 16 * mm
+    fuentes = _fuentes_pdf()
+    f_normal, f_titulo = fuentes["normal"], fuentes["titulo"]
 
-
-    # =========================================================
-    # COLORES
-    # =========================================================
-
-    NEGRO = colors.HexColor("#222222")
-    GRIS = colors.HexColor("#666666")
-    GRIS_CLARO = colors.HexColor("#E9E9E9")
-
-    DORADO = colors.HexColor("#B8962E")
-
-
-    # =========================================================
-    # FUENTES
-    # =========================================================
-
-    try:
-
-        pdfmetrics.registerFont(
-            TTFont(
-                "LigaNormal",
-                ruta_normal
-            )
-        )
-
-        pdfmetrics.registerFont(
-            TTFont(
-                "LigaNormalNegrita",
-                ruta_normal_negrita
-            )
-        )
-
-        pdfmetrics.registerFont(
-            TTFont(
-                "LigaTituloRegular",
-                ruta_titulo
-            )
-        )
-        pdfmetrics.registerFont(
-            TTFont(
-                "LigaTituloNegrita",
-                ruta_titulo_negrita
-            )
-        )
-        pdfmetrics.registerFont(
-            TTFont(
-                "LigaSubtitulo",
-                ruta_subtitulo
-            )
-        )
-        pdfmetrics.registerFontFamily(
-            "LigaTitulo",
-            normal="LigaTituloRegular",
-            bold="LigaTituloNegrita"
-        )
-        
-        pdfmetrics.registerFontFamily(
-            "LigaNorma",
-            normal="LigaNormal",
-            bold="LigaNormalNegrita"
-        )
-
-        fuente_normal = "LigaNormal"
-        fuente_titulo = "LigaTituloRegular"
-        fuente_subtitulo = "LigaSubtitulo"
-
-    except Exception:
-
-        fuente_normal = "Helvetica"
-        fuente_titulo = "Helvetica-Bold"
-        fuente_subtitulo = "Helvetica"
-
-
-    # =========================================================
-    # DOCUMENTO
-    # =========================================================
+    liga = getattr(equipo, "liga", None)
+    nombre_liga = str(getattr(liga, "nombre", "") or "")
 
     buffer = BytesIO()
-
-    nombre_liga = str(equipo.liga.nombre)
-
     doc = SimpleDocTemplate(
-
         buffer,
-
         pagesize=A4,
-
-        rightMargin=margen_derecho,
-        leftMargin=margen_izquierdo,
-        topMargin=margen_superior,
-        bottomMargin=margen_inferior,
-
+        rightMargin=margen_x,
+        leftMargin=margen_x,
+        topMargin=20 * mm,
+        bottomMargin=16 * mm,
         title=f"Planilla de jugadores - {equipo.nombre}",
-
         author=nombre_liga,
     )
 
-
-    # =========================================================
-    # ESTILOS
-    # =========================================================
-
-    estilo_titulo = ParagraphStyle(
-
-        "TituloLiga",
-
-        fontName=fuente_titulo,
-
-        fontSize=18,
-        leading=21,
-
-        textColor=NEGRO,
-
-        alignment=TA_LEFT,
-
-        spaceAfter=2,
-    )
-
-
-    estilo_subtitulo = ParagraphStyle(
-
-        "SubtituloLiga",
-
-        fontName=fuente_titulo,
-
-        fontSize=10,
-        leading=12,
-
-        textColor=NEGRO,
-
-        alignment=TA_CENTER,
-
-        spaceAfter=2,
-    )
-
-
-    estilo_celda = ParagraphStyle(
-
-        "CeldaLiga",
-
-        fontName=fuente_normal,
-
-        fontSize=10,
-
-        leading=9.5,
-
-        textColor=NEGRO,
-
-        alignment=TA_LEFT,
-    )
-
-
-    estilo_celda_centrada = ParagraphStyle(
-
-        "CeldaCentradaLiga",
-
-        fontName=fuente_normal,
-
-        fontSize=10,
-
-        leading=9.5,
-
-        textColor=NEGRO,
-
-        alignment=TA_CENTER,
-    )
-    estilo_encabezado = ParagraphStyle(
-
-        "EncabezadoLiga",
-
-        fontName=fuente_normal,
-
-        fontSize=10,
-
-        leading=12,
-
-        textColor=NEGRO,
-
-        alignment=TA_LEFT,
-    )
-
-    estilo_encabezado_centrado = ParagraphStyle(
-
-        "EncabezadoLiga",
-
-        fontName=fuente_normal,
-
-        fontSize=10,
-
-        leading=12,
-
-        textColor=NEGRO,
-
-        alignment=TA_CENTER,
-    )
-
-
-    estilo_total = ParagraphStyle(
-
-        "TotalLiga",
-
-        fontName=fuente_titulo,
-
-        fontSize=9,
-
-        textColor=NEGRO,
-    )
-    
-    estilo_liga = ParagraphStyle(
-        "NombreLigaHeader",
-        fontName=fuente_normal,
-        fontSize=10.5,
-        leading=13,
-        textColor=GRIS,
-        alignment=TA_LEFT,
-        spaceAfter=4,
-    )
-    estilo_club = ParagraphStyle(
-        "NombreClub",
-        fontName=fuente_titulo,
-        fontSize=14,
-        leading=17,
-        textColor=DORADO,
-        alignment=TA_LEFT,
-        spaceBefore=3,
-    )
-
-
-    # =========================================================
-    # JUGADORES
-    # =========================================================
-
-    if hasattr(lista_jugadores, "all"):
-
-        jugadores = lista_jugadores.all()
-
-    else:
-
-        jugadores = lista_jugadores
-
-
-    if hasattr(lista_jugadores, "count"):
-
-        try:
-
-            cantidad_jugadores = lista_jugadores.count()
-
-        except TypeError:
-
-            cantidad_jugadores = len(lista_jugadores)
-
-    else:
-
-        cantidad_jugadores = len(lista_jugadores)
-
-
-    # =========================================================
-    # ELEMENTOS DEL PDF
-    # =========================================================
-
-    elementos = []
-
-    #
-    # CARGA DE LOGOTIPO DE EQUIPO
-    #
-    logo_equipo = None
-
-    try:
-        if equipo.logo:
-            url_logo_equipo = equipo.logo.url
-
-            if url_logo_equipo.startswith("//"):
-                url_logo_equipo = "https:" + url_logo_equipo
-
-            respuesta_logo_equipo = requests.get(
-                url_logo_equipo,
-                timeout=15
-            )
-            respuesta_logo_equipo.raise_for_status()
-
-            logo_equipo = BytesIO(respuesta_logo_equipo.content)
-            logo_equipo.seek(0)
-
-    except Exception as e:
-        print(
-            f"[PDF] Error descargando logo del equipo: {e}",
-            flush=True
-        )
-        
-    # =========================================================
-    # ANCHO DE TABLA
-    # =========================================================
-
-    ancho_util = (
-
-        PAGE_WIDTH
-        - margen_izquierdo
-        - margen_derecho
-
-    )
-    # =========================================================
-    # ENCABEZADO CON LOGO DEL EQUIPO
-    # =========================================================
-
+    # ---------- Estilos ----------
+    def estilo(nombre, **kw):
+        base = dict(fontName=f_normal, fontSize=10, leading=12, textColor=PDF_NEGRO, alignment=TA_LEFT)
+        base.update(kw)
+        return ParagraphStyle(nombre, **base)
+
+    est_titulo = estilo("TituloLiga", fontName=f_titulo, fontSize=20, leading=23, spaceAfter=2)
+    est_liga = estilo("NombreLigaHeader", fontSize=10.5, leading=13, textColor=PDF_GRIS, spaceAfter=4)
+    est_club = estilo("NombreClub", fontName=f_titulo, fontSize=17, leading=20, textColor=PDF_DORADO, spaceBefore=3)
+    est_celda = estilo("CeldaLiga")
+    est_enc = estilo("EncabezadoLiga")
+    est_enc_centro = estilo("EncabezadoCentrado", alignment=TA_CENTER)
+
+    # ---------- Jugadores ----------
+    jugadores = lista_jugadores.all() if hasattr(lista_jugadores, "all") else lista_jugadores
+    jugadores = list(jugadores)
+
+    # ---------- Encabezado con logo del equipo ----------
     texto_encabezado = [
-        Paragraph(
-            "<b>LISTADO OFICIAL DE JUGADORES</b>",
-            estilo_titulo
-        ),
-
-        Paragraph(
-            f"<b>{nombre_liga}</b>",
-            estilo_liga
-        ),
-
+        Paragraph("LISTADO OFICIAL DE JUGADORES", est_titulo),
+        Paragraph(f"<b>{nombre_liga}</b>", est_liga),
         Spacer(1, 2 * mm),
-
-        Paragraph(
-            equipo.nombre,
-            estilo_club
-        ),
+        Paragraph(equipo.nombre, est_club),
     ]
 
-
-    if logo_equipo:
-        imagen_logo = ReportLabImage(
-            logo_equipo,
-            width=20 * mm,
-            height=20 * mm,
-            kind="proportional"
-        )
-
-        contenedor_logo = Table(
-            [[imagen_logo]],
-            colWidths=[26 * mm],
-            rowHeights=[26 * mm],
-            hAlign="CENTER"
-        )
-
-        contenedor_logo.setStyle(
-            TableStyle([
-                ("BOX", (0, 0), (-1, -1), 1, DORADO),
+    logo_encabezado = ""
+    url_logo_equipo = _url_logo(equipo)
+    datos_logo = _descargar_bytes(url_logo_equipo) if url_logo_equipo else None
+    if datos_logo:
+        try:
+            imagen_logo = ReportLabImage(BytesIO(datos_logo), width=20 * mm, height=20 * mm, kind="proportional")
+            logo_encabezado = Table([[imagen_logo]], colWidths=[26 * mm], rowHeights=[26 * mm], hAlign="CENTER")
+            logo_encabezado.setStyle(TableStyle([
+                ("BOX", (0, 0), (-1, -1), 1, PDF_DORADO),
                 ("BACKGROUND", (0, 0), (-1, -1), colors.white),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ])
-        )
+            ]))
+        except Exception:
+            logger.warning("[PDF] Logo del equipo inválido.", exc_info=True)
+            logo_encabezado = ""
 
-        logo_encabezado = contenedor_logo
-    else:
-        logo_encabezado = ""
+    encabezado = Table([[texto_encabezado, logo_encabezado]], colWidths=[ancho_util - 28 * mm, 28 * mm], hAlign="CENTER")
+    encabezado.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
 
+    elementos = [encabezado, Spacer(1, 5 * mm)]
 
-    encabezado = Table(
-        [
-            [
-                texto_encabezado,
-                logo_encabezado
-            ]
-        ],
-        colWidths=[
-            ancho_util - 28 * mm,
-            28 * mm
-        ],
-        hAlign="CENTER"
-    )
-
-
-    encabezado.setStyle(
-        TableStyle(
-            [
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "MIDDLE"
-                ),
-
-                (
-                    "ALIGN",
-                    (0, 0),
-                    (0, 0),
-                    "CENTER"
-                ),
-
-                (
-                    "ALIGN",
-                    (1, 0),
-                    (1, 0),
-                    "RIGHT"
-                ),
-
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0
-                ),
-
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0
-                ),
-
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0
-                ),
-
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0
-                ),
-            ]
-        )
-    )
-
-
-    elementos.append(encabezado)
-
-    elementos.append(
-        Spacer(1, 5 * mm)
-    )
-
-
-    # =========================================================
-    # TABLA
-    # =========================================================
-
-    encabezados = [
-        Paragraph("<b>N°</b>", estilo_encabezado),
-        Paragraph("<b>Apellido<br/>Paterno</b>", estilo_encabezado),
-        Paragraph("<b>Apellido<br/>Materno</b>", estilo_encabezado),
-        Paragraph("<b>Nombres</b>", estilo_encabezado_centrado),
+    # ---------- Tabla ----------
+    cabecera = [
+        Paragraph("<b>N°</b>", est_enc),
+        Paragraph("<b>Apellido<br/>Paterno</b>", est_enc),
+        Paragraph("<b>Apellido<br/>Materno</b>", est_enc),
+        Paragraph("<b>Nombres</b>", est_enc_centro),
     ]
-
     if mostrar_rut:
-        encabezados.append(Paragraph("<b>RUT</b>", estilo_encabezado_centrado))
+        cabecera.append(Paragraph("<b>RUT</b>", est_enc_centro))
+    cabecera += [
+        Paragraph("<b>Fecha de<br/>Nacimiento</b>", est_enc),
+        Paragraph("<b>Fecha de<br/>Inscripción</b>", est_enc),
+    ]
+    datos = [cabecera]
 
-    encabezados.extend([
-        Paragraph("<b>Fecha de<br/>Nacimiento</b>", estilo_encabezado),
-        Paragraph("<b>Fecha de<br/>Inscripción</b>", estilo_encabezado),
-    ])
-
-    datos = [encabezados]
-
-
-    if cantidad_jugadores == 0:
-
+    if not jugadores:
         datos.append(
-
-            [Paragraph("No hay jugadores registrados para este equipo.", estilo_celda)]
-            + [""] * (len(encabezados) - 1)
-
+            [Paragraph("No hay jugadores registrados para este equipo.", est_celda)] + [""] * (len(cabecera) - 1)
         )
-
     else:
-
-        contador = 0
-        
-        for jugador in jugadores:
-
-            nombre_completo = str(
-                getattr(
-                    jugador,
-                    "nombre",
-                    None
-                ) or "-"
-            )
-            
-            nombre_divido = nombre_completo.strip()
-            nombre_divido = nombre_divido.split()
-            
-            if len(nombre_divido) == 4:
-                nombres = nombre_divido[0] + " " + nombre_divido[1]
-                apellido_paterno = nombre_divido[2]
-                apellido_materno = nombre_divido[3]
-                
-            elif len(nombre_divido) == 3:
-                nombres = nombre_divido[0]
-                apellido_paterno = nombre_divido[1]
-                apellido_materno = nombre_divido[2]
-                
-            elif len(nombre_divido) == 5:
-                nombres = nombre_divido[0] + " " + nombre_divido[1] + " " + nombre_divido[2]
-                apellido_paterno = nombre_divido[3]
-                apellido_materno = nombre_divido[4]                
-            else:
-                nombres = nombre_completo
-                apellido_paterno = "-"
-                apellido_materno = "-"
-
-            rut = str(
-                getattr(
-                    jugador,
-                    "rut_formateado",
-                    None
-                ) or "-"
-            )
-
-            fechaNac = getattr(
-                    jugador,
-                    "fecha_nacimiento",
-                    None
-            )
-
-
-            fechaInsc = getattr(
-                jugador,
-                "fecha_inscripcion",
-                None
-            )
-            
-            fechaNac = (
-                fechaNac.strftime("%d/%m/%Y")
-                if fechaNac else "-"
-            )
-
-            fechaInsc = (
-                fechaInsc.strftime("%d/%m/%Y")
-                if fechaInsc else "-"
-            )
-
-            contador +=1
+        for n, jugador in enumerate(jugadores, start=1):
+            nombre_completo = str(getattr(jugador, "nombre", None) or "-").strip()
+            nombres, ap_pat, ap_mat = _separar_nombre(nombre_completo)
 
             fila = [
-                Paragraph(str(contador), estilo_celda),
-                Paragraph(apellido_paterno, estilo_celda),
-                Paragraph(apellido_materno, estilo_celda),
-                Paragraph(nombres, estilo_celda),
+                Paragraph(str(n), est_celda),
+                Paragraph(ap_pat, est_celda),
+                Paragraph(ap_mat, est_celda),
+                Paragraph(nombres, est_celda),
             ]
-
             if mostrar_rut:
-                fila.append(Paragraph(rut, estilo_celda))
-
-            fila.extend([
-                Paragraph(fechaNac, estilo_celda),
-                Paragraph(fechaInsc, estilo_celda),
-            ])
-
+                fila.append(Paragraph(str(getattr(jugador, "rut_formateado", None) or "-"), est_celda))
+            fila += [
+                Paragraph(_fecha_texto(getattr(jugador, "fecha_nacimiento", None)), est_celda),
+                Paragraph(_fecha_texto(getattr(jugador, "fecha_inscripcion", None)), est_celda),
+            ]
             datos.append(fila)
 
-    # =========================================================
-    # TABLA
-    # =========================================================
-
-    tabla = Table(
-
-        datos,
-
-        colWidths=(
-            [
-                ancho_util * 0.05,
-                ancho_util * 0.15,
-                ancho_util * 0.15,
-                ancho_util * 0.19,
-                ancho_util * 0.16,
-                ancho_util * 0.15,
-                ancho_util * 0.15,
-            ]
-            if mostrar_rut else
-            [
-                ancho_util * 0.06,
-                ancho_util * 0.18,
-                ancho_util * 0.18,
-                ancho_util * 0.28,
-                ancho_util * 0.15,
-                ancho_util * 0.15,
-            ]
-        ),
-
-        repeatRows=1,
-
-        hAlign="CENTER",
-    )
-
-
-    # =========================================================
-    # ESTILOS TABLA
-    # =========================================================
-
-    comandos_tabla = [
-
-        (
-            "BACKGROUND",
-            (0, 0),
-            (-1, 0),
-            GRIS_CLARO
-        ),
-
-        (
-            "BOX",
-            (0, 0),
-            (-1, -1),
-            0.7,
-            GRIS
-        ),
-
-        (
-            "INNERGRID",
-            (0, 0),
-            (-1, -1),
-            0.35,
-            colors.HexColor("#BBBBBB")
-        ),
-
-        (
-            "LINEBELOW",
-            (0, 0),
-            (-1, 0),
-            1.2,
-            DORADO
-        ),
-
-        (
-            "VALIGN",
-            (0, 0),
-            (-1, -1),
-            "MIDDLE"
-        ),
-
-        (
-            "LEFTPADDING",
-            (0, 0),
-            (-1, -1),
-            5
-        ),
-
-        (
-            "RIGHTPADDING",
-            (0, 0),
-            (-1, -1),
-            5
-        ),
-
-        (
-            "TOPPADDING",
-            (0, 0),
-            (-1, -1),
-            4
-        ),
-
-        (
-            "BOTTOMPADDING",
-            (0, 0),
-            (-1, -1),
-            4
-        ),
-
-    ]
-
-
-    # =========================================================
-    # FILAS ALTERNADAS
-    # =========================================================
-
-
-    tabla.setStyle(
-
-        TableStyle(
-            comandos_tabla
-        )
-
-    )
-
-
-    elementos.append(
-        tabla
-    )
-
-
-    elementos.append(
-        Spacer(
-            1,
-            4 * mm
-        )
-    )
-
-    # =========================================================
-    # DESCARGAR LOGO DESDE CLOUDINARY
-    # =========================================================
-
-    logo_marca_agua = None
-
-    try:
-        liga = equipo.liga
-    except Exception as e:
-        print(f"[PDF] equipo.liga falló: {e}", flush=True)
-        liga = None
-
-    if liga is None:
-        print("[PDF] No hay liga asociada al equipo, se omite marca de agua.", flush=True)
-
-    elif not liga.logo:
-        print(f"[PDF] liga.logo está vacío para la liga '{liga}' (id={liga.id}).", flush=True)
-
+    if mostrar_rut:
+        proporciones = [0.05, 0.15, 0.15, 0.19, 0.16, 0.15, 0.15]
     else:
+        proporciones = [0.06, 0.18, 0.18, 0.28, 0.15, 0.15]
 
-        url_logo = liga.logo.url
+    tabla = Table(datos, colWidths=[ancho_util * p for p in proporciones], repeatRows=1, hAlign="CENTER")
+    comandos = [
+        ("BACKGROUND", (0, 0), (-1, 0), PDF_GRIS_CLARO),
+        ("BOX", (0, 0), (-1, -1), 0.7, PDF_GRIS),
+        ("INNERGRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#BBBBBB")),
+        ("LINEBELOW", (0, 0), (-1, 0), 1.2, PDF_DORADO),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]
+    if not jugadores:
+        comandos.append(("SPAN", (0, 1), (-1, 1)))
+    tabla.setStyle(TableStyle(comandos))
 
-        if url_logo.startswith("//"):
-            url_logo = "https:" + url_logo
+    elementos += [tabla, Spacer(1, 4 * mm)]
 
-        print(f"[PDF] URL del logo resuelta: {url_logo}", flush=True)
+    # ---------- Decoración de cada página ----------
+    marca_agua = _marca_agua_pdf(liga)   # se descarga y procesa una sola vez
 
-        try:
-            respuesta_logo = requests.get(url_logo, timeout=15)
-            respuesta_logo.raise_for_status()
-
-            print(
-                f"[PDF] Logo descargado OK. status={respuesta_logo.status_code} "
-                f"bytes={len(respuesta_logo.content)}",
-                flush=True
-            )
-
-            logo_original = Image.open(BytesIO(respuesta_logo.content)).convert("RGBA")
-
-            ancho_max = 1200
-            alto_max = 1200
-
-            logo_original.thumbnail((ancho_max, alto_max), Image.Resampling.LANCZOS)
-
-            alpha = logo_original.getchannel("A")
-            alpha = alpha.point(lambda pixel: int(pixel * 0.1))
-            logo_original.putalpha(alpha)
-
-            logo_buffer = BytesIO()
-            logo_original.save(logo_buffer, format="PNG")
-            logo_buffer.seek(0)
-
-            logo_marca_agua = logo_buffer
-
-            print("[PDF] Marca de agua generada correctamente en memoria.", flush=True)
-
-        except requests.exceptions.RequestException as e:
-            print(f"[PDF] Error de red descargando logo desde {url_logo}: {e}", flush=True)
-
-        except Exception as e:
-            print(f"[PDF] Error procesando imagen del logo: {e}", flush=True)
-
-    # =========================================================
-    # DIBUJAR CADA PÁGINA
-    # =========================================================
-
-    def dibujar_pagina(
-        canvas,
-        documento
-    ):
-
+    def dibujar_pagina(canvas, documento):
         canvas.saveState()
+        canvas.setFillColor(colors.white)
+        canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, fill=1, stroke=0)
 
-
-        # =====================================================
-        # FONDO BLANCO
-        # =====================================================
-
-        canvas.setFillColor(
-            colors.white
-        )
-
-
-        canvas.rect(
-
-            0,
-            0,
-
-            PAGE_WIDTH,
-            PAGE_HEIGHT,
-
-            fill=1,
-
-            stroke=0
-
-        )
-
-
-        # =====================================================
-        # MARCA DE AGUA
-        # =====================================================
-
-        if logo_marca_agua:
-
+        if marca_agua:
             try:
-
-                logo_marca_agua.seek(0)
-
-
-                imagen = Image.open(
-                    logo_marca_agua
-                )
-
-
-                ancho_logo = imagen.width
-                alto_logo = imagen.height
-
-
-                # ---------------------------------------------
-                # Tamaño de la marca de agua
-                # ---------------------------------------------
-
-                ancho_destino = 160 * mm
-
-
-                escala = (
-
-                    ancho_destino
-                    / ancho_logo
-
-                )
-
-
-                alto_destino = (
-
-                    alto_logo
-                    * escala
-
-                )
-
-
-                # ---------------------------------------------
-                # CENTRAR
-                # ---------------------------------------------
-
-                x = (
-
-                    PAGE_WIDTH
-                    - ancho_destino
-
-                ) / 2
-
-
-                y = (
-
-                    PAGE_HEIGHT
-                    - alto_destino
-
-                ) / 2
-
-
-                # ---------------------------------------------
-                # DIBUJAR
-                # ---------------------------------------------
-
-                logo_marca_agua.seek(0)
-
-
-                logo_reader = ImageReader(
-                    logo_marca_agua
-                )
-
-                print(f"[PDF] Dibujando marca de agua en x={x:.1f} y={y:.1f}", flush=True)
-
+                ancho_px, alto_px = marca_agua.getSize()
+                ancho_dest = 160 * mm
+                alto_dest = alto_px * ancho_dest / ancho_px
                 canvas.drawImage(
-
-                    logo_reader,
-
-                    x,
-                    y,
-
-                    width=ancho_destino,
-                    height=alto_destino,
-
-                    preserveAspectRatio=True,
-
-                    mask="auto"
-
+                    marca_agua,
+                    (PAGE_WIDTH - ancho_dest) / 2,
+                    (PAGE_HEIGHT - alto_dest) / 2,
+                    width=ancho_dest,
+                    height=alto_dest,
+                    mask="auto",
                 )
+            except Exception:
+                logger.warning("[PDF] Error dibujando la marca de agua.", exc_info=True)
 
+        canvas.setStrokeColor(PDF_DORADO)
+        canvas.setLineWidth(1)
+        canvas.line(margen_x, PAGE_HEIGHT - 11 * mm, PAGE_WIDTH - margen_x, PAGE_HEIGHT - 11 * mm)
 
-            except Exception as e:
-
-                print(
-                    f"Error dibujando marca de agua: {e}"
-                )
-
-
-        # =====================================================
-        # LÍNEA SUPERIOR
-        # =====================================================
-
-        canvas.setStrokeColor(
-            DORADO
-        )
-
-
-        canvas.setLineWidth(
-            1
-        )
-
-
-        canvas.line(
-
-            margen_izquierdo,
-
-            PAGE_HEIGHT - 11 * mm,
-
-            PAGE_WIDTH - margen_derecho,
-
-            PAGE_HEIGHT - 11 * mm
-
-        )
-
-
-        # =====================================================
-        # PIE DE PÁGINA
-        # =====================================================
-
-        canvas.setFont(
-
-            fuente_normal,
-
-            7
-
-        )
-
-
-        canvas.setFillColor(
-            GRIS
-        )
-
-
-        canvas.drawString(
-
-            margen_izquierdo,
-
-            8 * mm,
-
-            nombre_liga
-
-        )
-
-
-        canvas.drawRightString(
-
-            PAGE_WIDTH - margen_derecho,
-
-            8 * mm,
-
-            f"Página {documento.page}"
-
-        )
-
-
+        canvas.setFont(f_normal, 7)
+        canvas.setFillColor(PDF_GRIS)
+        canvas.drawString(margen_x, 8 * mm, nombre_liga)
+        canvas.drawRightString(PAGE_WIDTH - margen_x, 8 * mm, f"Página {documento.page}")
         canvas.restoreState()
 
+    doc.build(elementos, onFirstPage=dibujar_pagina, onLaterPages=dibujar_pagina)
 
-    # =========================================================
-    # GENERAR PDF
-    # =========================================================
-
-    doc.build(
-
-        elementos,
-
-        onFirstPage=dibujar_pagina,
-
-        onLaterPages=dibujar_pagina
-
-    )
-
-
-    # =========================================================
-    # RESPUESTA
-    # =========================================================
-
-    buffer.seek(0)
-
-
-    response = HttpResponse(
-
-        buffer.getvalue(),
-
-        content_type="application/pdf"
-
-    )
-
-
-    nombre_archivo = (
-
-        equipo.nombre
-
-        .replace(
-            " ",
-            "_"
-        )
-
-        .replace(
-            "/",
-            "_"
-        )
-
-        .replace(
-            "\\",
-            "_"
-        )
-
-    )
-
-
-    response["Content-Disposition"] = (
-
-        f'attachment; '
-        f'filename="planilla_{nombre_archivo}.pdf"'
-
-    )
-
-
+    # ---------- Respuesta ----------
+    nombre_archivo = re.sub(r"[^\w\-]+", "_", str(equipo.nombre)).strip("_") or "equipo"
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="planilla_{nombre_archivo}.pdf"'
     return response
