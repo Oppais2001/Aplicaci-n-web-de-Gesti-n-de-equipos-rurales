@@ -71,7 +71,7 @@ class Liga(models.Model):
         if len(self.nombre) <= max_length:
             return self.nombre
 
-        return self.nombre[:max_length].rstrip() + "..."
+        return self.nombre[:max_length].rstrip()
 
 class Equipo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
