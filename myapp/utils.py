@@ -1026,8 +1026,8 @@ def render_tabla(torneo, tabla_posiciones, fondo_img=None):
         else:
             lz.texto((80, cy + 1), str(pos), _fuente("titulo", 30), (205, 195, 175), anchor="mm", sombra=False)
 
-        lz.logo_circular(150, cy, 38, logos.get(_url_logo(equipo)), _inicial(equipo.nombre), borde=2)
-        nombre = str(equipo.nombre).upper()
+        lz.logo_circular(150, cy, 38, logos.get(_url_logo(equipo)), _inicial(equipo), borde=2)
+        nombre = str(equipo).upper()
         f = lz.fuente_ajustada(nombre, "nombre", 30, 400, minimo=16)
         lz.texto((184, cy + 1), nombre, f, CREMA, anchor="lm")
 
@@ -1040,7 +1040,7 @@ def render_tabla(torneo, tabla_posiciones, fondo_img=None):
                  grad=(ORO_CLARO, ORO_OSCURO))
         y += FILA_PASO
 
-    _pie(lz, alto - 64, getattr(liga, "nombre", None))
+    _pie(lz, alto - 64, getattr(liga, "nombre_corto", None))
     return lz.exportar()
 
 

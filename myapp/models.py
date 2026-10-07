@@ -105,6 +105,11 @@ class Equipo(models.Model):
             texto = texto.replace(palabra, "")
         return texto
     
+    @property
+    def nombre_corto(self):
+        return self.__str__
+    
+    @property
     def cantidad_jugadores(self):
         return self.jugadores.count()
 
