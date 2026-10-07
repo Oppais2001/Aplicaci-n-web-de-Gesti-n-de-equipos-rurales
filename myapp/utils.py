@@ -718,17 +718,6 @@ class Lienzo:
         return [(t + "...") if t else "-"], f
 
     # ---------- logos ----------
-    def logo_libre(self, cx, cy, tam, logo):
-        """Logo de la liga sin recortar (respeta escudos y formas no circulares)."""
-        lado = S(tam)
-        l = ImageOps.contain(logo, (lado, lado), Image.LANCZOS)
-        x, y = S(cx) - l.width // 2, S(cy) - l.height // 2
-        sombra = Image.new("L", (l.width + S(40), l.height + S(40)), 0)
-        sombra.paste(l.getchannel("A").point(lambda p: int(p * 0.7)), (S(20), S(20)))
-        sombra = sombra.filter(ImageFilter.GaussianBlur(S(6)))
-        self.img.paste((0, 0, 0, 255), (x - S(20), y - S(16), x - S(20) + sombra.width, y - S(16) + sombra.height), sombra)
-        self.img.paste(l.convert("RGB"), (x, y), l.getchannel("A"))
-
     def logo_circular(self, cx, cy, d, logo, letra="?", borde=3):
         D = S(d)
         x0, y0 = S(cx) - D // 2, S(cy) - D // 2
@@ -790,7 +779,7 @@ def _fecha_larga(f):
         f = f.date()
     if not isinstance(f, date):
         return ""
-    return f"{DIAS_LARGO[f.weekday()]} {f.day} DE {MESES_LARGO[f.month - 1]} DEL {f.year}"
+    return f"{DIAS_LARGO[f.weekday()]} {f.day} DE {MESES_LARGO[f.month - 1]} DE {f.year}"
 
 
 def _plano(texto):
@@ -838,21 +827,19 @@ def _agrupar_por_fecha(partidos, etiquetas=()):
     return grupos
 
 
-def _encabezado(lz, subtitulo, logo_liga):
-    """Dibuja el encabezado y devuelve su alto."""
-    alto = 290 if logo_liga else 185
+ALTO_ENCABEZADO = 175
+
+
+def _encabezado(lz, subtitulo):
+    """Dibuja el encabezado (solo texto; el logo de la liga va como marca de agua de fondo)."""
+    alto = ALTO_ENCABEZADO
     lz.panel((0, 0, ANCHO, alto), 0, (0, 0, 0, 125))
-    if logo_liga:
-        lz.resplandor(450, 100, 170, ORO, 0.32)
-        lz.logo_libre(450, 100, 130, logo_liga)
-        y = 182
-    else:
-        y = 34
+    lz.resplandor(450, 70, 260, ORO, 0.22)
     f = lz.fuente_ajustada(TITULO_LIGA, "titulo", 48, 800)
-    lz.texto((450, y), TITULO_LIGA, f, anchor="ma", grad=(ORO_CLARO, ORO_OSCURO))
+    lz.texto((450, 34), TITULO_LIGA, f, anchor="ma", grad=(ORO_CLARO, ORO_OSCURO))
     sub = subtitulo.upper()
     fs = lz.fuente_ajustada(sub, "semi", 30, 780, minimo=18)
-    lz.texto((450, y + 56), sub, fs, CREMA, anchor="ma")
+    lz.texto((450, 92), sub, fs, CREMA, anchor="ma")
     lz.linea_dorada(alto - 10)
     return alto
 
@@ -927,7 +914,7 @@ def _render_cartelera(grupos, subtitulo, liga, resultado, vacio):
     logos = _precargar_logos([logo_url] + [_url_logo(e) for e in equipos])
     logo_liga = logos.get(logo_url)
 
-    enc = 290 if logo_liga else 185
+    enc = ALTO_ENCABEZADO
     cuerpo = 110 if n == 0 else len(grupos) * (BANNER_H + 46) + n * (CARD_H + 46)
     alto = max(enc + 30 + cuerpo + 90, 700)
 
@@ -937,7 +924,7 @@ def _render_cartelera(grupos, subtitulo, liga, resultado, vacio):
     lz.patron()
     lz.marca_agua(logo_liga, enc, 0.22)
     lz.vineta()
-    _encabezado(lz, subtitulo, logo_liga)
+    _encabezado(lz, subtitulo)
 
     y = enc + 30
     if n == 0:
@@ -1005,7 +992,7 @@ def render_tabla(torneo, tabla_posiciones, fondo_img=None):
     logos = _precargar_logos([logo_url] + [_url_logo(f["equipo"]) for f in filas])
     logo_liga = logos.get(logo_url)
 
-    enc = 290 if logo_liga else 185
+    enc = ALTO_ENCABEZADO
     alto = enc + 24 + 52 + len(filas) * FILA_PASO + 100
 
     lz = Lienzo(alto)
@@ -1014,7 +1001,7 @@ def render_tabla(torneo, tabla_posiciones, fondo_img=None):
     lz.patron()
     lz.marca_agua(logo_liga, enc, 0.20)
     lz.vineta()
-    _encabezado(lz, f"Tabla de posiciones · {torneo.nombre}", logo_liga)
+    _encabezado(lz, f"Tabla de posiciones · {torneo.nombre}")
 
     y = enc + 24
     fh = _fuente("semi", 22)
