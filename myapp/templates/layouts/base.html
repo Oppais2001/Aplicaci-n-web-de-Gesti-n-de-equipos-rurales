@@ -347,7 +347,10 @@
                 }
 
                 if (cargando) {
+                    const esBotonSoloIcono = boton.textContent.trim() === "";
+
                     boton.dataset.textoOriginal = boton.innerHTML;
+                    boton.dataset.iconoSolo = esBotonSoloIcono ? "true" : "false";
                     boton.classList.add("is-loading");
                     boton.setAttribute("aria-busy", "true");
 
@@ -357,7 +360,9 @@
                         boton.disabled = true;
                     }
 
-                    boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Preparando...</span>';
+                    boton.innerHTML = esBotonSoloIcono
+                        ? '<i class="fa-solid fa-spinner fa-spin"></i>'
+                        : '<i class="fa-solid fa-spinner fa-spin"></i><span>Preparando...</span>';
                     return;
                 }
 
@@ -374,6 +379,8 @@
                     boton.innerHTML = boton.dataset.textoOriginal;
                     delete boton.dataset.textoOriginal;
                 }
+
+                delete boton.dataset.iconoSolo;
             }
 
             function mostrarPreparando() {

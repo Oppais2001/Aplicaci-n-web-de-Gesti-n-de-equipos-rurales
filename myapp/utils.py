@@ -15,6 +15,7 @@ Fuentes (licencia OFL) a copiar en static/fonts/:
 Si faltan, se usan Cinzel/Lato (imágenes) o Helvetica (PDF) como respaldo.
 """
 import logging
+import math
 import os
 import re
 import unicodedata
@@ -23,9 +24,11 @@ from datetime import date, datetime, time as dtime
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from io import BytesIO
+from urllib.parse import unquote
 
 import requests
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
@@ -556,13 +559,43 @@ def _url_logo(obj):
         return None
 
 
-def _descargar_logo(url):
+def _ruta_media_local(url):
+    """Ruta en disco si la URL apunta a MEDIA_URL (desarrollo); None si es remota."""
+    media_url = str(getattr(settings, "MEDIA_URL", "") or "")
+    media_root = str(getattr(settings, "MEDIA_ROOT", "") or "")
+    if not (url and media_url and media_root):
+        return None
+    if media_url.startswith(("http://", "https://", "//")) or not url.startswith(media_url):
+        return None
+    relativa = unquote(url[len(media_url):]).lstrip("/\\")
+    raiz = os.path.abspath(media_root)
+    ruta = os.path.abspath(os.path.join(raiz, relativa))
+    return ruta if os.path.commonpath([raiz, ruta]) == raiz else None
+
+
+def _leer_bytes(url, timeout=8):
+    """Lee un archivo desde MEDIA_ROOT o por HTTP (Cloudinary, S3...). None si falla."""
+    ruta = _ruta_media_local(url)
     try:
-        r = requests.get(url, timeout=6)
+        if ruta:
+            with open(ruta, "rb") as f:
+                return f.read()
+        r = requests.get(_normalizar_url(url), timeout=timeout)
         r.raise_for_status()
-        return Image.open(BytesIO(r.content)).convert("RGBA")
+        return r.content
     except Exception:
-        logger.warning("No se pudo descargar el logo %s", url, exc_info=True)
+        logger.warning("No se pudo leer %s", ruta or url, exc_info=True)
+        return None
+
+
+def _descargar_logo(url):
+    datos = _leer_bytes(url, timeout=6)
+    if not datos:
+        return None
+    try:
+        return Image.open(BytesIO(datos)).convert("RGBA")
+    except Exception:
+        logger.warning("Imagen de logo inválida: %s", url, exc_info=True)
         return None
 
 
@@ -618,21 +651,28 @@ class Lienzo:
             d.line((x, h, x + h, 0), fill=(255, 230, 170, alpha), width=S(1))
         self.img.alpha_composite(capa)
 
-    def marca_agua(self, logo, desde_y, opacidad=0.2):
-        """Logo grande repetido a lo largo de la imagen, centrado, bajo las tarjetas."""
+    def marca_agua(self, logo, desde_y, opacidad=0.2, repetir=True, centro_y=None, ancho=0.84):
+        """
+        Logo grande de fondo, centrado. Con repetir=True se repite a lo largo de la imagen
+        (desde desde_y); con repetir=False se dibuja una sola vez, centrado en centro_y.
+        """
         if logo is None:
             return
-        lado = S(ANCHO * 0.84)
+        lado = S(ANCHO * ancho)
         marca = ImageOps.contain(logo, (lado, lado), Image.LANCZOS)  # también amplía logos pequeños
         alpha = marca.getchannel("A").point(lambda p: int(p * opacidad))
         rgb = marca.convert("RGB")
+        x = self.img.width // 2 - marca.width // 2
+        if not repetir:
+            cy = S(centro_y) if centro_y is not None else self.img.height // 2
+            self.img.paste(rgb, (x, int(cy - marca.height // 2)), alpha)
+            return
         zona = self.img.height - S(desde_y) - S(80)
         n = max(1, round(zona / (lado + S(30))))
         paso = zona / n
         for k in range(n):
             cy = S(desde_y) + paso * (k + 0.5)
-            pos = (self.img.width // 2 - marca.width // 2, int(cy - marca.height // 2))
-            self.img.paste(rgb, pos, alpha)
+            self.img.paste(rgb, (x, int(cy - marca.height // 2)), alpha)
 
     def vineta(self, fuerza=0.6):
         w, h = self.img.size
@@ -741,6 +781,32 @@ class Lienzo:
             self.draw.ellipse((x0, y0, x0 + D, y0 + D), fill=(40, 28, 16, 255))
             self.texto((cx, cy + d * 0.03), (letra or "?")[0].upper(), _fuente("titulo", int(d * 0.62)),
                        anchor="mm", sombra=False, grad=(ORO_CLARO, ORO_OSCURO))
+
+    # ---------- iconos ----------
+    def icono_balon(self, cx, cy, r):
+        """Balón de fútbol simple (cuero claro, pentágonos oscuros) con aro dorado."""
+        R, x, y = S(r), S(cx), S(cy)
+        oscuro = (24, 17, 10, 255)
+        self.draw.ellipse((x - R, y - R, x + R, y + R), fill=(246, 241, 230, 255), outline=ORO, width=max(1, S(1.2)))
+        centro = [(x + R * 0.42 * math.cos(math.radians(-90 + 72 * i)),
+                   y + R * 0.42 * math.sin(math.radians(-90 + 72 * i))) for i in range(5)]
+        self.draw.polygon(centro, fill=oscuro)
+        for i, (px, py) in enumerate(centro):
+            ang = math.radians(-90 + 72 * i)
+            self.draw.line((px, py, x + R * 0.8 * math.cos(ang), y + R * 0.8 * math.sin(ang)),
+                           fill=oscuro, width=max(1, S(0.9)))
+            ang2 = math.radians(-54 + 72 * i)
+            ex, ey, rr = x + R * 0.86 * math.cos(ang2), y + R * 0.86 * math.sin(ang2), R * 0.2
+            self.draw.ellipse((ex - rr, ey - rr, ex + rr, ey + rr), fill=oscuro)
+
+    def icono_tarjeta(self, cx, cy, tipo, r):
+        """Tarjeta amarilla o roja (rectángulo redondeado vertical)."""
+        w, h = S(r * 1.35), S(r * 1.85)
+        x, y = S(cx), S(cy)
+        color = (250, 204, 21, 255) if tipo == "amarilla" else (220, 38, 38, 255)
+        borde = (140, 100, 0, 255) if tipo == "amarilla" else (120, 16, 16, 255)
+        self.draw.rounded_rectangle((x - w // 2, y - h // 2, x + w // 2, y + h // 2), radius=S(2.5),
+                                    fill=color, outline=borde, width=max(1, S(0.8)))
 
     def exportar(self):
         final = self.img.resize((ANCHO, self.alto), Image.LANCZOS).convert("RGB")
@@ -962,7 +1028,257 @@ def render_partidos(torneo, partidos, titulo=None, liga=None):
 
 
 # =========================================================
-# 4c. TABLA DE POSICIONES
+# 4c. RESULTADO INDIVIDUAL
+# =========================================================
+
+ICONO_R = 12     # radio del balón / alto de la tarjeta, en px lógicos
+GAP_ICONO = 9    # separación entre el texto y su icono
+
+
+def _resultado_partido_filename(partido, formato):
+    def slug(x):
+        return re.sub(r"[^a-zA-Z0-9]+", "-", _plano(x).lower()).strip("-") or "equipo"
+    return f"resultado-{slug(partido.equipo_local)}-{slug(partido.equipo_visitante)}-{formato}.png"
+
+
+def _valor_texto(obj, *atributos):
+    """Primer atributo con valor (acepta propiedades y métodos sin argumentos). '' si no hay."""
+    if obj is None:
+        return ""
+    for nombre in atributos:
+        try:
+            v = getattr(obj, nombre, None)
+            if callable(v):
+                v = v()
+        except Exception:
+            v = None
+        if v:
+            return str(v).strip()
+    return ""
+
+
+def _equipo_beneficiado(gol, partido):
+    """
+    Id del equipo al que suma el gol. Un autogol guardado bajo el equipo de quien lo
+    hizo (jugador.equipo == gol.equipo) se le asigna al rival.
+    """
+    equipo_id = getattr(gol, "equipo_id", None)
+    if getattr(gol, "autogol", False):
+        jugador_equipo = getattr(getattr(gol, "jugador", None), "equipo_id", None)
+        if jugador_equipo is not None and jugador_equipo == equipo_id:
+            if equipo_id == partido.equipo_local_id:
+                return partido.equipo_visitante_id
+            return partido.equipo_local_id
+    return equipo_id
+
+
+def _tipo_tarjeta(t):
+    """'amarilla' | 'roja' | None, tolerando distintos nombres de campo y valores."""
+    texto = " ".join(
+        str(_valor_texto(t, a) or "") for a in ("tipo", "color", "categoria", "tipo_tarjeta", "get_tipo_display")
+    ).lower().strip()
+    if "roj" in texto or "red" in texto or texto in ("r",):
+        return "roja"
+    if "amar" in texto or "yell" in texto or texto in ("a",):
+        return "amarilla"
+    if getattr(t, "roja", False):
+        return "roja"
+    if getattr(t, "amarilla", False):
+        return "amarilla"
+    return None
+
+
+def _registros(partido, *relaciones):
+    """Registros de la primera relación inversa que exista (p. ej. partido.goles). [] si no hay."""
+    for rel in relaciones:
+        manager = getattr(partido, rel, None)
+        if manager is not None and hasattr(manager, "all"):
+            try:
+                return list(manager.all())
+            except Exception:
+                logger.warning("No se pudo leer %s del partido.", rel, exc_info=True)
+                return []
+    return []
+
+
+def _eventos(partido):
+    """
+    {id_equipo: [item]} con goles (por minuto, un renglón por jugador), luego amarillas y rojas.
+    item = {'tipo': 'gol'|'amarilla'|'roja', 'nombre', 'minutos', 'autogol'}.
+    La vista debería hacer prefetch_related("goles__jugador", "tarjetas__jugador").
+    """
+    def nombre_de(jugador, vacio):
+        return _valor_texto(jugador, "nombre_simplificado", "nombre") or vacio
+
+    goles = _registros(partido, "goles")
+    goles.sort(key=lambda g: (getattr(g, "minuto", None) is None, getattr(g, "minuto", None) or 0))
+    por_equipo = {}
+    agrupados = {}
+    for gol in goles:
+        jugador = getattr(gol, "jugador", None)
+        nombre = nombre_de(jugador, "Gol sin registrar")
+        autogol = bool(getattr(gol, "autogol", False))
+        equipo = _equipo_beneficiado(gol, partido)
+        clave = (equipo, getattr(jugador, "pk", None) or nombre, autogol)
+        item = agrupados.get(clave)
+        if item is None:
+            item = agrupados[clave] = {"tipo": "gol", "nombre": nombre, "minutos": [], "autogol": autogol}
+            por_equipo.setdefault(equipo, []).append(item)
+        if getattr(gol, "minuto", None):
+            item["minutos"].append(gol.minuto)
+
+    for tipo in ("amarilla", "roja"):
+        for t in _registros(partido, "tarjetas", "tarjeta_set"):
+            if _tipo_tarjeta(t) != tipo:
+                continue
+            jugador = getattr(t, "jugador", None)
+            equipo = getattr(t, "equipo_id", None) or getattr(jugador, "equipo_id", None)
+            minuto = getattr(t, "minuto", None)
+            por_equipo.setdefault(equipo, []).append({
+                "tipo": tipo, "nombre": nombre_de(jugador, "Jugador sin registrar"),
+                "minutos": [minuto] if minuto else [], "autogol": False,
+            })
+    return por_equipo
+
+
+def _fila_evento(lz, x, y, item, lado, ancho, tam):
+    """
+    Una línea como en el detalle del partido: nombre · minutos y su icono.
+    Columna izquierda: texto y luego el icono. Derecha (espejo): icono y luego el texto.
+    """
+    nombre = item["nombre"].upper()
+    minutos = " ".join(f"{m}'" for m in item["minutos"])
+    if item["autogol"]:
+        minutos = f"{minutos} (AG)".strip()
+    sufijo = f" · {minutos}" if minutos else ""
+
+    f_suf = _fuente("semi", tam)
+    w_suf = lz.ancho(sufijo, f_suf) if sufijo else 0
+    disponible = ancho - 2 * ICONO_R - GAP_ICONO
+    f_nom = lz.fuente_ajustada(nombre, "nombre", tam + 2, disponible - w_suf, minimo=13)
+    w_nom = lz.ancho(nombre, f_nom)
+    w_total = w_nom + w_suf
+
+    inicio = x if lado == "izq" else x - w_total
+    lz.texto((inicio, y), nombre, f_nom, CREMA, anchor="lm", sombra=False)
+    if sufijo:
+        lz.texto((inicio + w_nom, y), sufijo, f_suf, ORO, anchor="lm", sombra=False)
+
+    cx = inicio + w_total + GAP_ICONO + ICONO_R if lado == "izq" else inicio - GAP_ICONO - ICONO_R
+    if item["tipo"] == "gol":
+        lz.icono_balon(cx, y, ICONO_R)
+    else:
+        lz.icono_tarjeta(cx, y, item["tipo"], ICONO_R)
+
+
+def _columna_eventos(lz, items, x, y0, ancho, lado, tam, paso, max_lineas):
+    visibles = items if len(items) <= max_lineas else items[:max_lineas - 1]
+    for i, item in enumerate(visibles):
+        y = y0 + paso / 2 + i * paso
+        if item["tipo"] == "nota":
+            lz.texto((x, y), item["nombre"], _fuente("texto", tam - 4), TENUE,
+                     anchor="lm" if lado == "izq" else "rm", sombra=False)
+        else:
+            _fila_evento(lz, x, y, item, lado, ancho, tam)
+    if len(visibles) < len(items):
+        lz.texto((x, y0 + paso / 2 + len(visibles) * paso), f"+ {len(items) - len(visibles)} MÁS",
+                 _fuente("texto", tam - 6), TENUE, anchor="lm" if lado == "izq" else "rm", sombra=False)
+
+
+def render_resultado_partido(partido, formato="publicacion"):
+    """
+    Imagen compacta del resultado: escudos, marcador y, debajo de cada equipo, goles
+    (balón) y tarjetas. El alto se ajusta al contenido. 'formato' se conserva solo por
+    compatibilidad con las vistas y para el nombre del archivo.
+    """
+    D, PASO, TAM, MAX_LINEAS = 140, 36, 24, 9
+    local, visita = partido.equipo_local, partido.equipo_visitante
+    liga = getattr(local, "liga", None) or getattr(visita, "liga", None)
+    logo_liga_url = _url_logo(liga) if liga else None
+    logos = _precargar_logos([logo_liga_url, _url_logo(local), _url_logo(visita)])
+
+    gl, gv = int(partido.goles_local or 0), int(partido.goles_visitante or 0)
+
+    # ---------- datos que definen el alto ----------
+    eventos = _eventos(partido)
+    columnas = []
+    for equipo_id, goles in ((getattr(partido, "equipo_local_id", None), gl),
+                             (getattr(partido, "equipo_visitante_id", None), gv)):
+        items = list(eventos.get(equipo_id, []))
+        if goles and not any(i["tipo"] == "gol" for i in items):
+            items.insert(0, {"tipo": "nota", "nombre": "GOLES SIN DETALLE"})
+        columnas.append(items)
+    n_eventos = min(max(len(columnas[0]), len(columnas[1])), MAX_LINEAS)
+
+    medidor = Lienzo(10)
+    nombres = [medidor.lineas_nombre(str(e).upper(), "nombre", 34, 290) for e in (local, visita)]
+    n_lineas_nombre = max(len(n[0]) for n in nombres)
+
+    meta = "  ·  ".join(t for t in (_fecha_larga(partido.fecha), _hora_texto(partido.hora) if partido.hora else "") if t)
+    cancha = _valor_texto(partido, "cancha").upper()
+
+    y = ALTO_ENCABEZADO
+    y_meta = y + 26 if meta else None
+    y += 62 if meta else 0
+    y_cancha = y if cancha else None
+    y += 34 if cancha else 0
+    c0 = y + 24
+    cy = c0 + 34 + D / 2
+    y_nombres = cy + D / 2 + 22
+    y_sep = y_nombres + 40 * n_lineas_nombre + 12
+    y_ev = y_sep + 14
+    card_h = (y_ev + n_eventos * PASO + 14 - c0) if n_eventos else (y_sep - c0)
+    alto = int(c0 + card_h + 24 + 86)
+
+    # ---------- fondo: degradado y un solo logo de la liga ----------
+    lz = Lienzo(alto)
+    lz.fondo()
+    lz.marca_agua(logos.get(logo_liga_url), 0, 0.15, repetir=False, centro_y=c0 + card_h / 2, ancho=0.78)
+    lz.vineta(0.55)
+
+    # ---------- encabezado ----------
+    torneo = (_valor_texto(partido, "torneo") or _valor_texto(liga, "nombre_corto", "nombre") or "").upper()
+    _encabezado(lz, f"RESULTADO FINAL  ·  {torneo}" if torneo else "RESULTADO FINAL")
+
+    if meta:
+        lz.texto((450, y_meta), meta, lz.fuente_ajustada(meta, "semi", 28, 780, minimo=16), CREMA, anchor="ma")
+    if cancha:
+        lz.texto((450, y_cancha), cancha, lz.fuente_ajustada(cancha, "semi", 24, 700, minimo=14), TENUE,
+                 anchor="ma", sombra=False)
+
+    # ---------- tarjeta: escudos, marcador y nombres ----------
+    lz.panel((50, c0, 850, c0 + card_h), 30, (12, 9, 6, 165), borde=ORO + (95,), grosor=2)
+    lz.logo_circular(200, cy, D, logos.get(_url_logo(local)), _inicial(local), borde=4)
+    lz.logo_circular(700, cy, D, logos.get(_url_logo(visita)), _inicial(visita), borde=4)
+
+    alto_marcador = D * 0.9
+    lz.panel((320, cy - alto_marcador / 2, 580, cy + alto_marcador / 2), 32, CAFE + (242,), borde=ORO, grosor=2)
+    fg = _fuente("titulo", 112 if max(len(str(gl)), len(str(gv))) == 1 else 84)
+    dorado, apagado = {"grad": (ORO_CLARO, ORO_OSCURO)}, {"color": (205, 190, 160)}
+    lz.texto((450 - 28, cy + 4), str(gl), fg, anchor="rm", **(dorado if gl >= gv else apagado))
+    lz.texto((450 + 28, cy + 4), str(gv), fg, anchor="lm", **(dorado if gv >= gl else apagado))
+    lz.texto((450, cy + 4), "-", _fuente("titulo", 64), TENUE, anchor="mm", sombra=False)
+
+    for cx, (lineas, f), gana in ((200, nombres[0], gl > gv), (700, nombres[1], gv > gl)):
+        for i, linea in enumerate(lineas):
+            if gana:
+                lz.texto((cx, y_nombres + i * 40), linea, f, anchor="ma", grad=(ORO_CLARO, ORO_OSCURO))
+            else:
+                lz.texto((cx, y_nombres + i * 40), linea, f, CREMA, anchor="ma")
+
+    # ---------- goles y tarjetas bajo cada equipo ----------
+    if n_eventos:
+        lz.panel((80, y_sep, 820, y_sep + 1.5), 0, ORO + (70,))
+        _columna_eventos(lz, columnas[0], 82, y_ev, 340, "izq", TAM, PASO, MAX_LINEAS)
+        _columna_eventos(lz, columnas[1], 818, y_ev, 340, "der", TAM, PASO, MAX_LINEAS)
+        lz.panel((449, y_ev + 6, 451, y_ev + n_eventos * PASO - 6), 0, ORO + (70,))
+
+    _pie(lz, alto - 64, getattr(liga, "nombre_corto", None))
+    return lz.exportar()
+
+
+# =========================================================
+# 4d. TABLA DE POSICIONES
 # =========================================================
 
 FILA_H = 52
@@ -1062,6 +1378,11 @@ def crear_img_partidos(torneo, partidos, titulo=None, filename="partidos.png"):
     return _respuesta(render_partidos(torneo, partidos, titulo), filename)
 
 
+def crear_img_resultado_partido(partido, formato="publicacion"):
+    """Imagen compacta del resultado (el alto se ajusta al contenido)."""
+    return _respuesta(render_resultado_partido(partido, formato), _resultado_partido_filename(partido, formato))
+
+
 # ---------------------------------------------------------
 # Helpers conservados del módulo anterior (por compatibilidad con otras partes del proyecto)
 # ---------------------------------------------------------
@@ -1154,13 +1475,7 @@ def _fecha_texto(valor):
 
 
 def _descargar_bytes(url, timeout=15):
-    try:
-        r = requests.get(_normalizar_url(url), timeout=timeout)
-        r.raise_for_status()
-        return r.content
-    except Exception:
-        logger.warning("[PDF] No se pudo descargar %s", url, exc_info=True)
-        return None
+    return _leer_bytes(url, timeout)
 
 
 def _marca_agua_pdf(liga, opacidad=0.10):

@@ -43,7 +43,13 @@ from .documentos import (
     crear_ficha_jugador_pdf,
     crear_papeleta_partido_pdf,
 )
-from .utils import crear_img_fechas, crear_img_tabla, crear_img_partidos, crear_pdf_detalle_equipo
+from .utils import (
+    crear_img_fechas,
+    crear_img_tabla,
+    crear_img_partidos,
+    crear_img_resultado_partido,
+    crear_pdf_detalle_equipo,
+)
 
 
 def generar_password_temporal(length=14):
@@ -1374,6 +1380,27 @@ def descargar_partidos_dia_imagen(request, fecha):
         titulo=titulo,
         filename=f"partidos-{fecha_jugada.isoformat()}.png",
     )
+
+def descargar_resultado_partido_imagen(request, partido_id):
+    partido = get_object_or_404(
+        Partido.objects.select_related(
+            "torneo",
+            "equipo_local__liga",
+            "equipo_visitante__liga",
+            "equipo_local",
+            "equipo_visitante",
+            "cancha",
+        ).prefetch_related(
+            "goles__equipo",
+            "goles__jugador",
+        ),
+        id=partido_id,
+        goles_local__isnull=False,
+        goles_visitante__isnull=False,
+    )
+    formato = request.GET.get("formato", "historia")
+
+    return crear_img_resultado_partido(partido, formato=formato)
 
 def descargar_fechas_imagen(request, torneo_id):
     torneo = get_object_or_404(

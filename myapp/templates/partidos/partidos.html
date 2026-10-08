@@ -104,29 +104,38 @@
 
                                     <td class="col-fecha" data-label="Fecha">{{ partido.fecha_hora }}</td>
                                         <td class="col-acciones" data-label="Acciones">
-                                            {% if goles or tarjetas %}
-                                            <button
-                                                type="button"
-                                                class="btn editar btn-detalles-partido"
-                                                data-detalle-id="{{ partido.id }}"
-                                                aria-controls="detalle-{{ partido.id }}"
-                                                aria-expanded="false"
-                                                title="Ver detalles"
-                                            >
-                                                <i class="fa-solid fa-circle-info"></i>
-                                            </button>
-                                            {% endif %}
-                                            {% if user.is_staff %}
-                                            <button class="btn editar" title="Editar"
-                                            onclick="window.location='/partidos/editar/{{ partido.id }}/'">
-                                                <i class="fa-solid fa-pen"></i>
-                                            </button>
-                                            <button type="button"
-                                            onclick='confirmarEliminar("{{ partido.id }}")'
-                                            class="btn eliminar" title="Eliminar">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                            {% endif %}
+                                            <div class="acciones-botones">
+                                                {% if goles or tarjetas %}
+                                                <button
+                                                    type="button"
+                                                    class="btn editar btn-detalles-partido"
+                                                    data-detalle-id="{{ partido.id }}"
+                                                    aria-controls="detalle-{{ partido.id }}"
+                                                    aria-expanded="false"
+                                                    title="Ver detalles"
+                                                >
+                                                    <i class="fa-solid fa-circle-info"></i>
+                                                </button>
+                                                {% endif %}
+                                                <a
+                                                    href="{% url 'descargar_resultado_partido_imagen' partido.id %}"
+                                                    class="btn descargar"
+                                                    title="Descargar historia del resultado"
+                                                >
+                                                    <i class="fa-solid fa-image"></i>
+                                                </a>
+                                                {% if user.is_staff %}
+                                                <button class="btn editar" title="Editar"
+                                                onclick="window.location='/partidos/editar/{{ partido.id }}/'">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </button>
+                                                <button type="button"
+                                                onclick='confirmarEliminar("{{ partido.id }}")'
+                                                class="btn eliminar" title="Eliminar">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                 </tr>
                                     {% if goles or tarjetas %}
