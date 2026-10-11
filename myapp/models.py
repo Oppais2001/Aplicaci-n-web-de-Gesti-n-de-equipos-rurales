@@ -107,7 +107,7 @@ class Equipo(models.Model):
     
     @property
     def nombre_corto(self):
-        return self.__str__
+        return str(self)
     
     @property
     def cantidad_jugadores(self):
