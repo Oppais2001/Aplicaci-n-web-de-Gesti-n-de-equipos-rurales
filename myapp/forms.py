@@ -1593,15 +1593,23 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
         if not partido or not partido.pk:
             return
 
-        contador_goles = {
-            partido.equipo_local_id: 0,
-            partido.equipo_visitante_id: 0,
+        # Leer el marcador guardado en BD (no depender de la instancia en memoria)
+        marcador = (
+            Partido.objects
+            .filter(pk=partido.pk)
+            .values("goles_local", "goles_visitante")
+            .first()
+        )
+
+        if not marcador:
+            return
+
+        limites = {
+            partido.equipo_local_id: marcador["goles_local"],
+            partido.equipo_visitante_id: marcador["goles_visitante"],
         }
 
-        equipos_partido = {
-            partido.equipo_local_id,
-            partido.equipo_visitante_id,
-        }
+        contador_goles = {equipo_id: 0 for equipo_id in limites}
 
         for form in self.forms:
 
@@ -1615,11 +1623,11 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
             jugador = form.cleaned_data.get("jugador")
             autogol = form.cleaned_data.get("autogol", False)
 
+            # Fila vacía
             if not equipo:
                 continue
 
-            # El equipo debe participar en el partido.
-            if equipo.pk not in equipos_partido:
+            if equipo.pk not in limites:
                 raise ValidationError(
                     "Los goles deben pertenecer a uno de los equipos del partido."
                 )
@@ -1629,45 +1637,41 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
             if not jugador:
                 continue
 
-            # Gol normal.
-            if not autogol:
-
-                if not jugador_puede_actuar_por_equipo(jugador, equipo):
-                    raise ValidationError(
-                        f"{jugador} no pertenece a la liga de {equipo}."
-                    )
-
-            # Autogol.
-            else:
-
-                if jugador.equipo_id == equipo.pk:
-                    raise ValidationError(
-                        f"El autogol de {jugador} debe beneficiar al equipo contrario."
-                    )
-
-                if not jugador_puede_actuar_por_equipo(jugador, equipo):
-                    raise ValidationError(
-                        f"{jugador} no pertenece a la liga de {equipo}."
-                    )
-
-        # Los goleadores son opcionales: se puede registrar ninguno,
-        # algunos o todos. Solo impedimos registrar más goles que el marcador.
-        if partido.goles_local is not None:
-
-            if contador_goles.get(partido.equipo_local_id, 0) > partido.goles_local:
+            if not jugador_puede_actuar_por_equipo(jugador, equipo):
                 raise ValidationError(
-                    f"El equipo local tiene {partido.goles_local} goles "
-                    f"en el marcador, pero se intentaron registrar "
-                    f"{contador_goles.get(partido.equipo_local_id, 0)}."
+                    f"{jugador} no pertenece a la liga de {equipo}."
                 )
 
-        if partido.goles_visitante is not None:
-
-            if contador_goles.get(partido.equipo_visitante_id, 0) > partido.goles_visitante:
+            # En un autogol, "equipo" es el que se beneficia,
+            # así que el jugador debe ser del equipo contrario.
+            if autogol and jugador.equipo_id == equipo.pk:
                 raise ValidationError(
-                    f"El equipo visitante tiene {partido.goles_visitante} goles "
-                    f"en el marcador, pero se intentaron registrar "
-                    f"{contador_goles.get(partido.equipo_visitante_id, 0)}."
+                    f"El autogol de {jugador} debe beneficiar al equipo contrario."
+                )
+
+        # Validar contra el marcador
+        for equipo_id, cantidad in contador_goles.items():
+
+            if cantidad == 0:
+                continue
+
+            limite = limites[equipo_id]
+
+            if limite is None:
+                raise ValidationError(
+                    "Primero debes registrar el resultado del partido "
+                    "antes de ingresar goleadores."
+                )
+
+            if cantidad > limite:
+                nombre = (
+                    partido.equipo_local
+                    if equipo_id == partido.equipo_local_id
+                    else partido.equipo_visitante
+                )
+                raise ValidationError(
+                    f"{nombre} tiene {limite} gol(es) en el marcador, "
+                    f"pero intentaste registrar {cantidad}."
                 )
 
 
@@ -1679,3 +1683,24 @@ GolPartidoFormSet = inlineformset_factory(
     extra=10,
     can_delete=True,
 )
+
+
+def crear_gol_partido_formset(partido):
+    """
+    Devuelve una clase de formset de goles con tantas filas vacías como
+    goles tenga el marcador (minimo 1), en vez de un tope fijo de 10.
+
+    Uso en la vista:
+        GolFormSet = crear_gol_partido_formset(partido)
+        formset = GolFormSet(request.POST or None, instance=partido)
+    """
+    total_goles = (partido.goles_local or 0) + (partido.goles_visitante or 0)
+
+    return inlineformset_factory(
+        Partido,
+        GolPartido,
+        form=GolPartidoForm,
+        formset=BaseGolPartidoFormSet,
+        extra=max(total_goles, 1),
+        can_delete=True,
+    )
