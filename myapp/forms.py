@@ -1593,20 +1593,13 @@ class BaseGolPartidoFormSet(BaseInlineFormSet):
         if not partido or not partido.pk:
             return
 
-        # Leer el marcador guardado en BD (no depender de la instancia en memoria)
-        marcador = (
-            Partido.objects
-            .filter(pk=partido.pk)
-            .values("goles_local", "goles_visitante")
-            .first()
-        )
-
-        if not marcador:
-            return
-
         limites = {
-            partido.equipo_local_id: marcador["goles_local"],
-            partido.equipo_visitante_id: marcador["goles_visitante"],
+            # La vista aplica el resultado enviado al objeto antes de validar
+            # este formset. Usar esos valores permite guardar resultado y
+            # goleadores en un solo envío, sin exigir que el resultado ya
+            # exista previamente en la base de datos.
+            partido.equipo_local_id: partido.goles_local,
+            partido.equipo_visitante_id: partido.goles_visitante,
         }
 
         contador_goles = {equipo_id: 0 for equipo_id in limites}
