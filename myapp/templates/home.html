@@ -11,30 +11,183 @@
             <p>Se han registrado <strong>{{total_jugadores}}</strong> jugador en total</p>
             <p>Se han registrado <strong>{{total_equipos}}</strong> equipos en total</p>
             <p>Se han registrado <strong>{{total_traspasos}}</strong> traspasos en total</p>
-
         </div>
     </div>
-    <div>
-        <div class="card">
-            <h2><i class="fa fa-users"></i>Resumen por equipo</h2>
-            {% for equipo, valor in equipos.items %}
-                {% if valor == 1 %}
-                <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugador</p>
-                {% else %} 
-                <p><strong> {{ equipo }} </strong> tiene <strong>{{ valor }}</strong> jugadores</p>
-                {% endif %}
-            {% endfor %}
+    <div class="card">
+        <h2><i class="fa fa-futbol"></i> Top de goleadores</h2>
+        <div class="tabla-goleadores-contenedor">
+            <table class="tabla-goleadores">
+                <thead>
+                    <tr>
+                        <th scope="col">Posición</th>
+                        <th scope="col">Jugador</th>
+                        <th scope="col">Equipo</th>
+                        <th scope="col">Goles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for goleador in top_goleadores %}
+                    <tr>
+                        <td data-label="Posición">{{ forloop.counter }}</td>
+                        <td data-label="Jugador">{{ goleador.nombre_simplificado }}</td>
+                        <td data-label="Equipo">{{ goleador.equipo_nombre_corto }}</td>
+                        <td data-label="Goles"><strong>{{ goleador.total_goles }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="tabla-vacia">Aún no hay goleadores registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="acciones-tabla contenedor-acciones-personalizado">
+            <p class="goleadores-pendientes">
+                Goles sin goleador registrado:
+                <strong>{{ total_goleadores_no_registrados }}</strong>
+            </p>
+            <a href="{% url 'descargar_goleadores_imagen' %}" class="btn descargar btn-descargar-png">
+                <i class="fa-solid fa-download"></i>
+                <span>Descargar PNG</span>
+            </a>
         </div>
     </div>
 </div>
 
 <style>
+.contenedor-acciones-personalizado {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn-descargar-png {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    flex: 0 0 auto;
+}
 .links-home {
     font-size: 2rem;
+}
 
+.tabla-goleadores-contenedor {
+    overflow-x: auto;
+}
+.tabla-goleadores {
+    width: 100%;
+    border-collapse: collapse;
+}
+.tabla-goleadores th,
+.tabla-goleadores td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+.tabla-goleadores th:last-child,
+.tabla-goleadores td:last-child {
+    text-align: right;
+}
+.tabla-vacia {
+    text-align: center !important;
+}
+.goleadores-pendientes {
+    margin-bottom: 0;
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 768px) {
+    .tabla-goleadores th,
+    .tabla-goleadores td {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* ---------- Móvil: filas como tarjetas ---------- */
+@media (max-width: 600px) {
+    .tabla-goleadores thead {
+        /* Oculto visualmente pero accesible para lectores de pantalla */
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+
+    .tabla-goleadores,
+    .tabla-goleadores tbody,
+    .tabla-goleadores tr,
+    .tabla-goleadores td {
+        display: block;
+        width: 100%;
+    }
+
+    .tabla-goleadores tr {
+        margin-bottom: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 0.25rem 0.75rem;
+    }
+
+    .tabla-goleadores td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+        text-align: right !important;
+    }
+
+    .tabla-goleadores td:last-child {
+        border-bottom: none;
+    }
+
+    /* Etiqueta de la columna a la izquierda */
+    .tabla-goleadores td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    /* Mensaje de tabla vacía sin etiqueta */
+    .tabla-goleadores td.tabla-vacia {
+        display: block;
+        text-align: center !important;
+    }
+    .tabla-goleadores td.tabla-vacia::before {
+        content: none;
+    }
+
+    /* Acciones: apiladas y botón a todo el ancho */
+    .contenedor-acciones-personalizado {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .contenedor-acciones-personalizado .goleadores-pendientes {
+        margin: 0;
+    }
+
+    .btn-descargar-png {
+        width: 100%;
+        padding: 0.8rem 1rem;   /* más alto, más fácil de tocar */
+        font-size: 1rem;
+    }
 }
 </style>
-
 
 {% endblock %}
 

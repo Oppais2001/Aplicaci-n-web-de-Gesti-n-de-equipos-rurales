@@ -15,7 +15,7 @@ from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Dirigente, Equipo, Jugador, Traspaso, Prestamo, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo
+from .models import Dirigente, Equipo, Jugador, Traspaso, Prestamo, Liga, RedSocial, Arbitro, Cancha, Partido, Torneo, GolPartido
 from .forms import (
     Editar_Dirigentes,
     Editar_Traspaso,
@@ -48,6 +48,7 @@ from .utils import (
     crear_img_tabla,
     crear_img_partidos,
     crear_img_resultado_partido,
+    crear_img_goleadores,
     crear_pdf_detalle_equipo,
 )
 
@@ -64,6 +65,24 @@ def generar_password_temporal(length=14):
     password.extend(secrets.choice(caracteres) for _ in range(length - len(password)))
     secrets.SystemRandom().shuffle(password)
     return "".join(password)
+
+
+def _obtener_top_goleadores(goles):
+    filas = list(
+        goles
+        .filter(jugador__isnull=False, autogol=False)
+        .values("jugador_id", "jugador__nombre", "equipo_id", "equipo__nombre")
+        .annotate(total_goles=Count("id"))
+        .order_by("-total_goles", "jugador__nombre")[:10]
+    )
+    equipos = Equipo.objects.in_bulk({fila["equipo_id"] for fila in filas})
+    for fila in filas:
+        partes = fila["jugador__nombre"].strip().split()
+        fila["nombre_simplificado"] = (
+            f"{partes[0]} {partes[-2]}" if len(partes) >= 3 else fila["jugador__nombre"]
+        )
+        fila["equipo_nombre_corto"] = equipos[fila["equipo_id"]].nombre_corto
+    return filas
 
 
 def generar_username_dirigente(dirigente):
@@ -184,12 +203,34 @@ def home(request):
         for equipo in equipos
     }
 
+    equipos_visibles_ids = [equipo.id for equipo in equipos]
+    goles = GolPartido.objects.filter(equipo_id__in=equipos_visibles_ids)
+    top_goleadores = _obtener_top_goleadores(goles)
+    total_goleadores_no_registrados = goles.filter(jugador__isnull=True).count()
+
     return render(request, 'home.html', {
         'equipos': lista_equipos_dict,
         'total_equipos': len(equipos),
         'total_jugadores': sum(lista_equipos_dict.values()),
-        'total_traspasos': total_traspasos
+        'total_traspasos': total_traspasos,
+        'top_goleadores': top_goleadores,
+        'total_goleadores_no_registrados': total_goleadores_no_registrados,
     })
+
+
+def descargar_goleadores_imagen(request):
+    dirigente = obtener_dirigente(request.user)
+    if not es_administrador(request.user) and dirigente is not None and dirigente.exists():
+        equipos_ids = dirigente.values_list("equipo_id", flat=True)
+    else:
+        equipos_ids = Equipo.objects.values_list("id", flat=True)
+
+    goles = GolPartido.objects.filter(equipo_id__in=equipos_ids)
+    goleadores = _obtener_top_goleadores(goles)
+    total_no_registrados = goles.filter(jugador__isnull=True).count()
+    return crear_img_goleadores(goleadores, total_no_registrados)
+
+
 # acesso libre a jugadores
 def about(request):
     return render(request, 'about.html')

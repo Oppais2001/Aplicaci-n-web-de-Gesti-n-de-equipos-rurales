@@ -1360,6 +1360,61 @@ def render_tabla(torneo, tabla_posiciones, fondo_img=None):
     return lz.exportar()
 
 
+def render_goleadores(goleadores, total_no_registrados):
+    filas = list(goleadores)
+    enc = ALTO_ENCABEZADO
+    alto = enc + 24 + 52 + max(len(filas), 1) * FILA_PASO + 150
+    lz = Lienzo(alto)
+    lz.fondo()
+    lz.resplandor(450, enc, 520, ORO, 0.10)
+    lz.patron()
+    lz.vineta()
+    _encabezado(lz, "Top de goleadores")
+
+    y = enc + 24
+    fh = _fuente("semi", 22)
+    for x, texto in ((80, "POS"), (150, "JUGADOR"), (610, "EQUIPO"), (820, "GOLES")):
+        lz.texto((x, y + 14), texto, fh, ORO, anchor="mm" if x != 150 else "lm", sombra=False)
+    lz.panel((40, y + 34, 860, y + 36), 0, ORO + (110,))
+    y += 52
+
+    if filas:
+        for pos, fila in enumerate(filas, start=1):
+            podio = PODIO.get(pos)
+            lz.panel((40, y, 860, y + FILA_H), 14,
+                     (12, 9, 6, 165) if pos % 2 else (30, 22, 14, 150),
+                     borde=(podio + (120,)) if podio else (255, 255, 255, 18),
+                     grosor=1.5 if podio else 1)
+            cy = y + FILA_H / 2
+            if podio:
+                lz.draw.ellipse((S(80 - 19), S(cy - 19), S(80 + 19), S(cy + 19)), fill=podio)
+                lz.texto((80, cy + 1), str(pos), _fuente("titulo", 28), TINTA, anchor="mm", sombra=False)
+            else:
+                lz.texto((80, cy + 1), str(pos), _fuente("titulo", 30), (205, 195, 175), anchor="mm", sombra=False)
+            nombre = str(fila["nombre_simplificado"]).upper()
+            equipo = str(fila["equipo_nombre_corto"]).upper()
+            lz.texto((150, cy + 1), nombre, lz.fuente_ajustada(nombre, "nombre", 27, 420, minimo=16),
+                     CREMA, anchor="lm")
+            lz.texto((610, cy + 1), equipo, lz.fuente_ajustada(equipo, "nombre", 24, 180, minimo=14),
+                     (205, 195, 175), anchor="mm")
+            lz.panel((780, y + 7, 860, y + FILA_H - 7), 14, CAFE + (230,), borde=ORO, grosor=1.5)
+            lz.texto((820, cy + 1), str(fila["total_goles"]), _fuente("titulo", 32),
+                     anchor="mm", sombra=False, grad=(ORO_CLARO, ORO_OSCURO))
+            y += FILA_PASO
+    else:
+        lz.panel((40, y, 860, y + FILA_H), 14, (12, 9, 6, 165), borde=(255, 255, 255, 18))
+        lz.texto((450, y + FILA_H / 2), "AÚN NO HAY GOLEADORES REGISTRADOS", _fuente("semi", 24),
+                 (205, 195, 175), anchor="mm")
+        y += FILA_PASO
+
+    lz.panel((40, y + 8, 860, y + 64), 14, (30, 22, 14, 190), borde=ORO + (100,))
+    lz.texto((70, y + 36), "GOLES SIN GOLEADOR REGISTRADO", _fuente("semi", 21), CREMA, anchor="lm")
+    lz.texto((820, y + 36), str(total_no_registrados), _fuente("titulo", 32),
+             anchor="mm", sombra=False, grad=(ORO_CLARO, ORO_OSCURO))
+    _pie(lz, alto - 64)
+    return lz.exportar()
+
+
 # =========================================================
 # 5. API DE IMÁGENES PARA LAS VISTAS (HttpResponse)
 # =========================================================
@@ -1368,6 +1423,10 @@ def crear_img_tabla(torneo, tabla_posiciones):
     ruta = finders.find("img/tabla_fondo.png")
     fondo = Image.open(ruta) if ruta else None
     return _respuesta(render_tabla(torneo, tabla_posiciones, fondo), "tabla.png")
+
+
+def crear_img_goleadores(goleadores, total_no_registrados):
+    return _respuesta(render_goleadores(goleadores, total_no_registrados), "goleadores.png")
 
 
 def crear_img_fechas(torneo, partidos, liga, titulo=None, filename="fechas.png"):
