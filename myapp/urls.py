@@ -26,6 +26,7 @@ urlpatterns = [
     path('equipos/editar/<int:id_equipo>/', views.editar_equipo, name='editar_equipo'),
     path('equipos/eliminar/<str:nombre>/', views.eliminar_equipo, name='eliminar_equipo'),
     path('jugadores/ingresar_jugador', views.ingresar_jugador, name='ingresar_jugador'),
+    path('jugadores/buscar/', views.buscar_jugadores_publico, name='buscar_jugadores_publico'),
     path('jugadores/editar/<int:id>/', views.editar_jugador, name='editar_jugador'),
     path('jugadores/eliminar/<str:rut>/', views.eliminar_jugador, name='eliminar_jugador'),
     path('jugadores/receso', views.jugadores_receso, name='jugadores_receso'),

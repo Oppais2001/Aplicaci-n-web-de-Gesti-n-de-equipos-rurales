@@ -207,7 +207,6 @@ def home(request):
     goles = GolPartido.objects.filter(equipo_id__in=equipos_visibles_ids)
     top_goleadores = _obtener_top_goleadores(goles)
     total_goleadores_no_registrados = goles.filter(jugador__isnull=True).count()
-
     return render(request, 'home.html', {
         'equipos': lista_equipos_dict,
         'total_equipos': len(equipos),
@@ -215,6 +214,49 @@ def home(request):
         'total_traspasos': total_traspasos,
         'top_goleadores': top_goleadores,
         'total_goleadores_no_registrados': total_goleadores_no_registrados,
+    })
+
+
+def buscar_jugadores_publico(request):
+    buscar_jugador = request.GET.get("buscar_jugador", "").strip()
+    jugadores_encontrados = []
+    if buscar_jugador:
+        jugadores_encontrados = list(
+            Jugador.objects
+            .filter(nombre__icontains=buscar_jugador)
+            .select_related("equipo")
+            .annotate(
+                tarjetas_amarillas=Count(
+                    "tarjetas",
+                    filter=Q(tarjetas__tipo_tarjeta="amarilla"),
+                    distinct=True,
+                ),
+                tarjetas_rojas=Count(
+                    "tarjetas",
+                    filter=Q(tarjetas__tipo_tarjeta="roja"),
+                    distinct=True,
+                ),
+                goles_registrados=Count(
+                    "goles",
+                    filter=Q(goles__autogol=False),
+                    distinct=True,
+                ),
+            )
+            .order_by("nombre")[:20]
+        )
+        hoy = timezone.localdate()
+        for jugador in jugadores_encontrados:
+            if jugador.fecha_nacimiento:
+                jugador.edad = hoy.year - jugador.fecha_nacimiento.year - (
+                    (hoy.month, hoy.day)
+                    < (jugador.fecha_nacimiento.month, jugador.fecha_nacimiento.day)
+                )
+            else:
+                jugador.edad = None
+
+    return render(request, "jugadores/buscar.html", {
+        "buscar_jugador": buscar_jugador,
+        "jugadores_encontrados": jugadores_encontrados,
     })
 
 

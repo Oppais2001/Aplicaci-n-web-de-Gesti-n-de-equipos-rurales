@@ -1,0 +1,334 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="contenedor-busqueda-jugadores">
+    <div class="card-title">
+        <h1>Buscar Jugadores</h1>
+    </div>
+
+    <section class="card">
+        <p class="busqueda-intro">
+            Busca por nombre para consultar la edad y las estadísticas registradas del jugador.
+        </p>
+
+        <form method="get" action="{% url 'buscar_jugadores_publico' %}" class="busqueda-jugador-form" role="search">
+            <label for="buscar-jugador" class="busqueda-label">Nombre del jugador</label>
+            <div class="busqueda-jugador-controles">
+                <div class="busqueda-campo">
+                    <i class="fa-solid fa-magnifying-glass busqueda-icono" aria-hidden="true"></i>
+                    <input
+                        id="buscar-jugador"
+                        type="search"
+                        name="buscar_jugador"
+                        value="{{ buscar_jugador }}"
+                        placeholder="Escribe el nombre del jugador"
+                        autocomplete="off"
+                    >
+                </div>
+                <button type="submit" class="btn btn-buscar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Buscar</span>
+                </button>
+            </div>
+        </form>
+
+        {% if buscar_jugador %}
+            {% if jugadores_encontrados %}
+            <p class="resultados-resumen" aria-live="polite">
+                <strong>{{ jugadores_encontrados|length }}</strong>
+                resultado{{ jugadores_encontrados|length|pluralize }} para
+                «{{ buscar_jugador }}»
+            </p>
+
+            <div class="tabla-wrapper">
+                <table class="tabla-jugadores-publica tabla-responsive">
+                    <thead>
+                        <tr>
+                            <th scope="col">Jugador</th>
+                            <th scope="col">Equipo</th>
+                            <th scope="col">Edad</th>
+                            <th scope="col">Goles</th>
+                            <th scope="col">Amarillas</th>
+                            <th scope="col">Rojas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for jugador in jugadores_encontrados %}
+                        <tr>
+                            <td data-label="Jugador"><strong>{{ jugador.nombre_simplificado }}</strong></td>
+                            <td data-label="Equipo">
+                                <span class="equipo-chip">{{ jugador.equipo.nombre_corto }}</span>
+                            </td>
+                            <td data-label="Edad">
+                                {% if jugador.edad != None %}{{ jugador.edad }} años{% else %}<span class="dato-vacio">—</span>{% endif %}
+                            </td>
+                            <td data-label="Goles">
+                                <span class="stat-goles">
+                                    <i class="fa-solid fa-futbol" aria-hidden="true"></i>
+                                    {{ jugador.goles_registrados }}
+                                </span>
+                            </td>
+                            <td data-label="Tarjetas amarillas">
+                                <span class="stat-tarjeta stat-amarilla">
+                                    <span class="tarjeta-icono" aria-hidden="true"></span>
+                                    {{ jugador.tarjetas_amarillas }}
+                                </span>
+                            </td>
+                            <td data-label="Tarjetas rojas">
+                                <span class="stat-tarjeta stat-roja">
+                                    <span class="tarjeta-icono" aria-hidden="true"></span>
+                                    {{ jugador.tarjetas_rojas }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if jugadores_encontrados|length == 20 %}
+            <p class="nota-resultados">
+                <i class="fa-solid fa-circle-info"></i>
+                Se muestran hasta 20 coincidencias. Escribe más del nombre para acotar la búsqueda.
+            </p>
+            {% endif %}
+
+            {% else %}
+            <div class="estado-vacio">
+                <i class="fa-regular fa-face-frown" aria-hidden="true"></i>
+                <p class="sin-resultados-jugador">No se encontraron jugadores con ese nombre.</p>
+                <span>Revisa la ortografía o prueba con una parte del nombre.</span>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="estado-vacio estado-inicial">
+                <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                <span>Los resultados aparecerán aquí.</span>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.contenedor-busqueda-jugadores {
+    margin: 0 auto;
+    max-width: 1000px;
+    padding: 0 1rem 2rem;
+}
+
+.contenedor-busqueda-jugadores .card {
+    border: 1px solid var(--borde);
+    margin-top: 1rem;
+}
+
+.busqueda-intro {
+    color: var(--texto-tenue-2);
+}
+
+/* ---------- Buscador ---------- */
+.busqueda-jugador-form {
+    margin: 1.25rem 0 1.5rem;
+}
+
+.busqueda-label {
+    color: var(--color-principal);
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.busqueda-jugador-controles {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.busqueda-campo {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+
+.busqueda-icono {
+    color: var(--texto-tenue);
+    left: 14px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Sobrescribe el input global (wheat / 3vh / margin) */
+.busqueda-campo input {
+    background: #202020;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+    color: var(--texto-principal);
+    font-size: 1rem;
+    margin: 0;
+    min-height: 48px;
+    outline: none;
+    padding: 0 14px 0 42px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+}
+
+.busqueda-campo input::placeholder {
+    color: var(--texto-tenue);
+}
+
+.busqueda-campo input:focus {
+    border-color: var(--color-principal);
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
+}
+
+/* Sobrescribe el button global (Impact / 1.5rem / margin) */
+.busqueda-jugador-controles .btn-buscar {
+    align-items: center;
+    background: var(--color-secundario);
+    border-radius: var(--radio-md);
+    display: inline-flex;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0;
+    min-height: 48px;
+    padding: 0 1.4rem;
+    white-space: nowrap;
+}
+
+.busqueda-jugador-controles .btn-buscar:hover {
+    background: #8f2c1f;
+}
+
+/* ---------- Resultados ---------- */
+.resultados-resumen {
+    color: var(--texto-tenue-2);
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+}
+
+.resultados-resumen strong {
+    font-size: 1.1rem;
+}
+
+.tabla-jugadores-publica tbody tr:hover {
+    cursor: default;
+}
+
+.tabla-jugadores-publica th:nth-child(1) { width: 24%; }
+.tabla-jugadores-publica td strong {
+    color: var(--color-principal);
+    font-size: 1rem;
+}
+
+.equipo-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.2rem 0.7rem;
+}
+
+.dato-vacio {
+    color: var(--texto-tenue);
+}
+
+.stat-goles {
+    align-items: center;
+    color: var(--color-principal);
+    display: inline-flex;
+    font-weight: 700;
+    gap: 0.4rem;
+}
+
+.stat-tarjeta {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.45rem;
+    padding: 0.2rem 0.65rem;
+}
+
+.tarjeta-icono {
+    border-radius: 2px;
+    display: inline-block;
+    height: 14px;
+    width: 10px;
+}
+
+.stat-amarilla {
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    color: #ffd84d;
+}
+.stat-amarilla .tarjeta-icono { background: #ffd000; }
+
+.stat-roja {
+    background: rgba(231, 76, 60, 0.14);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    color: #ff8274;
+}
+.stat-roja .tarjeta-icono { background: #e74c3c; }
+
+.nota-resultados {
+    align-items: center;
+    color: var(--texto-tenue);
+    display: flex;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    margin: 0.9rem 0 0;
+}
+
+/* ---------- Estados vacíos ---------- */
+.estado-vacio {
+    align-items: center;
+    border: 1px dashed var(--borde);
+    border-radius: var(--radio-md);
+    color: var(--texto-tenue);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.estado-vacio > i {
+    color: var(--color-principal);
+    font-size: 2rem;
+    opacity: 0.7;
+}
+
+.sin-resultados-jugador {
+    color: var(--texto-principal);
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ---------- Escritorio: números centrados ---------- */
+@media (min-width: 641px) {
+    .tabla-jugadores-publica th:nth-child(n+3),
+    .tabla-jugadores-publica td:nth-child(n+3) {
+        text-align: center;
+    }
+}
+
+/* ---------- Móvil ---------- */
+@media (max-width: 480px) {
+    .busqueda-jugador-controles {
+        flex-direction: column;
+    }
+    .busqueda-jugador-controles .btn-buscar {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
